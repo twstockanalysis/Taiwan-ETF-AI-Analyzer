@@ -2,7 +2,7 @@
 -- SQLite database schema
 
 CREATE TABLE IF NOT EXISTS etf_master (
-    code TEXT PRIMARY KEY,
+    code TEXT NOT NULL PRIMARY KEY,
 
     name TEXT NOT NULL,
 
