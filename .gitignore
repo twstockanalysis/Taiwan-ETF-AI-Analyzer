@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 .vscode/
 .env
+# SQLite database files
+database/*.db
+database/*.db-shm
+database/*.db-wal
