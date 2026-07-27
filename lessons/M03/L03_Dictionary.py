@@ -39,3 +39,20 @@ etf_database = [
 ]
 
 print(etf_database)
+my_portfolio = [
+    {
+        "code": "00918",
+        "shares": 1000,
+        "buy_price": 22.5
+    },
+    {
+        "code": "00919",
+        "shares": 2000,
+        "buy_price": 24.1
+    },
+    {
+        "code": "00713",
+        "shares": 1500,
+        "buy_price": 51.8
+    }
+]
