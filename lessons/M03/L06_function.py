@@ -94,6 +94,3 @@ def evaluate_etf(etf):
         score +=10
 
     return score
-for etf in etf_database:
-
-    print(etf["code"],evaluate_etf(etf))
