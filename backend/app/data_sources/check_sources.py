@@ -20,6 +20,10 @@ def main() -> None:
         print(f"型態：{source.source_type}")
         print(f"優先順序：{source.priority}")
         print(f"Base URL：{source.base_url}")
+        print(
+            f"規格網址："
+            f"{source.specification_url}"
+        )
         print("-" * 70)
 
     print(f"啟用來源數量：{len(sources)}")
