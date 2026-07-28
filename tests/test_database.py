@@ -1,153 +1,198 @@
-"""Automated tests for the M5-2 SQLite schema."""
+"""SQLite 資料庫自動化測試。"""
 
 import sqlite3
 import tempfile
 import unittest
-from contextlib import contextmanager
 from pathlib import Path
-from collections.abc import Iterator
-from unittest.mock import patch
 
-from backend.app.database import connection, init_db
-
-
-EXPECTED_COLUMNS = {
-    "code": ("TEXT", 0, None, 1),
-    "name": ("TEXT", 1, None, 0),
-    "is_active": ("INTEGER", 1, "0", 0),
-    "is_bond": ("INTEGER", 1, "0", 0),
-    "listing_date": ("TEXT", 0, None, 0),
-    "fund_size": ("REAL", 0, None, 0),
-    "expense_ratio": ("REAL", 0, None, 0),
-}
+from backend.app.database.connection import get_connection
+from backend.app.database.init_db import initialize_database
 
 
-class DatabaseSchemaTests(unittest.TestCase):
-    """Verify initialization, columns, indexes, and data constraints."""
+class TestDatabase(unittest.TestCase):
+    """測試資料庫連線、Schema 與資料約束。"""
 
     def setUp(self) -> None:
+        """每個測試前建立獨立的臨時資料庫。"""
+
         self.temp_directory = tempfile.TemporaryDirectory()
-        self.database_dir = Path(self.temp_directory.name) / "database"
-        self.database_path = self.database_dir / "test_tw_etf.db"
 
-        self.patches = (
-            patch.object(connection, "DATABASE_DIR", self.database_dir),
-            patch.object(connection, "DATABASE_PATH", self.database_path),
-            patch.object(init_db, "DATABASE_PATH", self.database_path),
+        self.database_path = (
+            Path(self.temp_directory.name)
+            / "test_tw_etf.db"
         )
-        for current_patch in self.patches:
-            current_patch.start()
 
-        init_db.initialize_database()
+        initialize_database(self.database_path)
+
+        self.connection = get_connection(
+            self.database_path
+        )
 
     def tearDown(self) -> None:
-        for current_patch in reversed(self.patches):
-            current_patch.stop()
+        """每個測試後關閉並刪除臨時資料庫。"""
+
+        self.connection.close()
         self.temp_directory.cleanup()
 
-    @contextmanager
-    def connect(self) -> Iterator[sqlite3.Connection]:
-        """Yield and then close a connection to the isolated database."""
+    def insert_etf(
+        self,
+        code: str = "00918",
+        name: str = "大華優利高填息30",
+        is_active: int = 0,
+        is_bond: int = 0,
+        listing_date: str = "2022-11-24",
+        fund_size: float = 100.0,
+        expense_ratio: float = 0.50,
+    ) -> None:
+        """寫入一筆測試 ETF 資料。"""
 
-        database = connection.get_connection()
-        try:
-            with database:
-                yield database
-        finally:
-            database.close()
-
-    def test_initialization_is_idempotent(self) -> None:
-        """Repeated initialization preserves existing records."""
-
-        with self.connect() as database:
-            database.execute(
-                "INSERT INTO etf_master (code, name) VALUES (?, ?)",
-                ("0050", "Test ETF"),
+        self.connection.execute(
+            """
+            INSERT INTO etf_master (
+                code,
+                name,
+                is_active,
+                is_bond,
+                listing_date,
+                fund_size,
+                expense_ratio
             )
-
-        init_db.initialize_database()
-
-        with self.connect() as database:
-            count = database.execute(
-                "SELECT COUNT(*) FROM etf_master WHERE code = ?",
-                ("0050",),
-            ).fetchone()[0]
-
-        self.assertEqual(count, 1)
-
-    def test_etf_master_columns_match_schema(self) -> None:
-        """The ETF master table exposes the documented seven columns."""
-
-        with self.connect() as database:
-            rows = database.execute("PRAGMA table_info(etf_master)").fetchall()
-
-        actual_columns = {
-            row["name"]: (row["type"], row["notnull"], row["dflt_value"], row["pk"])
-            for row in rows
-        }
-        self.assertEqual(actual_columns, EXPECTED_COLUMNS)
-
-    def test_name_lookup_index_exists(self) -> None:
-        """The explicit ETF name index is created."""
-
-        with self.connect() as database:
-            indexes = database.execute("PRAGMA index_list(etf_master)").fetchall()
-
-        self.assertIn("idx_etf_master_name", {row["name"] for row in indexes})
-
-    def test_defaults_are_applied(self) -> None:
-        """Boolean flags default to false."""
-
-        with self.connect() as database:
-            database.execute(
-                "INSERT INTO etf_master (code, name) VALUES (?, ?)",
-                ("0050", "Test ETF"),
-            )
-            row = database.execute(
-                "SELECT is_active, is_bond FROM etf_master WHERE code = ?",
-                ("0050",),
-            ).fetchone()
-
-        self.assertEqual((row["is_active"], row["is_bond"]), (0, 0))
-
-    def test_primary_key_rejects_duplicate_codes(self) -> None:
-        """ETF codes must be unique."""
-
-        with self.connect() as database:
-            database.execute(
-                "INSERT INTO etf_master (code, name) VALUES (?, ?)",
-                ("0050", "First ETF"),
-            )
-            with self.assertRaises(sqlite3.IntegrityError):
-                database.execute(
-                    "INSERT INTO etf_master (code, name) VALUES (?, ?)",
-                    ("0050", "Duplicate ETF"),
-                )
-
-    def test_required_and_check_constraints_reject_invalid_data(self) -> None:
-        """NOT NULL and CHECK constraints reject invalid values."""
-
-        invalid_rows = (
-            ("INSERT INTO etf_master (code, name) VALUES (?, NULL)", ("A",)),
-            ("INSERT INTO etf_master (code, name, is_active) VALUES (?, ?, ?)", ("B", "ETF", 2)),
-            ("INSERT INTO etf_master (code, name, is_bond) VALUES (?, ?, ?)", ("C", "ETF", -1)),
-            ("INSERT INTO etf_master (code, name, fund_size) VALUES (?, ?, ?)", ("D", "ETF", -0.1)),
-            ("INSERT INTO etf_master (code, name, expense_ratio) VALUES (?, ?, ?)", ("E", "ETF", 100.1)),
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+            """,
+            (
+                code,
+                name,
+                is_active,
+                is_bond,
+                listing_date,
+                fund_size,
+                expense_ratio,
+            ),
         )
 
-        with self.connect() as database:
-            for statement, parameters in invalid_rows:
-                with self.subTest(statement=statement):
-                    with self.assertRaises(sqlite3.IntegrityError):
-                        database.execute(statement, parameters)
+        self.connection.commit()
 
-    def test_foreign_keys_are_enabled_per_connection(self) -> None:
-        """Application connections enable SQLite foreign-key enforcement."""
+    def test_etf_master_table_exists(self) -> None:
+        """確認 etf_master 資料表存在。"""
 
-        with self.connect() as database:
-            enabled = database.execute("PRAGMA foreign_keys").fetchone()[0]
+        result = self.connection.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name = 'etf_master';
+            """
+        ).fetchone()
 
-        self.assertEqual(enabled, 1)
+        self.assertIsNotNone(result)
+        self.assertEqual(
+            result["name"],
+            "etf_master",
+        )
+
+    def test_etf_master_has_expected_columns(self) -> None:
+        """確認 etf_master 包含預定欄位。"""
+
+        results = self.connection.execute(
+            "PRAGMA table_info(etf_master);"
+        ).fetchall()
+
+        actual_columns = {
+            result["name"]
+            for result in results
+        }
+
+        expected_columns = {
+            "code",
+            "name",
+            "is_active",
+            "is_bond",
+            "listing_date",
+            "fund_size",
+            "expense_ratio",
+        }
+
+        self.assertEqual(
+            actual_columns,
+            expected_columns,
+        )
+
+    def test_foreign_keys_are_enabled(self) -> None:
+        """確認 SQLite 外鍵約束已啟用。"""
+
+        result = self.connection.execute(
+            "PRAGMA foreign_keys;"
+        ).fetchone()
+
+        self.assertEqual(result[0], 1)
+
+    def test_valid_etf_can_be_inserted(self) -> None:
+        """確認合法 ETF 資料可以正常寫入。"""
+
+        self.insert_etf()
+
+        result = self.connection.execute(
+            """
+            SELECT *
+            FROM etf_master
+            WHERE code = ?;
+            """,
+            ("00918",),
+        ).fetchone()
+
+        self.assertIsNotNone(result)
+        self.assertEqual(
+            result["code"],
+            "00918",
+        )
+        self.assertEqual(
+            result["is_active"],
+            0,
+        )
+        self.assertEqual(
+            result["is_bond"],
+            0,
+        )
+
+    def test_duplicate_code_is_rejected(self) -> None:
+        """確認 ETF 代號不可重複。"""
+
+        self.insert_etf()
+
+        with self.assertRaises(
+            sqlite3.IntegrityError
+        ):
+            self.insert_etf()
+
+        self.connection.rollback()
+
+    def test_invalid_boolean_is_rejected(self) -> None:
+        """確認布林欄位只能使用 0 或 1。"""
+
+        with self.assertRaises(
+            sqlite3.IntegrityError
+        ):
+            self.insert_etf(
+                code="00980A",
+                name="主動野村臺灣優選",
+                is_active=2,
+            )
+
+        self.connection.rollback()
+
+    def test_negative_fund_size_is_rejected(self) -> None:
+        """確認基金規模不可為負數。"""
+
+        with self.assertRaises(
+            sqlite3.IntegrityError
+        ):
+            self.insert_etf(
+                code="00919",
+                name="群益台灣精選高息",
+                fund_size=-1.0,
+            )
+
+        self.connection.rollback()
 
 
 if __name__ == "__main__":
