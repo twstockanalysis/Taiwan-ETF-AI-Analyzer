@@ -56,6 +56,7 @@ DATA_SOURCES: dict[str, DataSource] = {
             "swagger.json"
         ),
         priority=1,
+        allow_legacy_x509=True,
     ),
     "tpex_openapi": DataSource(
         source_id="tpex_openapi",
