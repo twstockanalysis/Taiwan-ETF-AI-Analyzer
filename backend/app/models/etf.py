@@ -1,0 +1,64 @@
+"""ETF API 資料模型。"""
+
+from datetime import date
+
+from pydantic import BaseModel, Field
+
+
+class ETFResponse(BaseModel):
+    """ETF 主資料 API 回應模型。"""
+
+    code: str = Field(
+        description="ETF 證券代號",
+        examples=["00918"],
+    )
+
+    name: str = Field(
+        description="ETF 中文名稱",
+    )
+
+    is_active: bool = Field(
+        description="是否為主動式 ETF",
+    )
+
+    is_bond: bool = Field(
+        description="是否為債券 ETF",
+    )
+
+    listing_date: date | None = Field(
+        default=None,
+        description="上市日期",
+    )
+
+    fund_size: float | None = Field(
+        default=None,
+        description="基金規模，單位為新台幣億元",
+    )
+
+    expense_ratio: float | None = Field(
+        default=None,
+        description="總費用率，單位為百分比",
+    )
+
+
+class ETFListResponse(BaseModel):
+    """ETF 分頁列表 API 回應模型。"""
+
+    items: list[ETFResponse] = Field(
+        description="本頁 ETF 資料",
+    )
+
+    total: int = Field(
+        ge=0,
+        description="符合條件的 ETF 總筆數",
+    )
+
+    limit: int = Field(
+        ge=1,
+        description="單次回傳筆數上限",
+    )
+
+    offset: int = Field(
+        ge=0,
+        description="略過的資料筆數",
+    )
