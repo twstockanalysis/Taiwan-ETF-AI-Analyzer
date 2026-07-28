@@ -129,3 +129,34 @@ must be reviewed and recorded.
 
 Public accessibility must not automatically be treated as
 permission for unrestricted redistribution.
+
+## OpenAPI Specification Snapshots
+
+The project downloads and stores the official OpenAPI
+specifications before implementing an endpoint adapter.
+
+Snapshot location:
+
+```text
+data/raw/openapi/{source_id}/
+```
+
+Each snapshot includes:
+
+- Original OpenAPI JSON
+- Download timestamp
+- SHA-256 checksum
+- Number of documented paths
+- Source specification URL
+
+The project does not assume that an endpoint is suitable for
+ETF master data merely because its name contains "fund".
+
+Every candidate endpoint must be reviewed for:
+
+- Whether it represents an exchange-traded ETF
+- Whether it includes delisted products
+- Whether it includes dual-currency listings
+- Whether it contains active ETFs
+- Whether it distinguishes stock and bond ETFs
+- Available identifiers and listing dates

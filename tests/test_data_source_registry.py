@@ -40,6 +40,9 @@ class TestDataSourceRegistry(unittest.TestCase):
         self.assertTrue(
             source.enabled
         )
+        self.assertIsNotNone(
+            source.specification_url
+        )
 
     def test_tpex_openapi_exists(self) -> None:
         """確認 TPEx OpenAPI 已登錄。"""
@@ -54,6 +57,9 @@ class TestDataSourceRegistry(unittest.TestCase):
         )
         self.assertTrue(
             source.enabled
+        )
+        self.assertIsNotNone(
+            source.specification_url
         )
 
     def test_source_id_is_case_insensitive(
