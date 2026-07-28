@@ -21,3 +21,17 @@
 - Update existing records safely
 - Record import results and errors
 - Replace development seed records
+
+
+### M6: ETF Data Engine
+
+- Official TWSE and TPEx source registry
+- OpenAPI specification snapshots
+- Official ETF master download
+- Raw-data checksums and metadata
+- ETF normalization and classification
+- Processed and rejected data artifacts
+- SQLite ETF master upsert
+- Import batch records
+- Data quality reports
+- Automated pipeline tests

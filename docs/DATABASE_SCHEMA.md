@@ -92,3 +92,10 @@ The import does not overwrite:
 
 This prevents a master-data import that lacks financial metrics
 from clearing values obtained from other official sources.
+
+## Import Batch Table
+
+Table name:
+
+```text
+import_batch

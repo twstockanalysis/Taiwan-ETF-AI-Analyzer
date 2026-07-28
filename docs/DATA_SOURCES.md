@@ -262,3 +262,10 @@ DEV002A
 The `is_active` column means actively managed ETF.
 
 It must not be used as a listing-status or record-enabled flag.
+
+## End-to-End ETF Master Pipeline
+
+Run the full ETF master pipeline:
+
+```powershell
+python -m backend.app.data_sources.etf_master_pipeline
