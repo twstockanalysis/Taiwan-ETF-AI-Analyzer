@@ -75,3 +75,27 @@ python -m backend.app.database.check_schema
 
 Automated tests create an isolated temporary database and never read or write
 `database/tw_etf.db`.
+
+## ETF Master Upsert Policy
+
+The official master import updates:
+
+- `name`
+- `is_active`
+- `is_bond`
+- `listing_date`
+
+The import does not overwrite:
+
+- `fund_size`
+- `expense_ratio`
+
+This prevents a master-data import that lacks financial metrics
+from clearing values obtained from other official sources.
+
+## Import Batch Table
+
+Table name:
+
+```text
+import_batch
