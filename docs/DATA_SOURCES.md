@@ -228,3 +228,37 @@ The project must not use:
 ```python
 verify=False
 ```
+
+## ETF Master Import
+
+Normalized ETF records are loaded from:
+
+```text
+data/processed/etf_master/twse_fund_master/latest.json
+```
+
+Before importing, every record is validated again with
+`ETFImportRecord`.
+
+The import is executed inside a SQLite transaction.
+
+Import behavior:
+
+- New ETF codes are inserted
+- Existing ETF codes are updated
+- ETF names and classification fields are refreshed
+- Existing fund size values are preserved
+- Existing expense ratio values are preserved
+- M5 development records are removed
+- Duplicate ETF codes abort the import
+
+Development records removed by the importer:
+
+```text
+DEV001
+DEV002A
+```
+
+The `is_active` column means actively managed ETF.
+
+It must not be used as a listing-status or record-enabled flag.
