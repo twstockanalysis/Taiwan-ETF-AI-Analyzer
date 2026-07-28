@@ -38,7 +38,7 @@ class TestDataSourceRegistry(unittest.TestCase):
             Market.TWSE,
         )
         self.assertTrue(
-            source.enabled
+            source.allow_legacy_x509
         )
         self.assertIsNotNone(
             source.specification_url
@@ -56,7 +56,7 @@ class TestDataSourceRegistry(unittest.TestCase):
             Market.TPEX,
         )
         self.assertTrue(
-            source.enabled
+            source.allow_legacy_x509
         )
         self.assertIsNotNone(
             source.specification_url

@@ -160,3 +160,71 @@ Every candidate endpoint must be reviewed for:
 - Whether it contains active ETFs
 - Whether it distinguishes stock and bond ETFs
 - Available identifiers and listing dates
+
+## TWSE ETF Master Dataset
+
+Endpoint ID:
+
+```text
+twse_fund_master
+```
+
+Official API URL:
+
+```text
+https://openapi.twse.com.tw/v1/opendata/t187ap47_L
+```
+
+Dataset purpose:
+
+- ETF and fund security codes
+- Fund names
+- Fund types
+- Establishment dates
+- Listing dates
+- Other official fund master attributes
+
+The source dataset is a fund master dataset and is not assumed
+to contain only ETFs.
+
+Records must pass the ETF normalization and validation process
+before being imported into `etf_master`.
+
+## Raw ETF Master Snapshots
+
+Raw snapshots are stored under:
+
+```text
+data/raw/etf_master/twse_fund_master/
+```
+
+Each download creates:
+
+- Timestamped JSON data
+- Timestamped metadata
+- `latest.json`
+- `latest.meta.json`
+- SHA-256 checksum
+- Record count
+- Source field list
+
+These generated files are excluded from Git.
+
+## HTTPS Compatibility
+
+Python 3.13 enables strict X.509 certificate checks by default.
+
+The current TWSE and TPEx certificate chains require the project
+to disable only the strict X.509 formatting flag.
+
+The downloader still retains:
+
+- Certificate authority verification
+- Hostname verification
+- HTTPS encryption
+
+The project must not use:
+
+```python
+verify=False
+```
