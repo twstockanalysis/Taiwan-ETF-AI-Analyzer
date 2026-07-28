@@ -39,3 +39,26 @@ class ETFResponse(BaseModel):
         default=None,
         description="總費用率，單位為百分比",
     )
+
+
+class ETFListResponse(BaseModel):
+    """ETF 分頁列表 API 回應模型。"""
+
+    items: list[ETFResponse] = Field(
+        description="本頁 ETF 資料",
+    )
+
+    total: int = Field(
+        ge=0,
+        description="符合條件的 ETF 總筆數",
+    )
+
+    limit: int = Field(
+        ge=1,
+        description="單次回傳筆數上限",
+    )
+
+    offset: int = Field(
+        ge=0,
+        description="略過的資料筆數",
+    )
