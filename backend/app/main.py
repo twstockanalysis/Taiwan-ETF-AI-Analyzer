@@ -2,54 +2,25 @@
 
 from fastapi import FastAPI
 
-
-# 建立 FastAPI 應用程式物件。
-#
-# title：
-# 顯示在自動產生的 API 文件中。
-#
-# description：
-# 說明這個後端 API 的用途。
-#
-# version：
-# 目前 API 的版本。
-app = FastAPI(
-    title="TW ETF AI Analyzer API",
-    description="台灣 ETF 分析網站後端 API",
-    version="0.1.0",
-)
+from backend.app.api.router import api_router
 
 
-@app.get(
-    "/",
-    tags=["System"],
-    summary="API 首頁",
-)
-async def read_root() -> dict[str, str]:
-    """回傳 API 基本資訊。
+def create_app() -> FastAPI:
+    """建立並設定 FastAPI 應用程式。
 
     Returns:
-        dict[str, str]: API 名稱及目前執行狀態。
+        FastAPI: 完成設定的 FastAPI 應用程式。
     """
 
-    return {
-        "message": "TW ETF AI Analyzer API",
-        "status": "running",
-    }
+    application = FastAPI(
+        title="TW ETF AI Analyzer API",
+        description="台灣 ETF 分析網站後端 API",
+        version="0.1.0",
+    )
+
+    application.include_router(api_router)
+
+    return application
 
 
-@app.get(
-    "/health",
-    tags=["System"],
-    summary="健康檢查",
-)
-async def health_check() -> dict[str, str]:
-    """檢查後端 API 是否正常運作。
-
-    Returns:
-        dict[str, str]: API 健康狀態。
-    """
-
-    return {
-        "status": "healthy",
-    }
+app = create_app()
