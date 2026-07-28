@@ -10,3 +10,13 @@ venv/
 # Python cache
 __pycache__/
 *.py[cod]
+
+# Downloaded and generated ETF data
+data/raw/*
+data/processed/*
+data/rejected/*
+
+# Keep data directory structure
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/rejected/.gitkeep
