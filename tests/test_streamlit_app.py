@@ -21,6 +21,8 @@ STREAMLIT_APP_PATH = (
 
 
 SEARCH_PAGE_SCRIPT = """
+from unittest.mock import patch
+
 import frontend.pages.etf_search as page
 
 
@@ -54,7 +56,14 @@ def fake_fetch_etfs(**kwargs):
 
 page.fetch_etfs = fake_fetch_etfs
 page.load_etf_page.clear()
-page.render_etf_search()
+
+# AppTest.from_string 沒有建立完整的多頁導航註冊表。
+# 整列 page_link 參數由獨立單元測試負責驗證；
+# 此處只測試 ETF 搜尋頁其他畫面元件是否正常呈現。
+with patch(
+    "frontend.pages.etf_search.st.page_link"
+):
+    page.render_etf_search()
 """
 
 
@@ -154,10 +163,10 @@ class TestStreamlitApp(unittest.TestCase):
             )
         )
 
-    def test_search_page_renders_etf_table(
+    def test_search_page_renders_clickable_rows(
         self,
     ) -> None:
-        """確認 ETF 查詢頁顯示正式表格。"""
+        """確認 ETF 查詢頁顯示可點擊資料列。"""
 
         app = AppTest.from_string(
             SEARCH_PAGE_SCRIPT,
@@ -176,28 +185,17 @@ class TestStreamlitApp(unittest.TestCase):
             "ETF 查詢",
         )
 
-        self.assertEqual(
-            len(app.dataframe),
-            1,
-        )
+        caption_values = [
+            item.value
+            for item in app.caption
+        ]
 
-        dataframe = app.dataframe[0].value
-
-        self.assertEqual(
-            len(dataframe),
-            2,
-        )
-
-        self.assertEqual(
-            str(
-                dataframe.iloc[0]["代號"]
-            ),
-            "0050",
-        )
-
-        self.assertEqual(
-            dataframe.iloc[0]["上市日期"],
-            "2003-06-30",
+        self.assertTrue(
+            any(
+                "整列會顯示可點擊效果"
+                in caption
+                for caption in caption_values
+            )
         )
 
     def test_detail_page_uses_gregorian_date(

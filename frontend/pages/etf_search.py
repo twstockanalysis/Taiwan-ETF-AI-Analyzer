@@ -54,6 +54,132 @@ SEARCH_STATE_DEFAULTS: dict[
 }
 
 
+def format_optional_number(
+    value: Any,
+    suffix: str,
+    decimal_places: int = 2,
+) -> str:
+    """格式化可能為空白的數值。
+
+    Args:
+        value:
+            API 回傳數值。
+        suffix:
+            顯示單位。
+        decimal_places:
+            小數位數。
+
+    Returns:
+        str:
+            格式化結果。
+    """
+
+    if value is None:
+        return "—"
+
+    try:
+        number = float(value)
+
+    except (
+        TypeError,
+        ValueError,
+    ):
+        return "格式異常"
+
+    return (
+        f"{number:,.{decimal_places}f}"
+        f"{suffix}"
+    )
+
+
+def format_clickable_etf_row(
+    item: dict[str, Any],
+) -> str:
+    """建立整列 ETF 顯示文字。"""
+
+    code = str(
+        item["code"]
+    ).strip().upper()
+
+    name = str(
+        item["name"]
+    ).strip()
+
+    management_type = (
+        "主動式"
+        if item["is_active"]
+        else "被動式"
+    )
+
+    asset_type = (
+        "債券"
+        if item["is_bond"]
+        else "非債券"
+    )
+
+    listing_date = (
+        str(item["listing_date"])
+        if item["listing_date"]
+        else "—"
+    )
+
+    fund_size = format_optional_number(
+        item["fund_size"],
+        " 億元",
+    )
+
+    expense_ratio = format_optional_number(
+        item["expense_ratio"],
+        "%",
+    )
+
+    return (
+        f"**{code}**　"
+        f"{name}"
+        f"　│　{management_type}"
+        f"　│　{asset_type}"
+        f"　│　{listing_date}"
+        f"　│　規模 {fund_size}"
+        f"　│　費用率 {expense_ratio}"
+    )
+
+
+def render_clickable_etf_rows(
+    items: list[dict[str, Any]],
+) -> None:
+    """顯示整列可點擊的 ETF 搜尋結果。"""
+
+    st.caption(
+        "代號與名稱｜管理方式｜資產類型｜"
+        "上市日期｜基金規模｜費用率"
+    )
+
+    for item in items:
+        code = str(
+            item["code"]
+        ).strip().upper()
+
+        name = str(
+            item["name"]
+        ).strip()
+
+        st.page_link(
+            "page_scripts/etf_detail_page.py",
+            label=format_clickable_etf_row(
+                item
+            ),
+            icon=":material/chevron_right:",
+            icon_position="right",
+            help=(
+                f"查看 {code} {name} 詳細資料"
+            ),
+            width="stretch",
+            query_params={
+                "code": code,
+            },
+        )
+
+
 def initialize_search_state() -> None:
     """初始化 ETF 搜尋頁 Session State。"""
 
@@ -95,81 +221,6 @@ def load_etf_page(
         limit=limit,
         offset=offset,
     )
-
-
-def open_etf_detail(
-    code: str,
-) -> None:
-    """前往 ETF 詳細資料頁。
-
-    Args:
-        code:
-            ETF 證券代號。
-    """
-
-    detail_page = st.Page(
-        "page_scripts/etf_detail_page.py",
-        title="ETF 詳細資料",
-        icon="📄",
-        url_path="etf-detail",
-        visibility="hidden",
-    )
-
-    st.switch_page(
-        detail_page,
-        query_params={
-            "code": code,
-        },
-    )
-
-
-def format_etf_rows(
-    items: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """將 ETF API 資料轉成畫面欄位。
-
-    Args:
-        items:
-            ETF API 資料。
-
-    Returns:
-        list[dict[str, Any]]:
-            適合表格顯示的 ETF 資料。
-    """
-
-    display_rows: list[
-        dict[str, Any]
-    ] = []
-
-    for item in items:
-        display_rows.append(
-            {
-                "代號": item["code"],
-                "ETF 名稱": item["name"],
-                "管理方式": (
-                    "主動式"
-                    if item["is_active"]
-                    else "被動式"
-                ),
-                "資產類型": (
-                    "債券"
-                    if item["is_bond"]
-                    else "非債券"
-                ),
-                "上市日期": (
-                    item["listing_date"]
-                    or "—"
-                ),
-                "基金規模（億元）": (
-                    item["fund_size"]
-                ),
-                "費用率（%）": (
-                    item["expense_ratio"]
-                ),
-            }
-        )
-
-    return display_rows
 
 
 def render_search_form() -> None:
@@ -526,26 +577,8 @@ def render_etf_search() -> None:
         )
         return
 
-    display_rows = format_etf_rows(
+    render_clickable_etf_rows(
         items
-    )
-
-    table_key = (
-        "etf_search_results::"
-        f"{keyword}::"
-        f"{active_label}::"
-        f"{bond_label}::"
-        f"{page_size}::"
-        f"{current_page}"
-    )
-
-    selection_event = st.dataframe(
-        display_rows,
-        hide_index=True,
-        width="stretch",
-        key=table_key,
-        on_select="rerun",
-        selection_mode="single-row",
     )
 
     st.caption(
@@ -555,51 +588,11 @@ def render_etf_search() -> None:
         f"共 {total:,} 筆"
     )
 
-    selected_rows = list(
-        selection_event.selection.rows
+    st.caption(
+        "滑鼠移到 ETF 資料列時，"
+        "整列會顯示可點擊效果；"
+        "單擊即可進入詳細資料頁。"
     )
-
-    if selected_rows:
-        selected_index = (
-            selected_rows[0]
-        )
-
-        if selected_index < len(items):
-            selected_item = items[
-                selected_index
-            ]
-
-            selected_code = str(
-                selected_item["code"]
-            )
-
-            selected_name = str(
-                selected_item["name"]
-            )
-
-            st.info(
-                f"已選擇："
-                f"{selected_code} "
-                f"{selected_name}"
-            )
-
-            if st.button(
-                "查看 ETF 詳細資料",
-                type="primary",
-                key=(
-                    "open_etf_detail_"
-                    f"{selected_code}"
-                ),
-            ):
-                open_etf_detail(
-                    selected_code
-                )
-
-    else:
-        st.caption(
-            "選取表格中的一列，"
-            "即可查看 ETF 詳細資料。"
-        )
 
     render_pagination(
         current_page=current_page,
