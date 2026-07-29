@@ -184,6 +184,33 @@ class TestTWSEFundNormalizer(
             1,
         )
 
+    def test_compact_roc_date_is_parsed(
+        self,
+    ) -> None:
+        """確認七位數民國日期轉為西元。"""
+
+        result = parse_listing_date(
+        "0920630"
+    )
+
+        self.assertEqual(
+        result,
+        date(2003, 6, 30),
+    )
+    
+    def test_compact_gregorian_date_is_parsed(
+        self,
+    ) -> None:
+        """確認八位數西元日期。"""
+
+        result = parse_listing_date(
+        "20030630"
+    )
+
+        self.assertEqual(
+        result,
+        date(2003, 6, 30),
+    )
 
 if __name__ == "__main__":
     unittest.main()
