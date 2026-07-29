@@ -31,6 +31,15 @@ def main() -> None:
         render_etf_search,
         title="ETF 查詢",
         icon="🔍",
+        url_path="etf-search",
+    )
+
+    etf_detail_page = st.Page(
+        "page_scripts/etf_detail_page.py",
+        title="ETF 詳細資料",
+        icon="📄",
+        url_path="etf-detail",
+        visibility="hidden",
     )
 
     navigation = st.navigation(
@@ -38,6 +47,7 @@ def main() -> None:
             "TW ETF AI Analyzer": [
                 home_page,
                 etf_search_page,
+                etf_detail_page,
             ],
         }
     )

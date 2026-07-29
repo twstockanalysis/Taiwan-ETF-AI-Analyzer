@@ -97,6 +97,32 @@ def load_etf_page(
     )
 
 
+def open_etf_detail(
+    code: str,
+) -> None:
+    """前往 ETF 詳細資料頁。
+
+    Args:
+        code:
+            ETF 證券代號。
+    """
+
+    detail_page = st.Page(
+        "page_scripts/etf_detail_page.py",
+        title="ETF 詳細資料",
+        icon="📄",
+        url_path="etf-detail",
+        visibility="hidden",
+    )
+
+    st.switch_page(
+        detail_page,
+        query_params={
+            "code": code,
+        },
+    )
+
+
 def format_etf_rows(
     items: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -504,10 +530,22 @@ def render_etf_search() -> None:
         items
     )
 
-    st.dataframe(
+    table_key = (
+        "etf_search_results::"
+        f"{keyword}::"
+        f"{active_label}::"
+        f"{bond_label}::"
+        f"{page_size}::"
+        f"{current_page}"
+    )
+
+    selection_event = st.dataframe(
         display_rows,
         hide_index=True,
         width="stretch",
+        key=table_key,
+        on_select="rerun",
+        selection_mode="single-row",
     )
 
     st.caption(
@@ -516,6 +554,52 @@ def render_etf_search() -> None:
         f"{offset + len(items):,} 筆，"
         f"共 {total:,} 筆"
     )
+
+    selected_rows = list(
+        selection_event.selection.rows
+    )
+
+    if selected_rows:
+        selected_index = (
+            selected_rows[0]
+        )
+
+        if selected_index < len(items):
+            selected_item = items[
+                selected_index
+            ]
+
+            selected_code = str(
+                selected_item["code"]
+            )
+
+            selected_name = str(
+                selected_item["name"]
+            )
+
+            st.info(
+                f"已選擇："
+                f"{selected_code} "
+                f"{selected_name}"
+            )
+
+            if st.button(
+                "查看 ETF 詳細資料",
+                type="primary",
+                key=(
+                    "open_etf_detail_"
+                    f"{selected_code}"
+                ),
+            ):
+                open_etf_detail(
+                    selected_code
+                )
+
+    else:
+        st.caption(
+            "選取表格中的一列，"
+            "即可查看 ETF 詳細資料。"
+        )
 
     render_pagination(
         current_page=current_page,

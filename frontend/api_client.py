@@ -1,6 +1,7 @@
 """Streamlit 前端使用的 FastAPI Client。"""
 
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -15,6 +16,12 @@ class APIConnectionError(APIClientError):
 
 class APIResponseError(APIClientError):
     """FastAPI 回應內容不正確時的錯誤。"""
+
+
+class APIResourceNotFoundError(
+    APIResponseError
+):
+    """FastAPI 找不到指定資源。"""
 
 
 def extract_response_detail(
@@ -116,9 +123,19 @@ def get_json(
             error.response
         )
 
+        status_code = (
+            error.response.status_code
+        )
+
+        if status_code == 404:
+            raise APIResourceNotFoundError(
+                f"{operation_name}找不到資料："
+                f"{detail}"
+            ) from error
+
         raise APIResponseError(
             f"{operation_name}失敗："
-            f"HTTP {error.response.status_code}；"
+            f"HTTP {status_code}；"
             f"{detail}"
         ) from error
 
@@ -360,3 +377,72 @@ def fetch_etfs(
         "limit": response_limit,
         "offset": response_offset,
     }
+
+
+def fetch_etf_by_code(
+    api_base_url: str,
+    code: str,
+    timeout_seconds: float = 10.0,
+) -> dict[str, Any]:
+    """依代號取得單筆 ETF 資料。
+
+    Args:
+        api_base_url:
+            FastAPI Base URL。
+        code:
+            ETF 證券代號。
+        timeout_seconds:
+            HTTP 逾時秒數。
+
+    Returns:
+        dict[str, Any]:
+            ETF 主資料。
+
+    Raises:
+        ValueError:
+            ETF 代號為空白。
+        APIClientError:
+            FastAPI 連線或回應錯誤。
+    """
+
+    normalized_code = (
+        code.strip().upper()
+    )
+
+    if not normalized_code:
+        raise ValueError(
+            "ETF 代號不可為空白"
+        )
+
+    encoded_code = quote(
+        normalized_code,
+        safe="",
+    )
+
+    payload = get_json(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            f"/api/v1/etfs/"
+            f"{encoded_code}"
+        ),
+        operation_name=(
+            f"ETF {normalized_code} 查詢"
+        ),
+        timeout_seconds=timeout_seconds,
+    )
+
+    item = validate_etf_item(
+        payload,
+        index=1,
+    )
+
+    response_code = str(
+        item["code"]
+    ).strip().upper()
+
+    if response_code != normalized_code:
+        raise APIResponseError(
+            "ETF 詳細資料代號與查詢代號不一致"
+        )
+
+    return item
