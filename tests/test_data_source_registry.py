@@ -100,11 +100,42 @@ class TestDataSourceRegistry(unittest.TestCase):
             )
         )
 
-        self.assertEqual(
-            len(sources),
-            2,
+        source_ids = {
+            source.source_id
+            for source in sources
+       }
+
+        self.assertTrue(
+            {
+                "twse_openapi",
+                "tpex_openapi",
+                "twse_stock_day",
+            }.issubset(
+                source_ids
+            )
         )
 
+    def test_twse_stock_day_exists(
+        self,
+    ) -> None:
+        """確認 TWSE 歷史價格來源已登錄。"""
+
+        source = get_data_source(
+        "twse_stock_day"
+    )
+
+        self.assertEqual(
+        source.market,
+        Market.TWSE,
+    )
+
+        self.assertTrue(
+        source.enabled
+    )
+
+        self.assertIsNotNone(
+        source.base_url
+    )
 
 if __name__ == "__main__":
     unittest.main()
