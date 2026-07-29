@@ -2,6 +2,9 @@
 
 import streamlit as st
 
+from frontend.pages.etf_search import (
+    render_etf_search,
+)
 from frontend.pages.home import (
     render_home,
 )
@@ -24,10 +27,17 @@ def main() -> None:
         default=True,
     )
 
+    etf_search_page = st.Page(
+        render_etf_search,
+        title="ETF 查詢",
+        icon="🔍",
+    )
+
     navigation = st.navigation(
         {
             "TW ETF AI Analyzer": [
                 home_page,
+                etf_search_page,
             ],
         }
     )
