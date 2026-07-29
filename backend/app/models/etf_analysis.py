@@ -27,6 +27,14 @@ class PerformancePeriod(StrEnum):
     FIVE_YEARS = "5Y"
 
 
+class PerformanceMetric(StrEnum):
+    """ETF 績效計算類型。"""
+
+    PRICE_RETURN = "PRICE_RETURN"
+    TOTAL_RETURN = "TOTAL_RETURN"
+    NAV_RETURN = "NAV_RETURN"
+
+
 class ETFAnalysisBaseModel(BaseModel):
     """ETF 分析匯入模型共用設定。"""
 
@@ -56,6 +64,13 @@ class ETFPerformanceImportRecord(
         description="績效期間",
     )
 
+    metric_code: PerformanceMetric = Field(
+        default=(
+            PerformanceMetric.PRICE_RETURN
+        ),
+        description="績效計算類型",
+    )
+    
     return_pct: Decimal = Field(
         ge=Decimal("-100"),
         max_digits=14,

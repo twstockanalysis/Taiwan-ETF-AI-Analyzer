@@ -115,6 +115,16 @@ CREATE TABLE IF NOT EXISTS etf_performance (
             )
         ),
 
+    metric_code TEXT NOT NULL
+        DEFAULT 'PRICE_RETURN'
+        CHECK (
+            metric_code IN (
+                'PRICE_RETURN',
+                'TOTAL_RETURN',
+                'NAV_RETURN'
+            )
+        ),
+
     return_pct REAL NOT NULL
         CHECK (return_pct >= -100),
 
@@ -144,6 +154,7 @@ CREATE TABLE IF NOT EXISTS etf_performance (
         etf_code,
         as_of_date,
         period_code,
+        metric_code,
         source_id
     )
 );
@@ -152,6 +163,7 @@ CREATE TABLE IF NOT EXISTS etf_performance (
 CREATE INDEX IF NOT EXISTS
 idx_etf_performance_lookup
 ON etf_performance (
+    metric_code,
     period_code,
     as_of_date DESC,
     return_pct DESC
@@ -162,6 +174,8 @@ CREATE INDEX IF NOT EXISTS
 idx_etf_performance_code_date
 ON etf_performance (
     etf_code,
+    metric_code,
+    period_code,
     as_of_date DESC
 );
 
