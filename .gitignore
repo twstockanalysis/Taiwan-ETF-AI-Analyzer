@@ -20,3 +20,9 @@ data/rejected/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/rejected/.gitkeep
+
+# Local SQLite databases and backup files
+**/*.db
+**/*.db.*
+**/*.sqlite
+**/*.sqlite3
