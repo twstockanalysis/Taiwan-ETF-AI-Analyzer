@@ -75,3 +75,15 @@
 - Dividend history import
 - 76W component import
 - Performance and dividend website pages
+
+### M8-2B-R1A Completed
+
+- Added ETF performance metric types
+- Added PRICE_RETURN, TOTAL_RETURN and NAV_RETURN definitions
+- Added safe SQLite performance-table migration
+- Migrated existing performance records to PRICE_RETURN
+- Added reusable multi-period price-return calculator
+- Added 1M, 3M, 6M and 1Y calculations
+- Preserved six-month pipeline compatibility
+- Updated repository uniqueness and ranking filters
+- Added migration and multi-period tests

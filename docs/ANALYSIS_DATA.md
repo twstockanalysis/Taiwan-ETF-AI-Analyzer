@@ -143,3 +143,62 @@ Run a small validation batch:
 
 ```powershell
 python -m backend.app.data_sources.performance_pipeline --limit 10
+
+## Performance Metric Types
+
+Each ETF performance record includes a metric type.
+
+Supported metric codes:
+
+```text
+PRICE_RETURN
+TOTAL_RETURN
+NAV_RETURN
+```
+
+The current TWSE closing-price pipeline produces:
+
+```text
+PRICE_RETURN
+```
+
+Future dividend-adjusted calculations will use:
+
+```text
+TOTAL_RETURN
+```
+
+Future NAV-based calculations will use:
+
+```text
+NAV_RETURN
+```
+
+Performance record uniqueness is:
+
+```text
+ETF code
++ as-of date
++ period
++ metric type
++ source
+```
+
+## Supported Price-Return Periods
+
+The reusable market-price calculator currently supports:
+
+```text
+1M
+3M
+6M
+1Y
+```
+
+The six-month period remains the primary recommendation period.
+
+Shorter periods allow recently listed ETFs to show meaningful
+performance without treating missing six-month history as zero.
+
+Performance periods must be ranked separately. Returns from different
+periods must not be combined into one ranking.
