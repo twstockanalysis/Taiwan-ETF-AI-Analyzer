@@ -126,3 +126,13 @@ unauthorized automated retrieval.
 
 Source component codes and descriptions must be stored before
 the project applies analytical classifications.
+
+## Six-Month Price Return
+
+The first M8 performance metric is the six-month market-price
+return.
+
+Source:
+
+```text
+twse_stock_day
