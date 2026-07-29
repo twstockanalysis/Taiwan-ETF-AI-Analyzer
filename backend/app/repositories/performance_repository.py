@@ -10,6 +10,7 @@ from backend.app.database.connection import (
 )
 from backend.app.models.etf_analysis import (
     ETFPerformanceImportRecord,
+    PerformanceMetric,
     PerformancePeriod,
 )
 from backend.app.utils.date_tools import (
@@ -204,11 +205,11 @@ def validate_unique_performance_keys(
     """確認同一批績效資料沒有重複鍵值。"""
 
     seen_keys: set[
-        tuple[str, str, str, str]
+        tuple[str, str, str, str, str]
     ] = set()
 
     duplicate_keys: set[
-        tuple[str, str, str, str]
+        tuple[str, str, str, str, str]
     ] = set()
 
     for record in records:
@@ -216,6 +217,7 @@ def validate_unique_performance_keys(
             record.etf_code,
             record.as_of_date.isoformat(),
             record.period_code.value,
+            record.metric_code.value,
             record.source_id,
         )
 
@@ -268,6 +270,7 @@ def upsert_performance_records(
                 etf_code,
                 as_of_date,
                 period_code,
+                metric_code,
                 source_id
             FROM etf_performance;
             """
@@ -278,6 +281,7 @@ def upsert_performance_records(
                 row["etf_code"],
                 row["as_of_date"],
                 row["period_code"],
+                row["metric_code"],
                 row["source_id"],
             )
             for row in existing_rows
@@ -288,6 +292,7 @@ def upsert_performance_records(
                 record.etf_code,
                 record.as_of_date.isoformat(),
                 record.period_code.value,
+                record.metric_code.value,
                 record.source_id,
             )
             for record in records
@@ -307,16 +312,18 @@ def upsert_performance_records(
                 etf_code,
                 as_of_date,
                 period_code,
+                metric_code,
                 return_pct,
                 source_id,
                 import_batch_id,
                 source_updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (
                 etf_code,
                 as_of_date,
                 period_code,
+                metric_code,
                 source_id
             )
             DO UPDATE SET
@@ -334,6 +341,7 @@ def upsert_performance_records(
                     record.etf_code,
                     record.as_of_date.isoformat(),
                     record.period_code.value,
+                    record.metric_code.value,
                     float(record.return_pct),
                     record.source_id,
                     record.import_batch_id,
@@ -373,6 +381,9 @@ def list_latest_performance_ranking(
     period_code: PerformancePeriod = (
         PerformancePeriod.SIX_MONTHS
     ),
+    metric_code: PerformanceMetric = (
+        PerformanceMetric.PRICE_RETURN
+    ),
     source_id: str = "twse_stock_day",
     is_active: bool | None = None,
     is_bond: bool | None = False,
@@ -396,11 +407,13 @@ def list_latest_performance_ranking(
 
     conditions = [
         "p.period_code = ?",
+        "p.metric_code = ?",
         "p.source_id = ?",
     ]
 
     parameters: list[Any] = [
         period_code.value,
+        metric_code.value,
         source_id.strip().lower(),
     ]
 
@@ -448,6 +461,7 @@ def list_latest_performance_ranking(
                     m.is_bond,
                     p.as_of_date,
                     p.period_code,
+                    p.metric_code,
                     p.return_pct,
                     p.source_id,
                     ROW_NUMBER() OVER (
@@ -468,6 +482,7 @@ def list_latest_performance_ranking(
                 is_bond,
                 as_of_date,
                 period_code,
+                metric_code,
                 return_pct,
                 source_id
             FROM ranked_performance
@@ -495,6 +510,9 @@ def count_latest_performance_ranking(
     period_code: PerformancePeriod = (
         PerformancePeriod.SIX_MONTHS
     ),
+    metric_code: PerformanceMetric = (
+        PerformanceMetric.PRICE_RETURN
+    ),
     source_id: str = "twse_stock_day",
     is_active: bool | None = None,
     is_bond: bool | None = False,
@@ -503,11 +521,13 @@ def count_latest_performance_ranking(
 
     conditions = [
         "p.period_code = ?",
+        "p.metric_code = ?",
         "p.source_id = ?",
     ]
 
     parameters: list[Any] = [
         period_code.value,
+        metric_code.value,
         source_id.strip().lower(),
     ]
 

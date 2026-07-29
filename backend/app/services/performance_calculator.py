@@ -7,6 +7,10 @@ from decimal import (
     ROUND_HALF_UP,
 )
 
+from backend.app.models.etf_analysis import (
+    PerformanceMetric,
+    PerformancePeriod,
+)
 from backend.app.models.etf_price import (
     ETFDailyCloseRecord,
 )
@@ -21,6 +25,20 @@ class InsufficientPriceHistoryError(
     """ETF 沒有足夠價格歷史。"""
 
 
+class UnsupportedPerformancePeriodError(
+    ValueError
+):
+    """目前市價報酬率不支援指定期間。"""
+
+
+SUPPORTED_PRICE_RETURN_MONTHS = {
+    PerformancePeriod.ONE_MONTH: 1,
+    PerformancePeriod.THREE_MONTHS: 3,
+    PerformancePeriod.SIX_MONTHS: 6,
+    PerformancePeriod.ONE_YEAR: 12,
+}
+
+
 @dataclass(
     frozen=True,
     slots=True,
@@ -29,7 +47,8 @@ class PriceReturnResult:
     """ETF 期間市價報酬率結果。"""
 
     etf_code: str
-    period_code: str
+    period_code: PerformancePeriod
+    metric_code: PerformanceMetric
     as_of_date: date
     target_start_date: date
     actual_start_date: date
@@ -39,31 +58,80 @@ class PriceReturnResult:
     source_id: str
 
 
-def calculate_six_month_price_return(
+def normalize_price_return_period(
+    period_code: PerformancePeriod | str,
+) -> PerformancePeriod:
+    """驗證並正規化績效期間。"""
+
+    try:
+        normalized_period = (
+            PerformancePeriod(
+                period_code
+            )
+        )
+
+    except ValueError as error:
+        raise UnsupportedPerformancePeriodError(
+            f"未知績效期間：{period_code}"
+        ) from error
+
+    if (
+        normalized_period
+        not in SUPPORTED_PRICE_RETURN_MONTHS
+    ):
+        raise UnsupportedPerformancePeriodError(
+            "目前市價報酬率只支援："
+            "1M、3M、6M、1Y"
+        )
+
+    return normalized_period
+
+
+def calculate_price_return(
     records: list[ETFDailyCloseRecord],
+    period_code: PerformancePeriod | str,
     maximum_start_gap_days: int = 14,
 ) -> PriceReturnResult:
-    """計算 ETF 六個月市價報酬率。
+    """計算指定期間的 ETF 市價報酬率。
+
+    期末價格使用資料中最新交易日。
 
     期初價格使用目標日期當日或其後
-    第一個交易日的收盤價。
+    第一個可取得的交易日。
 
     Args:
         records:
-            依交易日期取得的收盤價。
+            ETF 每日收盤價。
+        period_code:
+            1M、3M、6M 或 1Y。
         maximum_start_gap_days:
-            目標期初日與實際交易日允許差距。
+            目標期初日與實際交易日的
+            最大容許差距。
 
     Returns:
         PriceReturnResult:
-            六個月市價報酬率。
+            市價報酬率結果。
 
     Raises:
         InsufficientPriceHistoryError:
-            資料不足六個月。
+            價格歷史不足。
+        UnsupportedPerformancePeriodError:
+            期間目前不支援。
         ValueError:
-            資料內容不一致。
+            資料包含多個 ETF 或來源。
     """
+
+    if maximum_start_gap_days < 0:
+        raise ValueError(
+            "maximum_start_gap_days "
+            "不得小於 0"
+        )
+
+    normalized_period = (
+        normalize_price_return_period(
+            period_code
+        )
+    )
 
     if not records:
         raise InsufficientPriceHistoryError(
@@ -104,9 +172,15 @@ def calculate_six_month_price_return(
 
     end_record = ordered_records[-1]
 
+    period_months = (
+        SUPPORTED_PRICE_RETURN_MONTHS[
+            normalized_period
+        ]
+    )
+
     target_start_date = shift_months(
         end_record.trade_date,
-        -6,
+        -period_months,
     )
 
     start_candidates = [
@@ -118,7 +192,8 @@ def calculate_six_month_price_return(
 
     if not start_candidates:
         raise InsufficientPriceHistoryError(
-            "找不到六個月前的期初價格"
+            f"找不到 {normalized_period.value} "
+            "所需的期初價格"
         )
 
     start_record = start_candidates[0]
@@ -135,7 +210,8 @@ def calculate_six_month_price_return(
         > maximum_start_date
     ):
         raise InsufficientPriceHistoryError(
-            "ETF 上市時間或價格歷史不足六個月"
+            f"ETF 價格歷史不足 "
+            f"{normalized_period.value}"
         )
 
     return_pct = (
@@ -152,7 +228,10 @@ def calculate_six_month_price_return(
 
     return PriceReturnResult(
         etf_code=end_record.etf_code,
-        period_code="6M",
+        period_code=normalized_period,
+        metric_code=(
+            PerformanceMetric.PRICE_RETURN
+        ),
         as_of_date=end_record.trade_date,
         target_start_date=(
             target_start_date
@@ -168,4 +247,21 @@ def calculate_six_month_price_return(
         ),
         return_pct=return_pct,
         source_id=end_record.source_id,
+    )
+
+
+def calculate_six_month_price_return(
+    records: list[ETFDailyCloseRecord],
+    maximum_start_gap_days: int = 14,
+) -> PriceReturnResult:
+    """保留原六個月計算函式的相容介面。"""
+
+    return calculate_price_return(
+        records=records,
+        period_code=(
+            PerformancePeriod.SIX_MONTHS
+        ),
+        maximum_start_gap_days=(
+            maximum_start_gap_days
+        ),
     )
