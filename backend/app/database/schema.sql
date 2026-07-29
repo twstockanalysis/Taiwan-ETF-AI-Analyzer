@@ -89,3 +89,238 @@ ON import_batch (status);
 
 CREATE INDEX IF NOT EXISTS idx_import_batch_started_at
 ON import_batch (started_at);
+
+-- ============================================================
+-- ETF 績效資料
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS etf_performance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    etf_code TEXT NOT NULL,
+
+    as_of_date TEXT NOT NULL,
+
+    period_code TEXT NOT NULL
+        CHECK (
+            period_code IN (
+                '1D',
+                '1W',
+                '1M',
+                '3M',
+                '6M',
+                '1Y',
+                '3Y',
+                '5Y'
+            )
+        ),
+
+    return_pct REAL NOT NULL
+        CHECK (return_pct >= -100),
+
+    source_id TEXT NOT NULL
+        CHECK (length(trim(source_id)) > 0),
+
+    import_batch_id INTEGER,
+
+    source_updated_at TEXT,
+
+    created_at TEXT NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TEXT NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (etf_code)
+        REFERENCES etf_master (code)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (import_batch_id)
+        REFERENCES import_batch (id)
+        ON DELETE SET NULL,
+
+    UNIQUE (
+        etf_code,
+        as_of_date,
+        period_code,
+        source_id
+    )
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_etf_performance_lookup
+ON etf_performance (
+    period_code,
+    as_of_date DESC,
+    return_pct DESC
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_etf_performance_code_date
+ON etf_performance (
+    etf_code,
+    as_of_date DESC
+);
+
+
+-- ============================================================
+-- ETF 配息事件
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS etf_dividend (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    etf_code TEXT NOT NULL,
+
+    source_event_id TEXT NOT NULL
+        CHECK (
+            length(trim(source_event_id)) > 0
+        ),
+
+    announcement_date TEXT,
+
+    ex_dividend_date TEXT,
+
+    record_date TEXT,
+
+    payment_date TEXT,
+
+    amount_per_unit REAL NOT NULL
+        CHECK (amount_per_unit >= 0),
+
+    currency TEXT NOT NULL
+        DEFAULT 'TWD'
+        CHECK (length(currency) = 3),
+
+    source_id TEXT NOT NULL
+        CHECK (length(trim(source_id)) > 0),
+
+    import_batch_id INTEGER,
+
+    source_updated_at TEXT,
+
+    created_at TEXT NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TEXT NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK (
+        announcement_date IS NOT NULL
+        OR ex_dividend_date IS NOT NULL
+        OR record_date IS NOT NULL
+        OR payment_date IS NOT NULL
+    ),
+
+    CHECK (
+        ex_dividend_date IS NULL
+        OR payment_date IS NULL
+        OR payment_date >= ex_dividend_date
+    ),
+
+    FOREIGN KEY (etf_code)
+        REFERENCES etf_master (code)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (import_batch_id)
+        REFERENCES import_batch (id)
+        ON DELETE SET NULL,
+
+    UNIQUE (
+        source_id,
+        source_event_id
+    )
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_etf_dividend_code_payment
+ON etf_dividend (
+    etf_code,
+    payment_date DESC
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_etf_dividend_ex_date
+ON etf_dividend (
+    ex_dividend_date DESC
+);
+
+
+-- ============================================================
+-- ETF 每期配息組成
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS etf_dividend_component (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    dividend_id INTEGER NOT NULL,
+
+    component_code TEXT NOT NULL
+        CHECK (
+            length(trim(component_code)) > 0
+        ),
+
+    component_name TEXT,
+
+    amount_per_unit REAL,
+
+    ratio_pct REAL,
+
+    source_id TEXT NOT NULL
+        CHECK (length(trim(source_id)) > 0),
+
+    import_batch_id INTEGER,
+
+    source_updated_at TEXT,
+
+    created_at TEXT NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TEXT NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK (
+        amount_per_unit IS NOT NULL
+        OR ratio_pct IS NOT NULL
+    ),
+
+    CHECK (
+        amount_per_unit IS NULL
+        OR amount_per_unit >= 0
+    ),
+
+    CHECK (
+        ratio_pct IS NULL
+        OR (
+            ratio_pct >= 0
+            AND ratio_pct <= 100
+        )
+    ),
+
+    FOREIGN KEY (dividend_id)
+        REFERENCES etf_dividend (id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (import_batch_id)
+        REFERENCES import_batch (id)
+        ON DELETE SET NULL,
+
+    UNIQUE (
+        dividend_id,
+        component_code
+    )
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_etf_dividend_component_code
+ON etf_dividend_component (
+    component_code,
+    ratio_pct DESC
+);
