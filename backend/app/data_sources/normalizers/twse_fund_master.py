@@ -188,15 +188,16 @@ def classify_is_bond(
 def parse_listing_date(
     value: Any | None,
 ) -> date | None:
-    """將來源日期轉換成 Python date。
+    """將來源日期轉換成西元 date。
 
     支援格式：
 
-    - YYYY-MM-DD
-    - YYYY/MM/DD
-    - YYYYMMDD
-    - 民國年 YYY/MM/DD
-    - 民國年 YYYMMDD
+    - 西元YYYY-MM-DD
+    - 西元YYYY/MM/DD
+    - 西元YYYYMMDD
+    - 民國 YYY/MM/DD
+    - 民國 YYYMMDD
+    - 民國 YYMMDD
 
     Args:
         value:
@@ -204,7 +205,7 @@ def parse_listing_date(
 
     Returns:
         date | None:
-            正規化日期。
+            轉換完成的西元日期。
 
     Raises:
         ValueError:
@@ -214,6 +215,9 @@ def parse_listing_date(
     if value is None:
         return None
 
+    if isinstance(value, datetime):
+        return value.date()
+
     if isinstance(value, date):
         return value
 
@@ -222,47 +226,69 @@ def parse_listing_date(
     if not text:
         return None
 
-    gregorian_formats = (
-        "%Y-%m-%d",
-        "%Y/%m/%d",
-        "%Y%m%d",
-    )
-
-    for date_format in gregorian_formats:
-        try:
-            return datetime.strptime(
-                text,
-                date_format,
-            ).date()
-
-        except ValueError:
-            continue
-
-    normalized_text = (
-        text.replace("-", "/")
-    )
-
+    # 處理有分隔符號的格式。
+    normalized_text = text.replace("-", "/")
     parts = normalized_text.split("/")
 
     if len(parts) == 3:
         year_text, month_text, day_text = parts
 
-        if (
-            year_text.isdigit()
-            and month_text.isdigit()
-            and day_text.isdigit()
-            and len(year_text) <= 3
+        if not all(
+            part.isdigit()
+            for part in parts
         ):
-            return date(
-                int(year_text) + 1911,
-                int(month_text),
-                int(day_text),
+            raise ValueError(
+                f"無法辨識上市日期：{text}"
             )
 
-    if text.isdigit() and len(text) == 7:
+        year = int(year_text)
+        month = int(month_text)
+        day = int(day_text)
+
+        # 三位數以下視為民國年。
+        if len(year_text) <= 3:
+            year += 1911
+
+        return date(
+            year,
+            month,
+            day,
+        )
+
+    if not text.isdigit():
+        raise ValueError(
+            f"無法辨識上市日期：{text}"
+        )
+
+    # 西元 YYYYMMDD，必須明確為 8 位數。
+    if len(text) == 8:
+        year = int(text[:4])
+        month = int(text[4:6])
+        day = int(text[6:8])
+
+        return date(
+            year,
+            month,
+            day,
+        )
+
+    # 民國 YYYMMDD，例如 0920630。
+    if len(text) == 7:
         roc_year = int(text[:3])
         month = int(text[3:5])
         day = int(text[5:7])
+
+        return date(
+            roc_year + 1911,
+            month,
+            day,
+        )
+
+    # 民國 YYMMDD，例如 920630。
+    if len(text) == 6:
+        roc_year = int(text[:2])
+        month = int(text[2:4])
+        day = int(text[4:6])
 
         return date(
             roc_year + 1911,

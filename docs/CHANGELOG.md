@@ -1,4 +1,4 @@
-2026/7/28
+##2026/7/28
 ### Added
 
 - ETF list pagination
@@ -14,7 +14,8 @@
 - ETF list API now returns a paginated response object
 - ETF Repository now supports dynamic filtering
 
-2026/7/29
+
+##2026/7/29 morning
 ### Added
 
 - End-to-end ETF master update pipeline
@@ -28,3 +29,28 @@
 
 - ETF master download, normalization and import can now run
   through one command
+
+
+##2026/7/29 afternoon
+### Added
+
+- Streamlit frontend application
+- FastAPI connection status
+- ETF search and filtering page
+- ETF pagination controls
+- Hidden ETF detail page
+- ETF detail query parameter navigation
+- Streamlit AppTest coverage
+- Frontend documentation
+
+### Changed
+
+- ETF listing dates are normalized and displayed using the
+  Gregorian ISO 8601 format
+- The website frontend obtains all ETF data through FastAPI
+
+### Fixed
+
+- Seven-digit ROC listing dates are no longer interpreted as
+  Gregorian years
+- ETF 0050 listing date now displays as 2003-06-30

@@ -35,3 +35,30 @@
 - Import batch records
 - Data quality reports
 - Automated pipeline tests
+
+
+### M7: Streamlit Frontend
+
+- Streamlit application shell
+- FastAPI health check
+- Configurable API base URL
+- ETF keyword search
+- Active and passive ETF filters
+- Bond and non-bond filters
+- ETF pagination
+- ETF detail page
+- Gregorian listing-date display
+- Frontend API error handling
+- Streamlit AppTest coverage
+
+
+### M8: ETF Analysis Data
+
+- Define ETF performance history schema
+- Define dividend history schema
+- Define dividend component schema
+- Import official performance data
+- Import official dividend data
+- Store 76W distribution composition
+- Add performance and dividend APIs
+- Display analysis data on the website
