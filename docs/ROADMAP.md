@@ -61,14 +61,17 @@
 - TWSE historical closing-price source
 - Daily price normalization
 - Six-month market-price return calculator
-- Insufficient-history handling
-- Raw performance snapshots
-- Automated source and calculation tests
+- Batch non-bond ETF performance pipeline
+- Performance SQLite upsert
+- Latest six-month performance ranking
+- Insufficient-history and per-ETF error handling
+- Processed, rejected and quality-report files
+- Automated Repository and Pipeline tests
 
 #### Next
 
-- Batch ETF performance calculation
-- Performance SQLite upsert
 - Six-month performance ranking API
 - Dividend event source discovery
+- Dividend history import
 - 76W component import
+- Performance and dividend website pages

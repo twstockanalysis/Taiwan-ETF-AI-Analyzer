@@ -126,3 +126,10 @@ The table supports both:
 
 Component records are deleted automatically when their parent
 distribution event is deleted.
+
+### Performance Upsert Policy
+
+A performance record is uniquely identified by:
+
+```text
+ETF code + as-of date + period + source

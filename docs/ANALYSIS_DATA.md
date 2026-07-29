@@ -136,3 +136,10 @@ Source:
 
 ```text
 twse_stock_day
+
+## Six-Month Performance Pipeline
+
+Run a small validation batch:
+
+```powershell
+python -m backend.app.data_sources.performance_pipeline --limit 10
