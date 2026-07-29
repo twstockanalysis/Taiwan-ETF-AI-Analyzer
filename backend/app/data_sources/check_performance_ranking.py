@@ -1,10 +1,21 @@
-"""顯示 ETF 六個月市價報酬率排行榜。"""
+"""顯示 ETF 指定期間市價報酬率排行榜。"""
 
 import argparse
 
+from backend.app.models.etf_analysis import (
+    PerformancePeriod,
+)
 from backend.app.repositories.performance_repository import (
     count_latest_performance_ranking,
     list_latest_performance_ranking,
+)
+
+
+RANKING_PERIODS = (
+    PerformancePeriod.ONE_MONTH,
+    PerformancePeriod.THREE_MONTHS,
+    PerformancePeriod.SIX_MONTHS,
+    PerformancePeriod.ONE_YEAR,
 )
 
 
@@ -14,8 +25,20 @@ def build_argument_parser(
 
     parser = argparse.ArgumentParser(
         description=(
-            "顯示 ETF 六個月市價報酬率排行榜"
+            "顯示 ETF 指定期間市價報酬率排行榜"
         )
+    )
+
+    parser.add_argument(
+        "--period",
+        choices=tuple(
+            period.value
+            for period in RANKING_PERIODS
+        ),
+        default=(
+            PerformancePeriod.SIX_MONTHS.value
+        ),
+        help="排行榜期間，預設 6M",
     )
 
     parser.add_argument(
@@ -53,6 +76,10 @@ def main() -> None:
         .parse_args()
     )
 
+    period_code = PerformancePeriod(
+        arguments.period
+    )
+
     is_active: bool | None
 
     if arguments.active == "true":
@@ -71,25 +98,31 @@ def main() -> None:
     )
 
     rows = list_latest_performance_ranking(
+        period_code=period_code,
         is_active=is_active,
         is_bond=is_bond,
         limit=arguments.limit,
     )
 
     total = count_latest_performance_ranking(
+        period_code=period_code,
         is_active=is_active,
         is_bond=is_bond,
     )
 
-    print("ETF 六個月市價報酬率排行榜")
     print(
-        "注意：未包含配息再投資"
+        "ETF "
+        f"{period_code.value} "
+        "市價報酬率排行榜"
     )
+    print("注意：未包含配息再投資")
     print("-" * 90)
 
     if not rows:
         print(
-            "目前沒有六個月績效資料"
+            "目前沒有 "
+            f"{period_code.value} "
+            "績效資料"
         )
         return
 

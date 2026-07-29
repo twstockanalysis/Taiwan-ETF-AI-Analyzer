@@ -1,4 +1,4 @@
-"""ETF 六個月市價報酬率批次 Pipeline。"""
+"""ETF 多期間市價報酬率批次 Pipeline。"""
 
 import argparse
 import json
@@ -22,6 +22,8 @@ from backend.app.data_sources.twse_stock_day import (
 )
 from backend.app.models.etf_analysis import (
     ETFPerformanceImportRecord,
+    PerformanceMetric,
+    PerformancePeriod,
 )
 from backend.app.repositories.performance_repository import (
     PerformanceUpsertSummary,
@@ -30,12 +32,26 @@ from backend.app.repositories.performance_repository import (
 )
 from backend.app.services.performance_calculator import (
     InsufficientPriceHistoryError,
-    calculate_six_month_price_return,
+    calculate_price_return,
+    normalize_price_return_period,
 )
 
 
 SOURCE_ID = "twse_stock_day"
-PERIOD_CODE = "6M"
+
+DEFAULT_PERIODS = (
+    PerformancePeriod.ONE_MONTH,
+    PerformancePeriod.THREE_MONTHS,
+    PerformancePeriod.SIX_MONTHS,
+    PerformancePeriod.ONE_YEAR,
+)
+
+PERIOD_DOWNLOAD_MONTHS = {
+    PerformancePeriod.ONE_MONTH: 3,
+    PerformancePeriod.THREE_MONTHS: 5,
+    PerformancePeriod.SIX_MONTHS: 8,
+    PerformancePeriod.ONE_YEAR: 14,
+}
 
 
 @dataclass(
@@ -43,10 +59,11 @@ PERIOD_CODE = "6M"
     slots=True,
 )
 class PerformanceFailure:
-    """無法建立績效資料的 ETF。"""
+    """無法建立績效資料的 ETF 期間。"""
 
     etf_code: str
     etf_name: str
+    period_code: PerformancePeriod
     category: str
     reason: str
 
@@ -55,15 +72,39 @@ class PerformanceFailure:
     frozen=True,
     slots=True,
 )
+class PerformancePeriodSummary:
+    """單一績效期間的資料覆蓋摘要。"""
+
+    period_code: PerformancePeriod
+    candidate_count: int
+    successful_count: int
+    insufficient_history_count: int
+    failed_count: int
+    coverage_pct: float
+
+
+@dataclass(
+    frozen=True,
+    slots=True,
+)
 class PerformancePipelineResult:
-    """六個月績效批次結果。"""
+    """多期間績效批次結果。"""
 
     candidate_count: int
+    requested_periods: tuple[
+        PerformancePeriod,
+        ...,
+    ]
+    download_month_count: int
     successful_count: int
     insufficient_history_count: int
     failed_count: int
     inserted_count: int
     updated_count: int
+    period_summaries: tuple[
+        PerformancePeriodSummary,
+        ...,
+    ]
     processed_path: Path
     rejected_path: Path
     report_path: Path
@@ -90,12 +131,140 @@ def write_json(
     )
 
 
-def run_six_month_performance_pipeline(
+def normalize_periods(
+    periods: (
+        list[PerformancePeriod | str]
+        | tuple[PerformancePeriod | str, ...]
+        | None
+    ),
+) -> tuple[PerformancePeriod, ...]:
+    """正規化並去除重複的績效期間。"""
+
+    if periods is None:
+        return DEFAULT_PERIODS
+
+    if not periods:
+        raise ValueError(
+            "periods 至少必須包含一個期間"
+        )
+
+    normalized_set = {
+        normalize_price_return_period(
+            period
+        )
+        for period in periods
+    }
+
+    return tuple(
+        period
+        for period in DEFAULT_PERIODS
+        if period in normalized_set
+    )
+
+
+def resolve_download_month_count(
+    periods: tuple[
+        PerformancePeriod,
+        ...,
+    ],
+    month_count: int | None,
+) -> int:
+    """依最長期間決定下載月份數。"""
+
+    required_month_count = max(
+        PERIOD_DOWNLOAD_MONTHS[period]
+        for period in periods
+    )
+
+    if month_count is None:
+        return required_month_count
+
+    if month_count < required_month_count:
+        raise ValueError(
+            "month_count 不足以計算指定期間；"
+            f"至少需要 {required_month_count} 個月"
+        )
+
+    return month_count
+
+
+def build_period_summaries(
+    periods: tuple[
+        PerformancePeriod,
+        ...,
+    ],
+    candidate_count: int,
+    counters: dict[
+        PerformancePeriod,
+        dict[str, int],
+    ],
+) -> tuple[
+    PerformancePeriodSummary,
+    ...,
+]:
+    """建立每個績效期間的覆蓋率摘要。"""
+
+    summaries: list[
+        PerformancePeriodSummary
+    ] = []
+
+    for period in periods:
+        period_counter = counters[period]
+        successful_count = (
+            period_counter[
+                "successful_count"
+            ]
+        )
+
+        coverage_pct = (
+            round(
+                successful_count
+                / candidate_count
+                * 100,
+                2,
+            )
+            if candidate_count
+            else 0.0
+        )
+
+        summaries.append(
+            PerformancePeriodSummary(
+                period_code=period,
+                candidate_count=(
+                    candidate_count
+                ),
+                successful_count=(
+                    successful_count
+                ),
+                insufficient_history_count=(
+                    period_counter[
+                        "insufficient_history_count"
+                    ]
+                ),
+                failed_count=(
+                    period_counter[
+                        "failed_count"
+                    ]
+                ),
+                coverage_pct=coverage_pct,
+            )
+        )
+
+    return tuple(summaries)
+
+
+def run_multi_period_performance_pipeline(
     database_path: str | Path | None = None,
     end_date: date | None = None,
     codes: list[str] | None = None,
     limit: int | None = None,
-    month_count: int = 8,
+    periods: (
+        list[PerformancePeriod | str]
+        | tuple[PerformancePeriod | str, ...]
+        | None
+    ) = None,
+    month_count: int | None = None,
+    candidate_minimum_history_months: int = 0,
     request_interval_seconds: float = 0.4,
     inter_etf_interval_seconds: float = 0.5,
     processed_output_root: Path | None = None,
@@ -103,44 +272,35 @@ def run_six_month_performance_pipeline(
     save_raw_snapshots: bool = True,
     verbose: bool = False,
 ) -> PerformancePipelineResult:
-    """批次計算非債券 ETF 六個月市價報酬率。
+    """批次計算非債券 ETF 多期間市價報酬率。
 
-    Args:
-        database_path:
-            SQLite 資料庫路徑。
-        end_date:
-            下載截止日期。
-        codes:
-            只處理指定 ETF。
-        limit:
-            最多處理 ETF 數量。
-        month_count:
-            每檔下載的月份數。
-        request_interval_seconds:
-            同一 ETF 每月請求間隔。
-        inter_etf_interval_seconds:
-            ETF 與 ETF 之間的等待時間。
-        processed_output_root:
-            正規化資料輸出目錄。
-        rejected_output_root:
-            失敗資料輸出目錄。
-        save_raw_snapshots:
-            是否保存每檔價格快照。
-        verbose:
-            是否顯示逐檔進度。
+    每檔 ETF 只下載一次價格資料，再依序計算
+    1M、3M、6M、1Y 中指定的期間。
 
-    Returns:
-        PerformancePipelineResult:
-            績效批次處理結果。
+    candidate_minimum_history_months 預設為 0，
+    讓新上市 ETF 也可進入覆蓋率統計，並由
+    各期間計算器判斷歷史是否充足。
     """
 
     if end_date is None:
         end_date = date.today()
 
-    if month_count < 7:
+    if candidate_minimum_history_months < 0:
         raise ValueError(
-            "month_count 至少必須為 7"
+            "candidate_minimum_history_months "
+            "不得小於 0"
         )
+
+    normalized_periods = normalize_periods(
+        periods
+    )
+
+    resolved_month_count = (
+        resolve_download_month_count(
+            periods=normalized_periods,
+            month_count=month_count,
+        )
+    )
 
     candidates = list_performance_candidates(
         database_path=database_path,
@@ -148,6 +308,9 @@ def run_six_month_performance_pipeline(
         include_bond=False,
         codes=codes,
         limit=limit,
+        minimum_history_months=(
+            candidate_minimum_history_months
+        ),
     )
 
     if not candidates:
@@ -162,6 +325,15 @@ def run_six_month_performance_pipeline(
     failures: list[
         PerformanceFailure
     ] = []
+
+    period_counters = {
+        period: {
+            "successful_count": 0,
+            "insufficient_history_count": 0,
+            "failed_count": 0,
+        }
+        for period in normalized_periods
+    }
 
     for index, candidate in enumerate(
         candidates,
@@ -179,7 +351,9 @@ def run_six_month_performance_pipeline(
                 fetch_price_history(
                     etf_code=candidate.code,
                     end_date=end_date,
-                    month_count=month_count,
+                    month_count=(
+                        resolved_month_count
+                    ),
                     request_interval_seconds=(
                         request_interval_seconds
                     ),
@@ -192,88 +366,155 @@ def run_six_month_performance_pipeline(
                     records=price_records,
                 )
 
-            calculation_result = (
-                calculate_six_month_price_return(
-                    price_records
-                )
-            )
-
-            performance_record = (
-                ETFPerformanceImportRecord
-                .model_validate(
-                    {
-                        "etf_code": (
-                            calculation_result
-                            .etf_code
-                        ),
-                        "as_of_date": (
-                            calculation_result
-                            .as_of_date
-                        ),
-                        "period_code": (
-                            calculation_result
-                            .period_code
-                        ),
-                        "return_pct": (
-                            calculation_result
-                            .return_pct
-                        ),
-                        "source_id": (
-                            calculation_result
-                            .source_id
-                        ),
-                        "import_batch_id": None,
-                        "source_updated_at": None,
-                    }
-                )
-            )
-
-            performance_records.append(
-                performance_record
-            )
-
-            if verbose:
-                print(
-                    "  成功："
-                    f"{performance_record.return_pct}%"
-                )
-
-        except InsufficientPriceHistoryError as error:
-            failures.append(
-                PerformanceFailure(
-                    etf_code=candidate.code,
-                    etf_name=candidate.name,
-                    category=(
-                        "insufficient_history"
-                    ),
-                    reason=str(error),
-                )
-            )
-
-            if verbose:
-                print(
-                    f"  跳過：{error}"
-                )
-
         except Exception as error:
-            failures.append(
-                PerformanceFailure(
-                    etf_code=candidate.code,
-                    etf_name=candidate.name,
-                    category="error",
-                    reason=(
+            reason = (
+                f"{type(error).__name__}: "
+                f"{error}"
+            )
+
+            for period in normalized_periods:
+                period_counters[period][
+                    "failed_count"
+                ] += 1
+
+                failures.append(
+                    PerformanceFailure(
+                        etf_code=candidate.code,
+                        etf_name=candidate.name,
+                        period_code=period,
+                        category="error",
+                        reason=reason,
+                    )
+                )
+
+            if verbose:
+                print(
+                    f"  下載失敗：{reason}"
+                )
+
+        else:
+            for period in normalized_periods:
+                try:
+                    calculation_result = (
+                        calculate_price_return(
+                            records=(
+                                price_records
+                            ),
+                            period_code=period,
+                        )
+                    )
+
+                    performance_record = (
+                        ETFPerformanceImportRecord
+                        .model_validate(
+                            {
+                                "etf_code": (
+                                    calculation_result
+                                    .etf_code
+                                ),
+                                "as_of_date": (
+                                    calculation_result
+                                    .as_of_date
+                                ),
+                                "period_code": (
+                                    calculation_result
+                                    .period_code
+                                ),
+                                "metric_code": (
+                                    calculation_result
+                                    .metric_code
+                                ),
+                                "return_pct": (
+                                    calculation_result
+                                    .return_pct
+                                ),
+                                "source_id": (
+                                    calculation_result
+                                    .source_id
+                                ),
+                                "import_batch_id": (
+                                    None
+                                ),
+                                "source_updated_at": (
+                                    None
+                                ),
+                            }
+                        )
+                    )
+
+                    performance_records.append(
+                        performance_record
+                    )
+
+                    period_counters[period][
+                        "successful_count"
+                    ] += 1
+
+                    if verbose:
+                        print(
+                            f"  {period.value} "
+                            "成功："
+                            f"{performance_record.return_pct}%"
+                        )
+
+                except (
+                    InsufficientPriceHistoryError
+                ) as error:
+                    period_counters[period][
+                        "insufficient_history_count"
+                    ] += 1
+
+                    failures.append(
+                        PerformanceFailure(
+                            etf_code=(
+                                candidate.code
+                            ),
+                            etf_name=(
+                                candidate.name
+                            ),
+                            period_code=period,
+                            category=(
+                                "insufficient_history"
+                            ),
+                            reason=str(error),
+                        )
+                    )
+
+                    if verbose:
+                        print(
+                            f"  {period.value} "
+                            f"歷史不足：{error}"
+                        )
+
+                except Exception as error:
+                    period_counters[period][
+                        "failed_count"
+                    ] += 1
+
+                    reason = (
                         f"{type(error).__name__}: "
                         f"{error}"
-                    ),
-                )
-            )
+                    )
 
-            if verbose:
-                print(
-                    "  失敗："
-                    f"{type(error).__name__}: "
-                    f"{error}"
-                )
+                    failures.append(
+                        PerformanceFailure(
+                            etf_code=(
+                                candidate.code
+                            ),
+                            etf_name=(
+                                candidate.name
+                            ),
+                            period_code=period,
+                            category="error",
+                            reason=reason,
+                        )
+                    )
+
+                    if verbose:
+                        print(
+                            f"  {period.value} "
+                            f"失敗：{reason}"
+                        )
 
         if (
             inter_etf_interval_seconds > 0
@@ -333,33 +574,39 @@ def run_six_month_performance_pipeline(
         {
             "etf_code": failure.etf_code,
             "etf_name": failure.etf_name,
+            "period_code": (
+                failure.period_code.value
+            ),
             "category": failure.category,
             "reason": failure.reason,
         }
         for failure in failures
     ]
 
+    output_prefix = (
+        "six_month_performance"
+        if normalized_periods
+        == (
+            PerformancePeriod.SIX_MONTHS,
+        )
+        else "multi_period_performance"
+    )
+
     processed_path = (
         processed_output_root
-        / (
-            f"six_month_performance_"
-            f"{timestamp}.json"
-        )
+        / f"{output_prefix}_{timestamp}.json"
     )
 
     rejected_path = (
         rejected_output_root
-        / (
-            f"six_month_performance_"
-            f"{timestamp}.json"
-        )
+        / f"{output_prefix}_{timestamp}.json"
     )
 
     report_path = (
         processed_output_root
         / (
-            f"six_month_performance_"
-            f"{timestamp}.report.json"
+            f"{output_prefix}_{timestamp}"
+            ".report.json"
         )
     )
 
@@ -383,29 +630,53 @@ def run_six_month_performance_pipeline(
         rejected_payload,
     )
 
+    period_summaries = (
+        build_period_summaries(
+            periods=normalized_periods,
+            candidate_count=len(candidates),
+            counters=period_counters,
+        )
+    )
+
     insufficient_history_count = sum(
-        failure.category
-        == "insufficient_history"
-        for failure in failures
+        summary.insufficient_history_count
+        for summary in period_summaries
     )
 
     failed_count = sum(
-        failure.category == "error"
-        for failure in failures
+        summary.failed_count
+        for summary in period_summaries
     )
 
     report: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source_id": SOURCE_ID,
-        "period_code": PERIOD_CODE,
+        "period_code": (
+            normalized_periods[0].value
+            if len(normalized_periods) == 1
+            else None
+        ),
+        "period_codes": [
+            period.value
+            for period in normalized_periods
+        ],
+        "metric_code": (
+            PerformanceMetric.PRICE_RETURN.value
+        ),
         "metric_name": (
-            "six_month_market_price_return"
+            "market_price_return"
         ),
         "generated_at": (
             generated_at.isoformat()
         ),
         "requested_end_date": (
             end_date.isoformat()
+        ),
+        "download_month_count": (
+            resolved_month_count
+        ),
+        "candidate_minimum_history_months": (
+            candidate_minimum_history_months
         ),
         "candidate_count": len(candidates),
         "successful_count": len(
@@ -421,6 +692,30 @@ def run_six_month_performance_pipeline(
         "updated_count": (
             upsert_summary.updated_records
         ),
+        "period_summaries": [
+            {
+                "period_code": (
+                    summary.period_code.value
+                ),
+                "candidate_count": (
+                    summary.candidate_count
+                ),
+                "successful_count": (
+                    summary.successful_count
+                ),
+                "insufficient_history_count": (
+                    summary
+                    .insufficient_history_count
+                ),
+                "failed_count": (
+                    summary.failed_count
+                ),
+                "coverage_pct": (
+                    summary.coverage_pct
+                ),
+            }
+            for summary in period_summaries
+        ],
         "processed_path": str(
             processed_path
         ),
@@ -429,7 +724,8 @@ def run_six_month_performance_pipeline(
         ),
         "includes_distributions": False,
         "notes": (
-            "六個月市價報酬率，"
+            "多期間市價報酬率，"
+            "各期間分開計算及排名，"
             "不包含配息再投資。"
         ),
     }
@@ -447,6 +743,12 @@ def run_six_month_performance_pipeline(
 
     return PerformancePipelineResult(
         candidate_count=len(candidates),
+        requested_periods=(
+            normalized_periods
+        ),
+        download_month_count=(
+            resolved_month_count
+        ),
         successful_count=len(
             performance_records
         ),
@@ -460,9 +762,54 @@ def run_six_month_performance_pipeline(
         updated_count=(
             upsert_summary.updated_records
         ),
+        period_summaries=period_summaries,
         processed_path=processed_path,
         rejected_path=rejected_path,
         report_path=report_path,
+    )
+
+
+def run_six_month_performance_pipeline(
+    database_path: str | Path | None = None,
+    end_date: date | None = None,
+    codes: list[str] | None = None,
+    limit: int | None = None,
+    month_count: int = 8,
+    request_interval_seconds: float = 0.4,
+    inter_etf_interval_seconds: float = 0.5,
+    processed_output_root: Path | None = None,
+    rejected_output_root: Path | None = None,
+    save_raw_snapshots: bool = True,
+    verbose: bool = False,
+) -> PerformancePipelineResult:
+    """保留原六個月 Pipeline 的相容介面。"""
+
+    return run_multi_period_performance_pipeline(
+        database_path=database_path,
+        end_date=end_date,
+        codes=codes,
+        limit=limit,
+        periods=(
+            PerformancePeriod.SIX_MONTHS,
+        ),
+        month_count=month_count,
+        candidate_minimum_history_months=6,
+        request_interval_seconds=(
+            request_interval_seconds
+        ),
+        inter_etf_interval_seconds=(
+            inter_etf_interval_seconds
+        ),
+        processed_output_root=(
+            processed_output_root
+        ),
+        rejected_output_root=(
+            rejected_output_root
+        ),
+        save_raw_snapshots=(
+            save_raw_snapshots
+        ),
+        verbose=verbose,
     )
 
 
@@ -488,7 +835,7 @@ def build_argument_parser(
 
     parser = argparse.ArgumentParser(
         description=(
-            "批次計算 ETF 六個月市價報酬率"
+            "批次計算 ETF 多期間市價報酬率"
         )
     )
 
@@ -516,10 +863,29 @@ def build_argument_parser(
     )
 
     parser.add_argument(
+        "--periods",
+        nargs="+",
+        choices=tuple(
+            period.value
+            for period in DEFAULT_PERIODS
+        ),
+        default=[
+            period.value
+            for period in DEFAULT_PERIODS
+        ],
+        help=(
+            "計算期間，預設 1M 3M 6M 1Y"
+        ),
+    )
+
+    parser.add_argument(
         "--months",
         type=int,
-        default=8,
-        help="每檔下載月份數，預設 8",
+        default=None,
+        help=(
+            "下載月份數；未指定時依最長期間"
+            "自動使用 3、5、8 或 14 個月"
+        ),
     )
 
     parser.add_argument(
@@ -546,27 +912,28 @@ def build_argument_parser(
 
 
 def main() -> None:
-    """執行六個月績效批次 Pipeline。"""
+    """執行多期間績效批次 Pipeline。"""
 
     arguments = (
         build_argument_parser()
         .parse_args()
     )
 
-    print("開始執行 ETF 六個月績效 Pipeline")
+    print("開始執行 ETF 多期間績效 Pipeline")
     print(
-        "績效定義：六個月市價報酬率"
+        "績效期間："
+        + ", ".join(arguments.periods)
     )
-    print(
-        "包含配息再投資：否"
-    )
+    print("績效定義：市價報酬率")
+    print("包含配息再投資：否")
     print("-" * 70)
 
     result = (
-        run_six_month_performance_pipeline(
+        run_multi_period_performance_pipeline(
             end_date=arguments.end_date,
             codes=arguments.codes,
             limit=arguments.limit,
+            periods=arguments.periods,
             month_count=arguments.months,
             request_interval_seconds=(
                 arguments.request_interval
@@ -582,42 +949,51 @@ def main() -> None:
     )
 
     print("-" * 70)
-    print("ETF 六個月績效 Pipeline 完成")
+    print("ETF 多期間績效 Pipeline 完成")
     print(
-        f"候選 ETF："
-        f"{result.candidate_count}"
+        f"候選 ETF：{result.candidate_count}"
     )
     print(
-        f"成功計算："
+        "下載月份："
+        f"{result.download_month_count}"
+    )
+    print(
+        "成功績效紀錄："
         f"{result.successful_count}"
     )
     print(
-        "歷史不足："
+        "歷史不足期間："
         f"{result.insufficient_history_count}"
     )
     print(
-        f"執行失敗："
+        "執行失敗期間："
         f"{result.failed_count}"
     )
+
+    for summary in result.period_summaries:
+        print(
+            f"{summary.period_code.value}: "
+            f"成功 {summary.successful_count}，"
+            "歷史不足 "
+            f"{summary.insufficient_history_count}，"
+            f"失敗 {summary.failed_count}，"
+            f"覆蓋率 {summary.coverage_pct:.2f}%"
+        )
+
     print(
-        f"新增資料："
-        f"{result.inserted_count}"
+        f"新增資料：{result.inserted_count}"
     )
     print(
-        f"更新資料："
-        f"{result.updated_count}"
+        f"更新資料：{result.updated_count}"
     )
     print(
-        f"處理結果："
-        f"{result.processed_path}"
+        f"處理結果：{result.processed_path}"
     )
     print(
-        f"拒絕資料："
-        f"{result.rejected_path}"
+        f"拒絕資料：{result.rejected_path}"
     )
     print(
-        f"品質報告："
-        f"{result.report_path}"
+        f"品質報告：{result.report_path}"
     )
 
 

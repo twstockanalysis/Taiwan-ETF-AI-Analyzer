@@ -65,8 +65,9 @@ def list_performance_candidates(
     include_bond: bool = False,
     codes: list[str] | tuple[str, ...] | None = None,
     limit: int | None = None,
+    minimum_history_months: int = 6,
 ) -> list[PerformanceCandidate]:
-    """取得可計算六個月績效的 ETF。
+    """取得可計算績效的 ETF 候選清單。
 
     Args:
         database_path:
@@ -79,6 +80,9 @@ def list_performance_candidates(
             指定 ETF 代號。
         limit:
             最多回傳筆數。
+        minimum_history_months:
+            候選 ETF 至少需上市的月份數。
+            0 代表只要求上市日不晚於截止日。
 
     Returns:
         list[PerformanceCandidate]:
@@ -97,9 +101,15 @@ def list_performance_candidates(
             "limit 必須大於 0"
         )
 
+    if minimum_history_months < 0:
+        raise ValueError(
+            "minimum_history_months "
+            "不得小於 0"
+        )
+
     earliest_listing_date = shift_months(
         end_date,
-        -6,
+        -minimum_history_months,
     )
 
     conditions = [
