@@ -52,13 +52,21 @@
 - Streamlit AppTest coverage
 
 
-### M8: ETF Analysis Data
+### M8: ETF Analysis Data — In Progress
 
-- Define ETF performance history schema
-- Define dividend history schema
-- Define dividend component schema
-- Import official performance data
-- Import official dividend data
-- Store 76W distribution composition
-- Add performance and dividend APIs
-- Display analysis data on the website
+#### M8-1 Completed
+
+- ETF performance schema
+- ETF dividend-event schema
+- ETF dividend-component schema
+- Six-month performance data contract
+- Flexible 76W component data contract
+- Schema constraints and automated tests
+
+#### Next
+
+- Official performance-source discovery
+- Official dividend-source discovery
+- Performance and dividend import pipelines
+- Performance and dividend APIs
+- Website analysis pages

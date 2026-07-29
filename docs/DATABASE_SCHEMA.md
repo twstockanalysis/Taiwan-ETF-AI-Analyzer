@@ -99,3 +99,30 @@ Table name:
 
 ```text
 import_batch
+
+## ETF Analysis Tables
+
+### etf_performance
+
+Stores time-specific ETF performance values.
+
+A performance record belongs to one ETF and one period.
+
+### etf_dividend
+
+Stores an ETF distribution event.
+
+Source event identifiers are used to make repeated imports
+idempotent.
+
+### etf_dividend_component
+
+Stores one component of an ETF distribution event.
+
+The table supports both:
+
+- Amount per unit
+- Percentage of total distribution
+
+Component records are deleted automatically when their parent
+distribution event is deleted.
