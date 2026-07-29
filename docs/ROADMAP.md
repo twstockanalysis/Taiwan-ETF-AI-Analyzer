@@ -54,19 +54,21 @@
 
 ### M8: ETF Analysis Data — In Progress
 
-#### M8-1 Completed
+#### Completed
 
-- ETF performance schema
-- ETF dividend-event schema
-- ETF dividend-component schema
-- Six-month performance data contract
-- Flexible 76W component data contract
-- Schema constraints and automated tests
+- Performance, dividend and component schemas
+- Flexible 76W component model
+- TWSE historical closing-price source
+- Daily price normalization
+- Six-month market-price return calculator
+- Insufficient-history handling
+- Raw performance snapshots
+- Automated source and calculation tests
 
 #### Next
 
-- Official performance-source discovery
-- Official dividend-source discovery
-- Performance and dividend import pipelines
-- Performance and dividend APIs
-- Website analysis pages
+- Batch ETF performance calculation
+- Performance SQLite upsert
+- Six-month performance ranking API
+- Dividend event source discovery
+- 76W component import
