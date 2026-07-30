@@ -123,3 +123,26 @@
 - Added explicit insufficient-history display
 - Added API-client, UI-helper and AppTest coverage
 - Fixed ETF clickable-row test discovery
+
+### M8-3A-1 Completed
+
+- Added the TWSE ETF e添富 dividend source
+- Added official HTML download and raw snapshots
+- Added ROC-to-Gregorian dividend date parsing
+- Added dividend-event normalization
+- Added five estimated distribution components
+- Kept estimated realized capital gains separate from 76W
+- Added source and normalization tests
+
+### M8-3A-2 Completed
+
+- Added dividend-component basis migration
+- Migrated legacy component rows to ACTUAL
+- Added basis-aware and source-aware component uniqueness
+- Added dividend-event upsert
+- Added dividend-component upsert
+- Added atomic event-and-component imports
+- Added clear missing-ETF and missing-event validation
+- Added dividend event and component query functions
+- Added migration and Repository tests
+

@@ -233,3 +233,58 @@ Supported periods:
 3M
 6M
 1Y
+
+## Dividend Component Basis
+
+Dividend components are classified by information basis:
+
+```text
+ESTIMATED
+ACTUAL
+```
+
+TWSE ETF e添富 composition percentages are stored as
+`ESTIMATED`. Official distribution-notice codes such as `76W`
+are stored as `ACTUAL`.
+
+Estimated realized capital gains are preserved as:
+
+```text
+EST_REALIZED_CAPITAL_GAIN
+```
+
+They are not converted to `76W`.
+
+Dividend-component uniqueness is:
+
+```text
+dividend event
++ component basis
++ component code
++ component source
+```
+
+This allows estimated disclosure and actual tax-source records
+to coexist without overwriting each other.
+
+Older component rows are migrated to `ACTUAL`. Database
+initialization runs this migration automatically.
+
+## Dividend Repository
+
+The dividend Repository supports:
+
+```text
+upsert_dividend_records
+upsert_dividend_component_records
+upsert_dividend_dataset
+get_dividend_id
+list_etf_dividends
+list_dividend_components
+```
+
+`upsert_dividend_dataset` writes events and components in one
+transaction. A component error rolls back the entire dataset,
+so the database never retains a partially imported dividend
+event.
+
