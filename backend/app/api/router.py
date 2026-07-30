@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from backend.app.api.routers import (
+    dividends,
     etfs,
     performance,
     system,
@@ -21,4 +22,8 @@ api_router.include_router(
 
 api_router.include_router(
     performance.router
+)
+
+api_router.include_router(
+    dividends.router
 )

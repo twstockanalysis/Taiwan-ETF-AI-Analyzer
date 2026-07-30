@@ -942,3 +942,328 @@ def list_dividend_components(
 
     finally:
         connection.close()
+
+
+def count_etf_dividends(
+    etf_code: str,
+    database_path: str | Path | None = None,
+) -> int:
+    """Count dividend events for one ETF."""
+
+    normalized_code = _normalize_text(
+        etf_code,
+        "etf_code",
+        uppercase=True,
+    )
+
+    connection = get_connection(
+        database_path
+    )
+
+    try:
+        row = connection.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM etf_dividend
+            WHERE etf_code = ?;
+            """,
+            (normalized_code,),
+        ).fetchone()
+
+        return int(
+            row["total"]
+        )
+
+    finally:
+        connection.close()
+
+
+def get_dividend_by_id(
+    dividend_id: int,
+    database_path: str | Path | None = None,
+) -> dict[str, Any] | None:
+    """Return one dividend event by database ID."""
+
+    if dividend_id < 1:
+        raise ValueError(
+            "dividend_id 必須大於 0"
+        )
+
+    connection = get_connection(
+        database_path
+    )
+
+    try:
+        row = connection.execute(
+            """
+            SELECT
+                id,
+                etf_code,
+                source_event_id,
+                announcement_date,
+                ex_dividend_date,
+                record_date,
+                payment_date,
+                amount_per_unit,
+                currency,
+                source_id,
+                import_batch_id,
+                source_updated_at
+            FROM etf_dividend
+            WHERE id = ?;
+            """,
+            (dividend_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return dict(row)
+
+    finally:
+        connection.close()
+
+
+def list_filtered_dividend_components(
+    dividend_id: int,
+    database_path: str | Path | None = None,
+    component_basis: (
+        DividendComponentBasis | None
+    ) = None,
+    component_code: str | None = None,
+    source_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """List one dividend's components with optional filters."""
+
+    if dividend_id < 1:
+        raise ValueError(
+            "dividend_id 必須大於 0"
+        )
+
+    conditions = [
+        "dividend_id = ?",
+    ]
+
+    parameters: list[Any] = [
+        dividend_id,
+    ]
+
+    if component_basis is not None:
+        conditions.append(
+            "component_basis = ?"
+        )
+
+        parameters.append(
+            component_basis.value
+        )
+
+    if component_code is not None:
+        normalized_component_code = (
+            _normalize_text(
+                component_code,
+                "component_code",
+                uppercase=True,
+            )
+        )
+
+        conditions.append(
+            "component_code = ?"
+        )
+
+        parameters.append(
+            normalized_component_code
+        )
+
+    if source_id is not None:
+        normalized_source_id = (
+            _normalize_text(
+                source_id,
+                "source_id",
+                lowercase=True,
+            )
+        )
+
+        conditions.append(
+            "source_id = ?"
+        )
+
+        parameters.append(
+            normalized_source_id
+        )
+
+    connection = get_connection(
+        database_path
+    )
+
+    try:
+        rows = connection.execute(
+            f"""
+            SELECT
+                id,
+                dividend_id,
+                component_code,
+                component_basis,
+                component_name,
+                amount_per_unit,
+                ratio_pct,
+                source_id,
+                import_batch_id,
+                source_updated_at
+            FROM etf_dividend_component
+            WHERE {" AND ".join(conditions)}
+            ORDER BY
+                CASE component_basis
+                    WHEN 'ACTUAL' THEN 0
+                    ELSE 1
+                END,
+                component_code,
+                source_id,
+                id;
+            """,
+            parameters,
+        ).fetchall()
+
+        return [
+            dict(row)
+            for row in rows
+        ]
+
+    finally:
+        connection.close()
+
+
+def list_actual_76w_history(
+    etf_code: str,
+    database_path: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    """List only ACTUAL 76W records for one ETF."""
+
+    normalized_code = _normalize_text(
+        etf_code,
+        "etf_code",
+        uppercase=True,
+    )
+
+    connection = get_connection(
+        database_path
+    )
+
+    try:
+        rows = connection.execute(
+            """
+            SELECT
+                d.id AS dividend_id,
+                d.source_event_id,
+                d.announcement_date,
+                d.ex_dividend_date,
+                d.record_date,
+                d.payment_date,
+                d.amount_per_unit,
+                d.currency,
+                c.amount_per_unit
+                    AS component_amount_per_unit,
+                c.ratio_pct,
+                c.source_id
+            FROM etf_dividend_component AS c
+            INNER JOIN etf_dividend AS d
+                ON d.id = c.dividend_id
+            WHERE d.etf_code = ?
+              AND c.component_basis = 'ACTUAL'
+              AND c.component_code = '76W'
+            ORDER BY
+                COALESCE(
+                    d.ex_dividend_date,
+                    d.record_date,
+                    d.payment_date,
+                    d.announcement_date
+                ) DESC,
+                d.id DESC,
+                c.id DESC;
+            """,
+            (normalized_code,),
+        ).fetchall()
+
+        return [
+            dict(row)
+            for row in rows
+        ]
+
+    finally:
+        connection.close()
+
+
+def build_actual_76w_summary(
+    etf_code: str,
+    database_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Build ACTUAL 76W history statistics for one ETF."""
+
+    normalized_code = _normalize_text(
+        etf_code,
+        "etf_code",
+        uppercase=True,
+    )
+
+    total_dividend_count = (
+        count_etf_dividends(
+            etf_code=normalized_code,
+            database_path=database_path,
+        )
+    )
+
+    items = list_actual_76w_history(
+        etf_code=normalized_code,
+        database_path=database_path,
+    )
+
+    ratio_values = [
+        float(item["ratio_pct"])
+        for item in items
+        if item["ratio_pct"] is not None
+    ]
+
+    latest_ratio = (
+        float(items[0]["ratio_pct"])
+        if (
+            items
+            and items[0]["ratio_pct"]
+            is not None
+        )
+        else None
+    )
+
+    average_ratio = (
+        round(
+            sum(ratio_values)
+            / len(ratio_values),
+            6,
+        )
+        if ratio_values
+        else None
+    )
+
+    full_76w_count = sum(
+        1
+        for value in ratio_values
+        if value == 100.0
+    )
+
+    return {
+        "etf_code": normalized_code,
+        "total_dividend_count": (
+            total_dividend_count
+        ),
+        "actual_76w_record_count": len(
+            items
+        ),
+        "full_76w_count": (
+            full_76w_count
+        ),
+        "latest_76w_ratio_pct": (
+            latest_ratio
+        ),
+        "average_76w_ratio_pct": (
+            average_ratio
+        ),
+        "items": items,
+    }
