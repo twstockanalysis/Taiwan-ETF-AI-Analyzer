@@ -122,6 +122,22 @@ DATA_SOURCES: dict[str, DataSource] = {
         priority=1,
         allow_legacy_x509=True,
     ),
+    "twse_etfortune_dividend": DataSource(
+        source_id="twse_etfortune_dividend",
+        display_name="TWSE ETF e添富配息清單",
+        market=Market.TWSE,
+        source_type=SourceType.OFFICIAL_WEB_PAGE,
+        documentation_url=(
+            "https://www.twse.com.tw/zh/"
+            "ETFortune/dividendList"
+        ),
+        base_url=(
+            "https://www.twse.com.tw/zh/"
+            "ETFortune/dividendList"
+        ),
+        priority=1,
+        allow_legacy_x509=True,
+    ),
 }
 
 

@@ -35,6 +35,25 @@ class PerformanceMetric(StrEnum):
     NAV_RETURN = "NAV_RETURN"
 
 
+class DividendComponentBasis(StrEnum):
+    """配息組成資訊性質。"""
+
+    ESTIMATED = "ESTIMATED"
+    ACTUAL = "ACTUAL"
+
+
+class EstimatedDividendComponent(StrEnum):
+    """官方預估配息組成大類。"""
+
+    DIVIDEND = "EST_DIVIDEND"
+    INTEREST = "EST_INTEREST"
+    EQUALIZATION = "EST_EQUALIZATION"
+    REALIZED_CAPITAL_GAIN = (
+        "EST_REALIZED_CAPITAL_GAIN"
+    )
+    OTHER = "EST_OTHER"
+
+
 class ETFAnalysisBaseModel(BaseModel):
     """ETF 分析匯入模型共用設定。"""
 
@@ -295,9 +314,14 @@ class ETFDividendComponentImportRecord(
 
     component_code: str = Field(
         min_length=1,
-        max_length=20,
+        max_length=40,
         pattern=r"^[0-9A-Z_-]+$",
         description="配息來源代碼，例如 76W",
+    )
+
+    component_basis: DividendComponentBasis = Field(
+        default=DividendComponentBasis.ACTUAL,
+        description="配息組成為預估或實際資料",
     )
 
     component_name: str | None = Field(
