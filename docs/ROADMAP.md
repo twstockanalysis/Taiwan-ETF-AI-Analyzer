@@ -87,3 +87,26 @@
 - Preserved six-month pipeline compatibility
 - Updated repository uniqueness and ranking filters
 - Added migration and multi-period tests
+
+### M8-2B-R1B Completed
+
+- Added multi-period performance pipeline
+- Added 1M, 3M, 6M and 1Y pipeline selection
+- Reused one price download across all requested periods
+- Added automatic 3, 5, 8 and 14 month download ranges
+- Included recently listed ETFs in short-period calculations
+- Added period-specific coverage reporting
+- Preserved the legacy six-month pipeline interface
+- Added ranking CLI period selection
+- Added multi-period pipeline and CLI tests
+
+### M8-2C Completed
+
+- Added performance ranking API
+- Added period and metric query validation
+- Added active and bond filters
+- Added ranking pagination and global rank numbers
+- Added single-ETF multi-period performance API
+- Added latest-record-per-period repository query
+- Added empty-performance and missing-ETF handling
+- Added OpenAPI and FastAPI integration tests

@@ -202,3 +202,22 @@ performance without treating missing six-month history as zero.
 
 Performance periods must be ranked separately. Returns from different
 periods must not be combined into one ranking.
+
+## Multi-Period Performance Pipeline
+
+The price-return pipeline supports:
+
+```text
+1M
+3M
+6M
+1Y
+
+## Performance API
+
+The backend exposes two performance endpoints.
+
+### Ranking
+
+```text
+GET /api/v1/performance/ranking
