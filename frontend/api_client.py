@@ -1049,3 +1049,995 @@ def fetch_etf_performance(
         "metric_code": response_metric,
         "items": validated_items,
     }
+
+SUPPORTED_DIVIDEND_COMPONENT_BASES = (
+    "ESTIMATED",
+    "ACTUAL",
+)
+
+
+def validate_non_negative_integer(
+    value: object,
+    field_name: str,
+) -> int:
+    """驗證非負整數。"""
+
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or value < 0
+    ):
+        raise APIResponseError(
+            f"{field_name} 必須是非負整數"
+        )
+
+    return value
+
+
+def validate_positive_integer(
+    value: object,
+    field_name: str,
+) -> int:
+    """驗證正整數。"""
+
+    normalized_value = (
+        validate_non_negative_integer(
+            value,
+            field_name,
+        )
+    )
+
+    if normalized_value < 1:
+        raise APIResponseError(
+            f"{field_name} 必須大於 0"
+        )
+
+    return normalized_value
+
+
+def validate_optional_iso_date(
+    value: object,
+    field_name: str,
+) -> str | None:
+    """驗證可能為空值的 ISO 日期。"""
+
+    if value is None:
+        return None
+
+    return validate_performance_date(
+        value,
+        field_name,
+    )
+
+
+def validate_optional_number(
+    value: object,
+    field_name: str,
+    *,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> float | None:
+    """驗證可能為空值的數值。"""
+
+    if value is None:
+        return None
+
+    if (
+        not isinstance(
+            value,
+            (
+                int,
+                float,
+            ),
+        )
+        or isinstance(value, bool)
+    ):
+        raise APIResponseError(
+            f"{field_name} 必須是數值"
+        )
+
+    normalized_value = float(value)
+
+    if (
+        minimum is not None
+        and normalized_value < minimum
+    ):
+        raise APIResponseError(
+            f"{field_name} 不得小於 "
+            f"{minimum}"
+        )
+
+    if (
+        maximum is not None
+        and normalized_value > maximum
+    ):
+        raise APIResponseError(
+            f"{field_name} 不得大於 "
+            f"{maximum}"
+        )
+
+    return normalized_value
+
+
+def validate_required_text(
+    value: object,
+    field_name: str,
+) -> str:
+    """驗證必要文字欄位。"""
+
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+    ):
+        raise APIResponseError(
+            f"{field_name} 必須是非空白文字"
+        )
+
+    return value.strip()
+
+
+def validate_dividend_event_item(
+    item: object,
+    index: int,
+) -> dict[str, Any]:
+    """驗證單筆 ETF 配息事件。"""
+
+    if not isinstance(item, dict):
+        raise APIResponseError(
+            f"配息歷史第 {index} 筆"
+            "不是 JSON 物件"
+        )
+
+    required_fields = {
+        "dividend_id",
+        "source_event_id",
+        "announcement_date",
+        "ex_dividend_date",
+        "record_date",
+        "payment_date",
+        "amount_per_unit",
+        "currency",
+        "source_id",
+    }
+
+    missing_fields = (
+        required_fields - item.keys()
+    )
+
+    if missing_fields:
+        missing_text = ", ".join(
+            sorted(missing_fields)
+        )
+
+        raise APIResponseError(
+            f"配息歷史第 {index} 筆"
+            f"缺少欄位：{missing_text}"
+        )
+
+    currency = validate_required_text(
+        item["currency"],
+        (
+            f"配息歷史第 {index} 筆 "
+            "currency"
+        ),
+    ).upper()
+
+    if len(currency) != 3:
+        raise APIResponseError(
+            f"配息歷史第 {index} 筆 "
+            "currency 必須是 3 個字元"
+        )
+
+    amount_per_unit = (
+        validate_optional_number(
+            item["amount_per_unit"],
+            (
+                f"配息歷史第 {index} 筆 "
+                "amount_per_unit"
+            ),
+            minimum=0,
+        )
+    )
+
+    if amount_per_unit is None:
+        raise APIResponseError(
+            f"配息歷史第 {index} 筆 "
+            "amount_per_unit 不可為空值"
+        )
+
+    return {
+        "dividend_id": (
+            validate_positive_integer(
+                item["dividend_id"],
+                (
+                    f"配息歷史第 {index} 筆 "
+                    "dividend_id"
+                ),
+            )
+        ),
+        "source_event_id": (
+            validate_required_text(
+                item["source_event_id"],
+                (
+                    f"配息歷史第 {index} 筆 "
+                    "source_event_id"
+                ),
+            )
+        ),
+        "announcement_date": (
+            validate_optional_iso_date(
+                item["announcement_date"],
+                (
+                    f"配息歷史第 {index} 筆 "
+                    "announcement_date"
+                ),
+            )
+        ),
+        "ex_dividend_date": (
+            validate_optional_iso_date(
+                item["ex_dividend_date"],
+                (
+                    f"配息歷史第 {index} 筆 "
+                    "ex_dividend_date"
+                ),
+            )
+        ),
+        "record_date": (
+            validate_optional_iso_date(
+                item["record_date"],
+                (
+                    f"配息歷史第 {index} 筆 "
+                    "record_date"
+                ),
+            )
+        ),
+        "payment_date": (
+            validate_optional_iso_date(
+                item["payment_date"],
+                (
+                    f"配息歷史第 {index} 筆 "
+                    "payment_date"
+                ),
+            )
+        ),
+        "amount_per_unit": amount_per_unit,
+        "currency": currency,
+        "source_id": (
+            validate_required_text(
+                item["source_id"],
+                (
+                    f"配息歷史第 {index} 筆 "
+                    "source_id"
+                ),
+            ).lower()
+        ),
+    }
+
+
+def fetch_etf_dividends(
+    api_base_url: str,
+    code: str,
+    limit: int = 20,
+    offset: int = 0,
+    timeout_seconds: float = 10.0,
+) -> dict[str, Any]:
+    """取得單一 ETF 的配息歷史。"""
+
+    normalized_code = (
+        code.strip().upper()
+    )
+
+    if not normalized_code:
+        raise ValueError(
+            "ETF 代號不可為空白"
+        )
+
+    if limit < 1 or limit > 100:
+        raise ValueError(
+            "limit 必須介於 1 到 100"
+        )
+
+    if offset < 0:
+        raise ValueError(
+            "offset 不得小於 0"
+        )
+
+    encoded_code = quote(
+        normalized_code,
+        safe="",
+    )
+
+    payload = get_json(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            f"/api/v1/etfs/"
+            f"{encoded_code}/dividends"
+        ),
+        operation_name=(
+            f"ETF {normalized_code} "
+            "配息歷史查詢"
+        ),
+        params={
+            "limit": limit,
+            "offset": offset,
+        },
+        timeout_seconds=timeout_seconds,
+    )
+
+    if not isinstance(payload, dict):
+        raise APIResponseError(
+            "ETF 配息歷史回應必須是 JSON 物件"
+        )
+
+    response_code = validate_required_text(
+        payload.get("etf_code"),
+        "ETF 配息歷史 etf_code",
+    ).upper()
+
+    if response_code != normalized_code:
+        raise APIResponseError(
+            "ETF 配息歷史代號與查詢代號不一致"
+        )
+
+    items = payload.get("items")
+
+    if not isinstance(items, list):
+        raise APIResponseError(
+            "ETF 配息歷史 items 格式不正確"
+        )
+
+    total = validate_non_negative_integer(
+        payload.get("total"),
+        "ETF 配息歷史 total",
+    )
+
+    response_limit = (
+        validate_positive_integer(
+            payload.get("limit"),
+            "ETF 配息歷史 limit",
+        )
+    )
+
+    response_offset = (
+        validate_non_negative_integer(
+            payload.get("offset"),
+            "ETF 配息歷史 offset",
+        )
+    )
+
+    if response_limit != limit:
+        raise APIResponseError(
+            "ETF 配息歷史回傳 limit "
+            "與查詢條件不一致"
+        )
+
+    if response_offset != offset:
+        raise APIResponseError(
+            "ETF 配息歷史回傳 offset "
+            "與查詢條件不一致"
+        )
+
+    validated_items = [
+        validate_dividend_event_item(
+            item,
+            index,
+        )
+        for index, item in enumerate(
+            items,
+            start=1,
+        )
+    ]
+
+    return {
+        "etf_code": response_code,
+        "total": total,
+        "limit": response_limit,
+        "offset": response_offset,
+        "items": validated_items,
+    }
+
+
+def validate_dividend_component_item(
+    item: object,
+    index: int,
+    expected_dividend_id: int,
+) -> dict[str, Any]:
+    """驗證單筆配息組成。"""
+
+    if not isinstance(item, dict):
+        raise APIResponseError(
+            f"配息組成第 {index} 筆"
+            "不是 JSON 物件"
+        )
+
+    required_fields = {
+        "component_id",
+        "dividend_id",
+        "component_code",
+        "component_basis",
+        "component_name",
+        "amount_per_unit",
+        "ratio_pct",
+        "source_id",
+    }
+
+    missing_fields = (
+        required_fields - item.keys()
+    )
+
+    if missing_fields:
+        missing_text = ", ".join(
+            sorted(missing_fields)
+        )
+
+        raise APIResponseError(
+            f"配息組成第 {index} 筆"
+            f"缺少欄位：{missing_text}"
+        )
+
+    dividend_id = validate_positive_integer(
+        item["dividend_id"],
+        (
+            f"配息組成第 {index} 筆 "
+            "dividend_id"
+        ),
+    )
+
+    if dividend_id != expected_dividend_id:
+        raise APIResponseError(
+            "配息組成包含其他配息事件資料"
+        )
+
+    component_basis = (
+        validate_required_text(
+            item["component_basis"],
+            (
+                f"配息組成第 {index} 筆 "
+                "component_basis"
+            ),
+        ).upper()
+    )
+
+    if (
+        component_basis
+        not in SUPPORTED_DIVIDEND_COMPONENT_BASES
+    ):
+        raise APIResponseError(
+            f"配息組成第 {index} 筆 "
+            "component_basis 格式不正確"
+        )
+
+    component_name = (
+        item["component_name"]
+    )
+
+    if component_name is not None:
+        component_name = (
+            validate_required_text(
+                component_name,
+                (
+                    f"配息組成第 {index} 筆 "
+                    "component_name"
+                ),
+            )
+        )
+
+    return {
+        "component_id": (
+            validate_positive_integer(
+                item["component_id"],
+                (
+                    f"配息組成第 {index} 筆 "
+                    "component_id"
+                ),
+            )
+        ),
+        "dividend_id": dividend_id,
+        "component_code": (
+            validate_required_text(
+                item["component_code"],
+                (
+                    f"配息組成第 {index} 筆 "
+                    "component_code"
+                ),
+            ).upper()
+        ),
+        "component_basis": (
+            component_basis
+        ),
+        "component_name": (
+            component_name
+        ),
+        "amount_per_unit": (
+            validate_optional_number(
+                item["amount_per_unit"],
+                (
+                    f"配息組成第 {index} 筆 "
+                    "amount_per_unit"
+                ),
+                minimum=0,
+            )
+        ),
+        "ratio_pct": (
+            validate_optional_number(
+                item["ratio_pct"],
+                (
+                    f"配息組成第 {index} 筆 "
+                    "ratio_pct"
+                ),
+                minimum=0,
+                maximum=100,
+            )
+        ),
+        "source_id": (
+            validate_required_text(
+                item["source_id"],
+                (
+                    f"配息組成第 {index} 筆 "
+                    "source_id"
+                ),
+            ).lower()
+        ),
+    }
+
+
+def fetch_dividend_detail(
+    api_base_url: str,
+    dividend_id: int,
+    timeout_seconds: float = 10.0,
+) -> dict[str, Any]:
+    """取得單次配息事件及全部組成。"""
+
+    if dividend_id < 1:
+        raise ValueError(
+            "dividend_id 必須大於 0"
+        )
+
+    payload = get_json(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            f"/api/v1/dividends/"
+            f"{dividend_id}"
+        ),
+        operation_name=(
+            f"配息事件 {dividend_id} 查詢"
+        ),
+        timeout_seconds=timeout_seconds,
+    )
+
+    event = validate_dividend_event_item(
+        payload,
+        index=1,
+    )
+
+    if (
+        event["dividend_id"]
+        != dividend_id
+    ):
+        raise APIResponseError(
+            "配息事件 ID 與查詢 ID 不一致"
+        )
+
+    if not isinstance(payload, dict):
+        raise APIResponseError(
+            "配息事件回應必須是 JSON 物件"
+        )
+
+    etf_code = validate_required_text(
+        payload.get("etf_code"),
+        "配息事件 etf_code",
+    ).upper()
+
+    components = payload.get(
+        "components"
+    )
+
+    if not isinstance(components, list):
+        raise APIResponseError(
+            "配息事件 components 格式不正確"
+        )
+
+    validated_components = [
+        validate_dividend_component_item(
+            item=item,
+            index=index,
+            expected_dividend_id=(
+                dividend_id
+            ),
+        )
+        for index, item in enumerate(
+            components,
+            start=1,
+        )
+    ]
+
+    return {
+        **event,
+        "etf_code": etf_code,
+        "components": validated_components,
+    }
+
+
+def normalize_component_basis(
+    value: str | None,
+) -> str | None:
+    """正規化配息組成資訊基礎。"""
+
+    if value is None:
+        return None
+
+    normalized_value = (
+        value.strip().upper()
+    )
+
+    if (
+        normalized_value
+        not in SUPPORTED_DIVIDEND_COMPONENT_BASES
+    ):
+        raise ValueError(
+            "component_basis 必須是 "
+            "ESTIMATED 或 ACTUAL"
+        )
+
+    return normalized_value
+
+
+def fetch_dividend_components(
+    api_base_url: str,
+    dividend_id: int,
+    component_basis: str | None = None,
+    component_code: str | None = None,
+    source_id: str | None = None,
+    timeout_seconds: float = 10.0,
+) -> dict[str, Any]:
+    """取得單次配息的篩選後組成。"""
+
+    if dividend_id < 1:
+        raise ValueError(
+            "dividend_id 必須大於 0"
+        )
+
+    normalized_basis = (
+        normalize_component_basis(
+            component_basis
+        )
+    )
+
+    params: dict[str, str | int] = {}
+
+    if normalized_basis is not None:
+        params["component_basis"] = (
+            normalized_basis
+        )
+
+    if component_code is not None:
+        normalized_component_code = (
+            component_code.strip().upper()
+        )
+
+        if not normalized_component_code:
+            raise ValueError(
+                "component_code 不可為空白"
+            )
+
+        params["component_code"] = (
+            normalized_component_code
+        )
+
+    if source_id is not None:
+        normalized_source_id = (
+            source_id.strip().lower()
+        )
+
+        if not normalized_source_id:
+            raise ValueError(
+                "source_id 不可為空白"
+            )
+
+        params["source_id"] = (
+            normalized_source_id
+        )
+
+    payload = get_json(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            f"/api/v1/dividends/"
+            f"{dividend_id}/components"
+        ),
+        operation_name=(
+            f"配息事件 {dividend_id} "
+            "組成查詢"
+        ),
+        params=params,
+        timeout_seconds=timeout_seconds,
+    )
+
+    if not isinstance(payload, dict):
+        raise APIResponseError(
+            "配息組成回應必須是 JSON 物件"
+        )
+
+    response_dividend_id = (
+        validate_positive_integer(
+            payload.get("dividend_id"),
+            "配息組成 dividend_id",
+        )
+    )
+
+    if response_dividend_id != dividend_id:
+        raise APIResponseError(
+            "配息組成回傳事件 ID "
+            "與查詢 ID 不一致"
+        )
+
+    items = payload.get("items")
+
+    if not isinstance(items, list):
+        raise APIResponseError(
+            "配息組成 items 格式不正確"
+        )
+
+    total = validate_non_negative_integer(
+        payload.get("total"),
+        "配息組成 total",
+    )
+
+    validated_items = [
+        validate_dividend_component_item(
+            item=item,
+            index=index,
+            expected_dividend_id=(
+                dividend_id
+            ),
+        )
+        for index, item in enumerate(
+            items,
+            start=1,
+        )
+    ]
+
+    if total != len(
+        validated_items
+    ):
+        raise APIResponseError(
+            "配息組成 total 與 items "
+            "筆數不一致"
+        )
+
+    return {
+        "dividend_id": (
+            response_dividend_id
+        ),
+        "total": total,
+        "items": validated_items,
+    }
+
+
+def validate_actual_76w_item(
+    item: object,
+    index: int,
+) -> dict[str, Any]:
+    """驗證單筆實際 76W 歷史。"""
+
+    event = validate_dividend_event_item(
+        item,
+        index,
+    )
+
+    if not isinstance(item, dict):
+        raise APIResponseError(
+            f"實際 76W 第 {index} 筆"
+            "不是 JSON 物件"
+        )
+
+    required_fields = {
+        "component_amount_per_unit",
+        "ratio_pct",
+    }
+
+    missing_fields = (
+        required_fields - item.keys()
+    )
+
+    if missing_fields:
+        missing_text = ", ".join(
+            sorted(missing_fields)
+        )
+
+        raise APIResponseError(
+            f"實際 76W 第 {index} 筆"
+            f"缺少欄位：{missing_text}"
+        )
+
+    return {
+        **event,
+        "component_amount_per_unit": (
+            validate_optional_number(
+                item[
+                    "component_amount_per_unit"
+                ],
+                (
+                    f"實際 76W 第 {index} 筆 "
+                    "component_amount_per_unit"
+                ),
+                minimum=0,
+            )
+        ),
+        "ratio_pct": (
+            validate_optional_number(
+                item["ratio_pct"],
+                (
+                    f"實際 76W 第 {index} 筆 "
+                    "ratio_pct"
+                ),
+                minimum=0,
+                maximum=100,
+            )
+        ),
+    }
+
+
+def fetch_etf_actual_76w(
+    api_base_url: str,
+    code: str,
+    timeout_seconds: float = 10.0,
+) -> dict[str, Any]:
+    """取得 ETF 的正式 ACTUAL 76W 歷史摘要。"""
+
+    normalized_code = (
+        code.strip().upper()
+    )
+
+    if not normalized_code:
+        raise ValueError(
+            "ETF 代號不可為空白"
+        )
+
+    encoded_code = quote(
+        normalized_code,
+        safe="",
+    )
+
+    payload = get_json(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            f"/api/v1/etfs/"
+            f"{encoded_code}/dividends/76w"
+        ),
+        operation_name=(
+            f"ETF {normalized_code} "
+            "實際 76W 查詢"
+        ),
+        timeout_seconds=timeout_seconds,
+    )
+
+    if not isinstance(payload, dict):
+        raise APIResponseError(
+            "實際 76W 回應必須是 JSON 物件"
+        )
+
+    response_code = validate_required_text(
+        payload.get("etf_code"),
+        "實際 76W etf_code",
+    ).upper()
+
+    if response_code != normalized_code:
+        raise APIResponseError(
+            "實際 76W 代號與查詢代號不一致"
+        )
+
+    items = payload.get("items")
+
+    if not isinstance(items, list):
+        raise APIResponseError(
+            "實際 76W items 格式不正確"
+        )
+
+    validated_items = [
+        validate_actual_76w_item(
+            item,
+            index,
+        )
+        for index, item in enumerate(
+            items,
+            start=1,
+        )
+    ]
+
+    total_dividend_count = (
+        validate_non_negative_integer(
+            payload.get(
+                "total_dividend_count"
+            ),
+            (
+                "實際 76W "
+                "total_dividend_count"
+            ),
+        )
+    )
+
+    actual_record_count = (
+        validate_non_negative_integer(
+            payload.get(
+                "actual_76w_record_count"
+            ),
+            (
+                "實際 76W "
+                "actual_76w_record_count"
+            ),
+        )
+    )
+
+    full_76w_count = (
+        validate_non_negative_integer(
+            payload.get(
+                "full_76w_count"
+            ),
+            (
+                "實際 76W "
+                "full_76w_count"
+            ),
+        )
+    )
+
+    if actual_record_count != len(
+        validated_items
+    ):
+        raise APIResponseError(
+            "實際 76W 紀錄數與 items "
+            "筆數不一致"
+        )
+
+    if full_76w_count > actual_record_count:
+        raise APIResponseError(
+            "100% 76W 次數不可大於 "
+            "實際 76W 紀錄數"
+        )
+
+    latest_ratio = (
+        validate_optional_number(
+            payload.get(
+                "latest_76w_ratio_pct"
+            ),
+            (
+                "實際 76W "
+                "latest_76w_ratio_pct"
+            ),
+            minimum=0,
+            maximum=100,
+        )
+    )
+
+    average_ratio = (
+        validate_optional_number(
+            payload.get(
+                "average_76w_ratio_pct"
+            ),
+            (
+                "實際 76W "
+                "average_76w_ratio_pct"
+            ),
+            minimum=0,
+            maximum=100,
+        )
+    )
+
+    return {
+        "etf_code": response_code,
+        "total_dividend_count": (
+            total_dividend_count
+        ),
+        "actual_76w_record_count": (
+            actual_record_count
+        ),
+        "full_76w_count": (
+            full_76w_count
+        ),
+        "latest_76w_ratio_pct": (
+            latest_ratio
+        ),
+        "average_76w_ratio_pct": (
+            average_ratio
+        ),
+        "items": validated_items,
+    }
