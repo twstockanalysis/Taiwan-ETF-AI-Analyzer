@@ -7,7 +7,9 @@ import streamlit as st
 from frontend.api_client import (
     APIClientError,
     APIResourceNotFoundError,
+    SUPPORTED_PERFORMANCE_PERIODS,
     fetch_etf_by_code,
+    fetch_etf_performance,
 )
 from frontend.config import (
     get_api_base_url,
@@ -25,18 +27,7 @@ def load_etf_detail(
     api_base_url: str,
     code: str,
 ) -> dict[str, Any]:
-    """取得並短暫快取 ETF 詳細資料。
-
-    Args:
-        api_base_url:
-            FastAPI Base URL。
-        code:
-            ETF 證券代號。
-
-    Returns:
-        dict[str, Any]:
-            ETF 詳細資料。
-    """
+    """取得並短暫快取 ETF 詳細資料。"""
 
     return fetch_etf_by_code(
         api_base_url=api_base_url,
@@ -44,13 +35,25 @@ def load_etf_detail(
     )
 
 
-def get_requested_code() -> str:
-    """從網址取得 ETF 代號。
+@st.cache_data(
+    ttl=60,
+    show_spinner=False,
+)
+def load_etf_performance(
+    api_base_url: str,
+    code: str,
+) -> dict[str, Any]:
+    """取得並短暫快取 ETF 多期間績效。"""
 
-    Returns:
-        str:
-            已正規化的 ETF 代號。
-    """
+    return fetch_etf_performance(
+        api_base_url=api_base_url,
+        code=code,
+        metric="PRICE_RETURN",
+    )
+
+
+def get_requested_code() -> str:
+    """從網址取得 ETF 代號。"""
 
     raw_code = st.query_params.get(
         "code",
@@ -107,6 +110,49 @@ def format_expense_ratio(
         return "資料格式異常"
 
     return f"{number:.2f}%"
+
+
+def format_performance_return(
+    value: Any,
+) -> str:
+    """格式化績效報酬率。"""
+
+    try:
+        number = float(value)
+
+    except (
+        TypeError,
+        ValueError,
+    ):
+        return "資料格式異常"
+
+    return f"{number:+.2f}%"
+
+
+def build_performance_lookup(
+    items: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """依績效期間建立快速查詢表。"""
+
+    lookup: dict[
+        str,
+        dict[str, Any],
+    ] = {}
+
+    for item in items:
+        period_code = str(
+            item["period_code"]
+        ).strip().upper()
+
+        if (
+            period_code
+            not in SUPPORTED_PERFORMANCE_PERIODS
+        ):
+            continue
+
+        lookup[period_code] = item
+
+    return lookup
 
 
 def render_back_button() -> None:
@@ -167,6 +213,7 @@ def render_code_form(
     )
 
     load_etf_detail.clear()
+    load_etf_performance.clear()
 
     st.rerun()
 
@@ -280,6 +327,72 @@ def render_etf_information(
         )
 
 
+def render_etf_performance(
+    performance: dict[str, Any],
+) -> None:
+    """顯示 ETF 的 1M、3M、6M、1Y 績效。"""
+
+    st.divider()
+
+    st.subheader("市價績效")
+
+    st.caption(
+        "目前為市價報酬率，"
+        "不包含配息再投資。"
+    )
+
+    items = performance.get(
+        "items",
+        [],
+    )
+
+    lookup = build_performance_lookup(
+        items
+    )
+
+    columns = st.columns(
+        len(SUPPORTED_PERFORMANCE_PERIODS)
+    )
+
+    for column, period_code in zip(
+        columns,
+        SUPPORTED_PERFORMANCE_PERIODS,
+        strict=True,
+    ):
+        item = lookup.get(
+            period_code
+        )
+
+        with column:
+            if item is None:
+                st.metric(
+                    period_code,
+                    "歷史資料不足",
+                )
+
+                st.caption(
+                    "尚無足夠價格歷史"
+                )
+
+                continue
+
+            st.metric(
+                period_code,
+                format_performance_return(
+                    item["return_pct"]
+                ),
+            )
+
+            st.caption(
+                f"截至 {item['as_of_date']}"
+            )
+
+    if not items:
+        st.info(
+            "目前尚無可顯示的績效資料。"
+        )
+
+
 def render_etf_detail() -> None:
     """顯示 ETF 詳細資料頁。"""
 
@@ -352,6 +465,18 @@ def render_etf_detail() -> None:
 
         return
 
+    performance: dict[str, Any] | None = None
+    performance_error: APIClientError | None = None
+
+    try:
+        performance = load_etf_performance(
+            api_base_url=api_base_url,
+            code=requested_code,
+        )
+
+    except APIClientError as error:
+        performance_error = error
+
     refresh_column, _ = st.columns(
         [
             1,
@@ -365,8 +490,29 @@ def render_etf_detail() -> None:
             key="refresh_etf_detail",
         ):
             load_etf_detail.clear()
+            load_etf_performance.clear()
             st.rerun()
 
     render_etf_information(
         etf
     )
+
+    if performance_error is not None:
+        st.divider()
+        st.subheader("市價績效")
+
+        st.warning(
+            "無法取得 ETF 績效資料。"
+        )
+
+        st.code(
+            str(performance_error),
+            language=None,
+        )
+
+        return
+
+    if performance is not None:
+        render_etf_performance(
+            performance
+        )

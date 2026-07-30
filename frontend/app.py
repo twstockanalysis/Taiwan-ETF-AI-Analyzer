@@ -8,6 +8,9 @@ from frontend.pages.etf_search import (
 from frontend.pages.home import (
     render_home,
 )
+from frontend.pages.performance_ranking import (
+    render_performance_ranking,
+)
 
 
 def main() -> None:
@@ -34,6 +37,13 @@ def main() -> None:
         url_path="etf-search",
     )
 
+    performance_ranking_page = st.Page(
+        render_performance_ranking,
+        title="績效排行榜",
+        icon="📈",
+        url_path="performance-ranking",
+    )
+
     etf_detail_page = st.Page(
         "page_scripts/etf_detail_page.py",
         title="ETF 詳細資料",
@@ -47,6 +57,7 @@ def main() -> None:
             "TW ETF AI Analyzer": [
                 home_page,
                 etf_search_page,
+                performance_ranking_page,
                 etf_detail_page,
             ],
         }
