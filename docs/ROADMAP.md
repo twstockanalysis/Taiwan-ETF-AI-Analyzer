@@ -182,3 +182,19 @@
 - Preserved missing-data versus disclosed-zero semantics
 - Kept dividend API failures isolated from the rest of the detail page
 - Added API-client and Streamlit AppTest coverage
+
+### M8-4A Completed
+
+- Added human-reviewed actual dividend JSON input
+- Added strict ACTUAL-only source policy
+- Added official tax-source code normalization
+- Rejected EST_ codes from the actual import path
+- Added ETF, ex-date and amount event matching
+- Added record-date and payment-date verification
+- Rejected missing and ambiguous dividend-event matches
+- Added atomic ACTUAL component upsert
+- Added raw, processed, rejected and quality-report artifacts
+- Preserved source document ID, URL and date in audit artifacts
+- Added import-batch success and failure tracking
+- Added model, matcher and pipeline tests
+- Kept estimated realized capital gains separate from 76W

@@ -397,3 +397,31 @@ instead of `0%`.
 
 A disclosed `0%` actual ratio remains distinguishable from missing
 data.
+
+## Actual Dividend Composition Import
+
+M8-4A adds a human-reviewed JSON import path for official actual
+distribution-source codes such as `76W` and `54C`.
+
+Run:
+
+```powershell
+python -m backend.app.data_sources.actual_dividend_pipeline `
+    --input .\data\imports\actual_dividend_notice.json
+```
+
+Matching requires:
+
+```text
+ETF code
++ ex-dividend date
++ amount per unit
+```
+
+Record date and payment date are additional exact checks when supplied.
+
+Only `information_basis = ACTUAL` is accepted. Codes beginning with `EST_`
+are rejected, and `EST_REALIZED_CAPITAL_GAIN` is never converted to `76W`.
+
+Raw, processed, rejected and quality-report artifacts preserve the source
+document ID, URL and date. See `docs/ACTUAL_DIVIDEND_IMPORT.md`.
