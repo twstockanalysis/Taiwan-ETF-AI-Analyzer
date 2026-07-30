@@ -582,3 +582,131 @@ def count_latest_performance_ranking(
 
     finally:
         connection.close()
+DEFAULT_ETF_PERFORMANCE_PERIODS = (
+    PerformancePeriod.ONE_MONTH,
+    PerformancePeriod.THREE_MONTHS,
+    PerformancePeriod.SIX_MONTHS,
+    PerformancePeriod.ONE_YEAR,
+)
+
+
+def list_latest_etf_performance(
+    etf_code: str,
+    database_path: str | Path | None = None,
+    metric_code: PerformanceMetric = (
+        PerformanceMetric.PRICE_RETURN
+    ),
+    source_id: str = "twse_stock_day",
+    period_codes: tuple[
+        PerformancePeriod,
+        ...,
+    ] = DEFAULT_ETF_PERFORMANCE_PERIODS,
+) -> list[dict[str, Any]]:
+    """取得單一 ETF 各期間的最新績效。
+
+    每個期間只回傳最新基準日的一筆資料，
+    並依傳入的期間順序排列。
+    """
+
+    normalized_code = (
+        etf_code.strip().upper()
+    )
+
+    if not normalized_code:
+        raise ValueError(
+            "etf_code 不得為空白"
+        )
+
+    normalized_periods = tuple(
+        dict.fromkeys(
+            PerformancePeriod(
+                period_code
+            )
+            for period_code in period_codes
+        )
+    )
+
+    if not normalized_periods:
+        return []
+
+    placeholders = ", ".join(
+        "?"
+        for _ in normalized_periods
+    )
+
+    parameters: list[Any] = [
+        normalized_code,
+        metric_code.value,
+        source_id.strip().lower(),
+        *(
+            period.value
+            for period in normalized_periods
+        ),
+    ]
+
+    connection = get_connection(
+        database_path
+    )
+
+    try:
+        rows = connection.execute(
+            f"""
+            WITH ranked_performance AS (
+                SELECT
+                    p.as_of_date,
+                    p.period_code,
+                    p.metric_code,
+                    p.return_pct,
+                    p.source_id,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY
+                            p.period_code
+                        ORDER BY
+                            p.as_of_date DESC,
+                            p.id DESC
+                    ) AS row_number
+                FROM etf_performance AS p
+                WHERE
+                    p.etf_code = ?
+                    AND p.metric_code = ?
+                    AND p.source_id = ?
+                    AND p.period_code IN (
+                        {placeholders}
+                    )
+            )
+            SELECT
+                as_of_date,
+                period_code,
+                metric_code,
+                return_pct,
+                source_id
+            FROM ranked_performance
+            WHERE row_number = 1;
+            """,
+            parameters,
+        ).fetchall()
+
+        order_by_period = {
+            period.value: index
+            for index, period in enumerate(
+                normalized_periods
+            )
+        }
+
+        results = [
+            dict(row)
+            for row in rows
+        ]
+
+        results.sort(
+            key=lambda row: (
+                order_by_period[
+                    row["period_code"]
+                ]
+            )
+        )
+
+        return results
+
+    finally:
+        connection.close()

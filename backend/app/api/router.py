@@ -2,10 +2,23 @@
 
 from fastapi import APIRouter
 
-from backend.app.api.routers import etfs, system
+from backend.app.api.routers import (
+    etfs,
+    performance,
+    system,
+)
 
 
 api_router = APIRouter()
 
-api_router.include_router(system.router)
-api_router.include_router(etfs.router)
+api_router.include_router(
+    system.router
+)
+
+api_router.include_router(
+    etfs.router
+)
+
+api_router.include_router(
+    performance.router
+)
