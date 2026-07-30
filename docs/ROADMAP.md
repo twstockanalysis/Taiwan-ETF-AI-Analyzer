@@ -110,3 +110,16 @@
 - Added latest-record-per-period repository query
 - Added empty-performance and missing-ETF handling
 - Added OpenAPI and FastAPI integration tests
+
+### M8-2D Completed
+
+- Added frontend performance API clients
+- Added the Streamlit performance-ranking page
+- Added 1M, 3M, 6M and 1Y period selection
+- Added active, passive and bond filters
+- Added ranking pagination
+- Added fully clickable ranking rows
+- Added multi-period performance to ETF detail pages
+- Added explicit insufficient-history display
+- Added API-client, UI-helper and AppTest coverage
+- Fixed ETF clickable-row test discovery

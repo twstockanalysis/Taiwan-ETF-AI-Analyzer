@@ -221,3 +221,15 @@ The backend exposes two performance endpoints.
 
 ```text
 GET /api/v1/performance/ranking
+
+## Frontend Performance Views
+
+The Streamlit frontend includes a performance-ranking page.
+
+Supported periods:
+
+```text
+1M
+3M
+6M
+1Y
