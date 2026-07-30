@@ -288,3 +288,43 @@ transaction. A component error rolls back the entire dataset,
 so the database never retains a partially imported dividend
 event.
 
+## Dividend Pipeline
+
+Run the TWSE ETF dividend pipeline:
+
+```powershell
+python -m backend.app.data_sources.dividend_pipeline
+```
+
+The pipeline performs:
+
+```text
+official HTML download
+raw HTML snapshot
+event and component normalization
+ETF-master validation
+processed and rejected artifacts
+atomic SQLite upsert
+import-batch completion
+quality-report generation
+```
+
+Artifacts are written under:
+
+```text
+data/raw/dividends
+data/processed/dividends
+data/rejected/dividends
+data/processed/reports/dividends
+```
+
+The import-batch `accepted_record_count` counts accepted dividend
+events. `inserted_record_count` and `updated_record_count` combine
+dividend-event and component rows.
+
+Events whose ETF code is absent from `etf_master` are written to the
+rejected artifact without failing other valid events.
+
+TWSE composition rows are validated as `ESTIMATED`. The pipeline
+rejects any attempt to create `ACTUAL` components or `76W` from the
+TWSE estimated-composition source.

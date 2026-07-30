@@ -146,3 +146,15 @@
 - Added dividend event and component query functions
 - Added migration and Repository tests
 
+### M8-3B Completed
+
+- Added the formal TWSE ETF dividend import pipeline
+- Added HTML raw snapshots and import-batch tracking
+- Added processed dividend-event and component artifacts
+- Added rejected-event artifacts with rejection categories
+- Added missing ETF-master filtering without whole-batch failure
+- Added atomic dividend event and component upserts
+- Added dividend quality reports and coverage statistics
+- Added explicit ESTIMATED versus ACTUAL policy enforcement
+- Prevented estimated realized capital gains from becoming 76W
+- Added idempotency, failure-state and quality-report tests
