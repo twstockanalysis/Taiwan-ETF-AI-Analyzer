@@ -158,3 +158,15 @@
 - Added explicit ESTIMATED versus ACTUAL policy enforcement
 - Prevented estimated realized capital gains from becoming 76W
 - Added idempotency, failure-state and quality-report tests
+
+### M8-3C Completed
+
+- Added ETF dividend-history API
+- Added dividend-history pagination and totals
+- Added single-dividend detail API
+- Added component basis, code and source filters
+- Added actual 76W history API
+- Kept estimated realized capital gains outside 76W statistics
+- Preserved null semantics when actual 76W data is unavailable
+- Added dividend query Repository functions
+- Added OpenAPI, Repository and FastAPI tests

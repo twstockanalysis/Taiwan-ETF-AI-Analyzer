@@ -328,3 +328,38 @@ rejected artifact without failing other valid events.
 TWSE composition rows are validated as `ESTIMATED`. The pipeline
 rejects any attempt to create `ACTUAL` components or `76W` from the
 TWSE estimated-composition source.
+
+## Dividend API
+
+The backend exposes ETF dividend history and component queries.
+
+```text
+GET /api/v1/etfs/{code}/dividends
+GET /api/v1/etfs/{code}/dividends/76w
+GET /api/v1/dividends/{dividend_id}
+GET /api/v1/dividends/{dividend_id}/components
+```
+
+ETF dividend history supports `limit` and `offset` pagination.
+
+Component queries support:
+
+```text
+component_basis
+component_code
+source_id
+```
+
+The 76W endpoint only includes records where:
+
+```text
+component_basis = ACTUAL
+component_code = 76W
+```
+
+`EST_REALIZED_CAPITAL_GAIN` is never included in 76W
+statistics.
+
+When an ETF has no actual 76W disclosure,
+`latest_76w_ratio_pct` and `average_76w_ratio_pct` are `null`.
+Missing data is not represented as zero percent.
