@@ -56,63 +56,73 @@ class TestFrontendETFClickableRows(
             label,
         )
 
-@patch(
-    "frontend.pages.etf_search."
-    "st.page_link"
-)
-def test_whole_row_uses_stretched_page_link(
-    self,
-    mock_page_link,
-) -> None:
-    """確認整列使用全寬頁面連結。"""
-
-    render_clickable_etf_rows(
-        [
-            self.build_item(),
-        ]
+    @patch(
+        "frontend.pages.etf_search."
+        "st.caption"
     )
-
-    mock_page_link.assert_called_once()
-
-    call_arguments = (
-        mock_page_link.call_args
+    @patch(
+        "frontend.pages.etf_search."
+        "st.page_link"
     )
+    def test_whole_row_uses_stretched_page_link(
+        self,
+        mock_page_link,
+        mock_caption,
+    ) -> None:
+        """確認整列使用全寬頁面連結。"""
 
-    self.assertEqual(
-        call_arguments.args[0],
-        "page_scripts/etf_detail_page.py",
-    )
+        render_clickable_etf_rows(
+            [
+                self.build_item(),
+            ]
+        )
 
-    self.assertEqual(
-        call_arguments.kwargs["width"],
-        "stretch",
-    )
+        mock_caption.assert_called_once()
+        mock_page_link.assert_called_once()
 
-    self.assertEqual(
-        call_arguments.kwargs[
-            "query_params"
-        ],
-        {
-            "code": "0050",
-        },
-    )
+        call_arguments = (
+            mock_page_link.call_args
+        )
 
-    self.assertEqual(
-        call_arguments.kwargs[
-            "icon_position"
-        ],
-        "right",
-    )
+        self.assertEqual(
+            call_arguments.args[0],
+            "page_scripts/etf_detail_page.py",
+        )
 
-    self.assertIn(
-        "0050",
-        call_arguments.kwargs["label"],
-    )
+        self.assertEqual(
+            call_arguments.kwargs["width"],
+            "stretch",
+        )
 
-    self.assertIn(
-        "元大台灣50",
-        call_arguments.kwargs["label"],
-    )
+        self.assertEqual(
+            call_arguments.kwargs[
+                "query_params"
+            ],
+            {
+                "code": "0050",
+            },
+        )
+
+        self.assertEqual(
+            call_arguments.kwargs[
+                "icon_position"
+            ],
+            "right",
+        )
+
+        self.assertIn(
+            "0050",
+            call_arguments.kwargs[
+                "label"
+            ],
+        )
+
+        self.assertIn(
+            "元大台灣50",
+            call_arguments.kwargs[
+                "label"
+            ],
+        )
 
 
 if __name__ == "__main__":

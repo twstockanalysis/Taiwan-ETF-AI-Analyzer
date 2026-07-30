@@ -83,9 +83,77 @@ def fake_fetch_etf_by_code(**kwargs):
     }
 
 
+def fake_fetch_etf_performance(**kwargs):
+    return {
+        "etf_code": "0050",
+        "metric_code": "PRICE_RETURN",
+        "items": [
+            {
+                "as_of_date": "2026-07-29",
+                "period_code": "1M",
+                "metric_code": "PRICE_RETURN",
+                "return_pct": 5.0,
+                "source_id": "twse_stock_day",
+            },
+            {
+                "as_of_date": "2026-07-29",
+                "period_code": "6M",
+                "metric_code": "PRICE_RETURN",
+                "return_pct": 20.0,
+                "source_id": "twse_stock_day",
+            },
+        ],
+    }
+
+
 page.fetch_etf_by_code = fake_fetch_etf_by_code
+page.fetch_etf_performance = fake_fetch_etf_performance
 page.load_etf_detail.clear()
+page.load_etf_performance.clear()
 page.render_etf_detail()
+"""
+
+
+PERFORMANCE_PAGE_SCRIPT = """
+from unittest.mock import patch
+
+import frontend.pages.performance_ranking as page
+
+
+def fake_fetch_performance_ranking(**kwargs):
+    return {
+        "period_code": "6M",
+        "metric_code": "PRICE_RETURN",
+        "items": [
+            {
+                "rank": 1,
+                "etf_code": "0050",
+                "name": "元大台灣50",
+                "is_active": False,
+                "is_bond": False,
+                "as_of_date": "2026-07-29",
+                "period_code": "6M",
+                "metric_code": "PRICE_RETURN",
+                "return_pct": 20.0,
+                "source_id": "twse_stock_day",
+            },
+        ],
+        "total": 1,
+        "limit": 20,
+        "offset": 0,
+    }
+
+
+page.fetch_performance_ranking = (
+    fake_fetch_performance_ranking
+)
+page.load_performance_ranking.clear()
+
+with patch(
+    "frontend.pages.performance_ranking."
+    "st.page_link"
+):
+    page.render_performance_ranking()
 """
 
 
@@ -198,6 +266,51 @@ class TestStreamlitApp(unittest.TestCase):
             )
         )
 
+    def test_performance_page_renders_ranking(
+        self,
+    ) -> None:
+        """確認績效排行榜頁可正常顯示。"""
+
+        app = AppTest.from_string(
+            PERFORMANCE_PAGE_SCRIPT,
+            default_timeout=10,
+        )
+
+        app.run()
+
+        self.assertEqual(
+            len(app.exception),
+            0,
+        )
+
+        self.assertEqual(
+            app.title[0].value,
+            "ETF 績效排行榜",
+        )
+
+        metric_values = [
+            str(item.value)
+            for item in app.metric
+        ]
+
+        self.assertIn(
+            "6M",
+            metric_values,
+        )
+
+        caption_values = [
+            item.value
+            for item in app.caption
+        ]
+
+        self.assertTrue(
+            any(
+                "不會混合不同期間"
+                in caption
+                for caption in caption_values
+            )
+        )
+
     def test_detail_page_uses_gregorian_date(
         self,
     ) -> None:
@@ -252,6 +365,21 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertNotIn(
             "0920-06-30",
+            metric_values,
+        )
+
+        self.assertIn(
+            "+5.00%",
+            metric_values,
+        )
+
+        self.assertIn(
+            "+20.00%",
+            metric_values,
+        )
+
+        self.assertIn(
+            "歷史資料不足",
             metric_values,
         )
 
