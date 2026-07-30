@@ -60,6 +60,14 @@ def initialize_database(
     finally:
         connection.close()
 
+    from backend.app.database.migrate_dividend_component_basis import (
+        migrate_dividend_component_basis,
+    )
+
+    migrate_dividend_component_basis(
+        target_path
+    )
+
     return target_path
 
 

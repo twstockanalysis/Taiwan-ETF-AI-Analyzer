@@ -280,6 +280,15 @@ CREATE TABLE IF NOT EXISTS etf_dividend_component (
             length(trim(component_code)) > 0
         ),
 
+    component_basis TEXT NOT NULL
+        DEFAULT 'ACTUAL'
+        CHECK (
+            component_basis IN (
+                'ESTIMATED',
+                'ACTUAL'
+            )
+        ),
+
     component_name TEXT,
 
     amount_per_unit REAL,
@@ -327,7 +336,9 @@ CREATE TABLE IF NOT EXISTS etf_dividend_component (
 
     UNIQUE (
         dividend_id,
-        component_code
+        component_basis,
+        component_code,
+        source_id
     )
 );
 
