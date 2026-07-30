@@ -363,3 +363,37 @@ statistics.
 When an ETF has no actual 76W disclosure,
 `latest_76w_ratio_pct` and `average_76w_ratio_pct` are `null`.
 Missing data is not represented as zero percent.
+
+## Frontend Dividend Views
+
+The Streamlit ETF detail page includes:
+
+```text
+dividend-event summary
+actual 76W summary
+dividend-event history
+estimated component details
+actual component details
+```
+
+The frontend loads dividend data independently from ETF
+performance. A dividend API error does not prevent the ETF master
+data or performance section from rendering.
+
+Estimated and actual composition are displayed separately:
+
+```text
+ESTIMATED
+ACTUAL
+```
+
+`EST_REALIZED_CAPITAL_GAIN` is labeled as estimated realized
+capital gain. It is never relabeled as `76W`.
+
+The actual 76W summary only displays data returned by the
+`ACTUAL + 76W` endpoint. When no official actual record is
+available, the interface displays an explicit missing-data message
+instead of `0%`.
+
+A disclosed `0%` actual ratio remains distinguishable from missing
+data.

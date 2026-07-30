@@ -170,3 +170,15 @@
 - Preserved null semantics when actual 76W data is unavailable
 - Added dividend query Repository functions
 - Added OpenAPI, Repository and FastAPI tests
+
+### M8-3D Completed
+
+- Added frontend dividend API clients
+- Added ETF dividend-event summary
+- Added actual 76W summary metrics
+- Added expandable dividend history
+- Added estimated and actual component sections
+- Kept estimated realized capital gains separate from 76W
+- Preserved missing-data versus disclosed-zero semantics
+- Kept dividend API failures isolated from the rest of the detail page
+- Added API-client and Streamlit AppTest coverage
