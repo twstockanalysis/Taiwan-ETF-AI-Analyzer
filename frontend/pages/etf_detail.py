@@ -19,12 +19,16 @@ from frontend.config import (
     get_api_base_url,
 )
 from frontend.navigation import (
+    ETF_COMPARISON_ROUTE,
+    ETF_DETAIL_ROUTE,
+    build_comparison_query_params,
     build_detail_query_params,
     create_streamlit_page,
     resolve_detail_return,
 )
 from frontend.query_state import (
     get_query_value,
+    query_params_to_dict,
     sync_query_params,
 )
 from frontend.ui.states import (
@@ -1175,25 +1179,37 @@ def render_data_profile(
 def render_comparison_entry_point(
     etf: dict[str, Any],
 ) -> None:
-    """顯示 M9-5 ETF 比較功能預留入口。"""
+    """將目前 ETF 帶入公開比較頁。"""
 
     st.divider()
     st.subheader("ETF 比較")
 
     st.caption(
-        f"後續可將 {etf['code']} "
-        "加入多檔 ETF 比較。"
+        f"將 {etf['code']} 加入比較清單，"
+        "再選擇其他 ETF 進行 2 至 4 檔並列比較。"
     )
 
-    st.button(
-        "加入 ETF 比較",
-        key=(
-            "add_to_comparison_"
-            f"{etf['code']}"
+    st.page_link(
+        create_streamlit_page(
+            ETF_COMPARISON_ROUTE
         ),
-        disabled=True,
-        help=(
-            "ETF 比較頁將於 M9-5 啟用"
+        label="加入 ETF 比較",
+        icon="⚖️",
+        width="stretch",
+        query_params=(
+            build_comparison_query_params(
+                codes=(
+                    str(etf["code"]),
+                ),
+                source=str(
+                    ETF_DETAIL_ROUTE.url_path
+                ),
+                source_query_params=(
+                    query_params_to_dict(
+                        st.query_params
+                    )
+                ),
+            )
         ),
     )
 

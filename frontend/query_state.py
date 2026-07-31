@@ -388,3 +388,87 @@ def sync_query_params(
             query_params[key] = value
 
     return True
+
+
+COMPARISON_MAX_ETFS = 4
+
+
+def normalize_comparison_codes(
+    values: Any,
+) -> tuple[str, ...]:
+    """正規化比較清單，保留順序、去重並限制四檔。"""
+
+    if isinstance(values, str):
+        candidates = values.split(",")
+
+    else:
+        try:
+            candidates = list(values)
+
+        except TypeError:
+            candidates = []
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+
+    for value in candidates:
+        code = str(value).strip().upper()
+
+        if (
+            not code
+            or code in seen
+            or len(code) < 4
+            or len(code) > 10
+            or not code.isalnum()
+        ):
+            continue
+
+        normalized.append(code)
+        seen.add(code)
+
+        if len(normalized) >= COMPARISON_MAX_ETFS:
+            break
+
+    return tuple(normalized)
+
+
+@dataclass(frozen=True)
+class ETFComparisonQueryState:
+    """ETF 比較頁可分享的 URL 狀態。"""
+
+    codes: tuple[str, ...] = ()
+
+    def to_query_params(
+        self,
+    ) -> dict[str, str]:
+        """轉成標準比較 Query Parameters。"""
+
+        normalized_codes = (
+            normalize_comparison_codes(
+                self.codes
+            )
+        )
+
+        if not normalized_codes:
+            return {}
+
+        return {
+            "codes": ",".join(
+                normalized_codes
+            ),
+        }
+
+
+def parse_etf_comparison_query_state(
+    query_params: Any,
+) -> ETFComparisonQueryState:
+    """由網址建立 ETF 比較清單狀態。"""
+
+    return ETFComparisonQueryState(
+        codes=normalize_comparison_codes(
+            get_query_value(
+                query_params,
+                "codes",
+            )
+        )
+    )

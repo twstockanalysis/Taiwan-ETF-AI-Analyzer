@@ -14,6 +14,7 @@ from frontend.config import (
 )
 from frontend.navigation import (
     DIVIDEND_DATA_QUALITY_ROUTE,
+    ETF_COMPARISON_ROUTE,
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
     create_streamlit_page,
@@ -138,13 +139,16 @@ def format_import_error(
 
 
 def render_feature_entry_points() -> None:
-    """顯示首頁三個主要公開功能入口。"""
+    """顯示首頁四個主要公開功能入口。"""
 
     st.subheader("開始使用")
 
-    search_column, ranking_column, quality_column = (
-        st.columns(3)
-    )
+    (
+        search_column,
+        ranking_column,
+        comparison_column,
+        quality_column,
+    ) = st.columns(4)
 
     with search_column:
         st.page_link(
@@ -174,6 +178,21 @@ def render_feature_entry_points() -> None:
         st.caption(
             "比較 1M、3M、6M、1Y "
             "市價報酬率。"
+        )
+
+    with comparison_column:
+        st.page_link(
+            create_streamlit_page(
+                ETF_COMPARISON_ROUTE
+            ),
+            label="ETF 比較",
+            icon="⚖️",
+            width="stretch",
+        )
+
+        st.caption(
+            "並列比較 2 至 4 檔 ETF 的"
+            "績效、配息、76W 與資料完整度。"
         )
 
     with quality_column:

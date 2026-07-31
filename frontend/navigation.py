@@ -9,8 +9,10 @@ import streamlit as st
 
 from frontend.query_state import (
     get_query_value,
+    normalize_comparison_codes,
     parse_etf_search_query_state,
     parse_performance_query_state,
+    query_params_to_dict,
 )
 
 
@@ -50,6 +52,13 @@ PERFORMANCE_RANKING_ROUTE = PageRoute(
     url_path="performance-ranking",
 )
 
+ETF_COMPARISON_ROUTE = PageRoute(
+    key="etf-comparison",
+    title="ETF 比較",
+    icon="⚖️",
+    url_path="etf-comparison",
+)
+
 DIVIDEND_DATA_QUALITY_ROUTE = PageRoute(
     key="dividend-data-quality",
     title="配息資料品質",
@@ -69,6 +78,7 @@ PUBLIC_ROUTES = (
     HOME_ROUTE,
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
+    ETF_COMPARISON_ROUTE,
     DIVIDEND_DATA_QUALITY_ROUTE,
 )
 
@@ -112,6 +122,13 @@ def create_streamlit_page(
         )
 
         source = render_performance_ranking
+
+    elif route == ETF_COMPARISON_ROUTE:
+        from frontend.pages.etf_comparison import (
+            render_etf_comparison,
+        )
+
+        source = render_etf_comparison
 
     elif route == DIVIDEND_DATA_QUALITY_ROUTE:
         from frontend.pages.dividend_data_quality import (
@@ -253,5 +270,152 @@ def resolve_detail_return(
         route,
         parse_etf_search_query_state(
             query_params
+        ).to_query_params(),
+    )
+
+COMPARISON_RETURN_ROUTES = {
+    str(ETF_SEARCH_ROUTE.url_path): (
+        ETF_SEARCH_ROUTE
+    ),
+    str(PERFORMANCE_RANKING_ROUTE.url_path): (
+        PERFORMANCE_RANKING_ROUTE
+    ),
+    str(ETF_DETAIL_ROUTE.url_path): (
+        ETF_DETAIL_ROUTE
+    ),
+}
+
+
+def normalize_comparison_source(
+    value: str,
+) -> str:
+    """正規化 ETF 比較頁來源。"""
+
+    normalized = value.strip().lower()
+
+    return (
+        normalized
+        if normalized in COMPARISON_RETURN_ROUTES
+        else str(
+            ETF_SEARCH_ROUTE.url_path
+        )
+    )
+
+
+def build_comparison_query_params(
+    *,
+    codes: list[str] | tuple[str, ...],
+    source: str,
+    source_query_params: dict[str, str],
+) -> dict[str, str]:
+    """建立比較頁網址並保存來源頁狀態。"""
+
+    normalized_codes = (
+        normalize_comparison_codes(codes)
+    )
+    normalized_source = (
+        normalize_comparison_source(
+            source
+        )
+    )
+
+    params: dict[str, str] = {
+        "from": normalized_source,
+    }
+
+    if normalized_codes:
+        params["codes"] = ",".join(
+            normalized_codes
+        )
+
+    for key, value in (
+        source_query_params.items()
+    ):
+        normalized_key = str(key).strip()
+
+        if (
+            not normalized_key
+            or normalized_key.startswith(
+                "embed"
+            )
+        ):
+            continue
+
+        params[
+            f"return_{normalized_key}"
+        ] = str(value)
+
+    return params
+
+
+def resolve_comparison_return(
+    query_params: Any,
+) -> tuple[
+    PageRoute,
+    dict[str, str],
+]:
+    """解析 ETF 比較頁返回目標與狀態。"""
+
+    source = normalize_comparison_source(
+        get_query_value(
+            query_params,
+            "from",
+            str(
+                ETF_SEARCH_ROUTE.url_path
+            ),
+        )
+    )
+
+    route = COMPARISON_RETURN_ROUTES[
+        source
+    ]
+
+    raw_values = query_params_to_dict(
+        query_params
+    )
+
+    return_params = {
+        key.removeprefix(
+            "return_"
+        ): value
+        for key, value in (
+            raw_values.items()
+        )
+        if key.startswith(
+            "return_"
+        )
+    }
+
+    if route == PERFORMANCE_RANKING_ROUTE:
+        return (
+            route,
+            parse_performance_query_state(
+                return_params
+            ).to_query_params(),
+        )
+
+    if route == ETF_DETAIL_ROUTE:
+        detail_code = get_query_value(
+            return_params,
+            "code",
+        ).upper()
+
+        if not detail_code:
+            return (
+                ETF_SEARCH_ROUTE,
+                parse_etf_search_query_state(
+                    return_params
+                ).to_query_params(),
+            )
+
+        return (
+            route,
+            return_params,
+        )
+
+    return (
+        route,
+        parse_etf_search_query_state(
+            return_params
         ).to_query_params(),
     )

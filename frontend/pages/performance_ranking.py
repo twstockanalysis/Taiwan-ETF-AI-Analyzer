@@ -14,8 +14,11 @@ from frontend.config import (
     get_api_base_url,
 )
 from frontend.navigation import (
+    ETF_COMPARISON_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
+    build_comparison_query_params,
     build_detail_query_params,
+    create_streamlit_page,
 )
 from frontend.query_state import (
     PAGE_SIZE_OPTIONS,
@@ -563,6 +566,25 @@ def render_performance_ranking() -> None:
         return
 
     state = get_performance_state()
+
+    st.page_link(
+        create_streamlit_page(
+            ETF_COMPARISON_ROUTE
+        ),
+        label="開啟 ETF 比較",
+        icon="⚖️",
+        query_params=(
+            build_comparison_query_params(
+                codes=(),
+                source=str(
+                    PERFORMANCE_RANKING_ROUTE.url_path
+                ),
+                source_query_params=(
+                    state.to_query_params()
+                ),
+            )
+        ),
+    )
 
     is_active = ACTIVE_FILTER_OPTIONS[
         state.active_label
