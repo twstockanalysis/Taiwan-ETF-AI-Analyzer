@@ -464,3 +464,48 @@ official HTML
 
 TWSE ETF e添富 remains an estimated-composition source and is not treated as an
 ACTUAL adapter. See `docs/ACTUAL_DIVIDEND_SOURCES.md`.
+
+## Actual Dividend Coverage and Review Queue
+
+M8-4C adds live coverage calculations for every dividend event.
+
+The coverage service distinguishes:
+
+```text
+ESTIMATED components
+ACTUAL components
+ACTUAL + 76W records
+parsed ACTUAL source documents
+```
+
+A formally disclosed `76W = 0%` counts as an available 76W record. Missing data
+remains missing and is never represented as zero. Estimated realized capital
+gains remain `EST_REALIZED_CAPITAL_GAIN` and do not count as 76W.
+
+The review queue table is:
+
+```text
+dividend_source_review_queue
+```
+
+The queue tracks missing ACTUAL composition and missing source-document issues.
+It is unique by dividend event and issue type. Re-running the synchronization
+does not create duplicate items. Supplying the missing data automatically marks
+the corresponding issue as resolved, while a still-missing skipped item remains
+skipped.
+
+Run:
+
+```powershell
+python -m backend.app.data_sources.actual_dividend_coverage_pipeline
+```
+
+Read-only API endpoints:
+
+```text
+GET /api/v1/data-quality/dividends/actual-coverage
+GET /api/v1/data-quality/dividends/review-queue
+GET /api/v1/data-quality/dividends/review-queue/{queue_id}
+```
+
+See `docs/DIVIDEND_DATA_QUALITY.md`.

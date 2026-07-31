@@ -216,3 +216,18 @@
 - Reused the M8-4A event matcher and ACTUAL component import
 - Kept network retrieval explicit rather than automatic
 - Added source, repository, adapter and pipeline tests
+
+### M8-4C Completed
+
+- Added actual-dividend event coverage calculations
+- Added estimated, ACTUAL, ACTUAL 76W and source-document counts
+- Preserved missing-data versus formally disclosed zero semantics
+- Kept estimated realized capital gains outside 76W coverage
+- Added the dividend source-review queue
+- Added pending, in-review, resolved and skipped states
+- Prevented duplicate queue items by event and issue type
+- Added automatic resolution when missing data is supplied
+- Preserved skipped items while their issue remains unresolved
+- Added coverage and queue quality-report artifacts
+- Added read-only data-quality API endpoints
+- Added Migration, Repository, Pipeline and API tests
