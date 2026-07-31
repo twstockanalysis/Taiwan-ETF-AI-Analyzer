@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-31 — M9-1 performance ranking UX
+
+### Changed
+
+- Reordered ranking rows to show period return before ETF name
+- Moved active/passive and bond/non-bond labels to the right
+- Added an explicit bond/non-bond label to every ranking row
+- Emphasized the selected period and return while preserving full-row links
+
+### Added
+
+- Regression tests for field order, classification labels and return formatting
+
 ## 2026-07-31 — M8 completion audit
 
 ### Added

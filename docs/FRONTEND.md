@@ -62,11 +62,22 @@ Supports:
 
 - 1M, 3M, 6M and 1Y periods
 - Active/passive and bond filters
-- Pagination and clickable rows
+- Pagination and fully clickable rows
 
-The M9-1 UX task will move period/return information to the left and move
-classification labels to the right. That visual redesign is intentionally not
-part of M8 closure.
+M9-1 uses one fixed information order:
+
+```text
+rank and ETF code
+-> performance period and return
+-> ETF name
+-> as-of date
+-> active/passive
+-> bond/non-bond
+```
+
+The period and return are visually emphasized near the left edge. Classification
+labels remain on the right because users select those categories before
+reviewing the ranked results.
 
 ### ETF Detail
 

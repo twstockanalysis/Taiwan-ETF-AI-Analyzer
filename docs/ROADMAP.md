@@ -110,9 +110,11 @@ Completed:
 M9 contains website product work only. Broker and market-vendor APIs are not
 part of M9.
 
-### M9-1 — Performance ranking UX
+### M9-1 — Performance ranking UX — Completed
 
-Planned display order:
+Completed:
+
+- Fixed the ranking row order as:
 
 ```text
 rank and ETF code
@@ -123,8 +125,10 @@ rank and ETF code
 -> bond/non-bond
 ```
 
-Performance remains visually primary. Classification labels move to the right
-because users already choose classification filters before reviewing results.
+- Emphasized period and return near the left edge
+- Moved management and asset classifications to the right
+- Preserved full-row navigation to the hidden ETF detail page
+- Added display-order, classification and return-format regression tests
 
 ### M9-2 — Navigation and information architecture
 

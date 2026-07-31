@@ -94,26 +94,16 @@ def format_performance_return(
     return f"{number:+.2f}%"
 
 
-def format_performance_ranking_row(
+def build_performance_ranking_segments(
     item: dict[str, Any],
-) -> str:
-    """建立可點擊排行榜資料列文字。"""
+) -> tuple[str, ...]:
+    """依固定 UX 契約建立排行榜欄位。"""
 
     rank = int(item["rank"])
 
     code = str(
         item["etf_code"]
     ).strip().upper()
-
-    name = str(
-        item["name"]
-    ).strip()
-
-    management_type = (
-        "主動式"
-        if item["is_active"]
-        else "被動式"
-    )
 
     period_code = str(
         item["period_code"]
@@ -123,16 +113,45 @@ def format_performance_ranking_row(
         item["return_pct"]
     )
 
+    name = str(
+        item["name"]
+    ).strip()
+
     as_of_date = str(
         item["as_of_date"]
+    ).strip()
+
+    management_type = (
+        "主動式"
+        if item["is_active"]
+        else "被動式"
+    )
+
+    asset_type = (
+        "債券"
+        if item["is_bond"]
+        else "非債券"
     )
 
     return (
-        f"**#{rank}　{code}**　"
-        f"{name}"
-        f"　│　{management_type}"
-        f"　│　{period_code} {return_text}"
-        f"　│　截至 {as_of_date}"
+        f"**#{rank}　{code}**",
+        f"**{period_code} {return_text}**",
+        name,
+        f"截至 {as_of_date}",
+        management_type,
+        asset_type,
+    )
+
+
+def format_performance_ranking_row(
+    item: dict[str, Any],
+) -> str:
+    """建立固定欄位順序的可點擊排行榜資料列。"""
+
+    return "　│　".join(
+        build_performance_ranking_segments(
+            item
+        )
     )
 
 
@@ -142,8 +161,8 @@ def render_clickable_performance_rows(
     """顯示整列可點擊的績效排行榜。"""
 
     st.caption(
-        "排名與代號｜ETF 名稱｜管理方式｜"
-        "期間報酬率｜基準日"
+        "排名與代號｜期間報酬率｜ETF 名稱｜"
+        "基準日｜管理方式｜資產類型"
     )
 
     for item in items:
