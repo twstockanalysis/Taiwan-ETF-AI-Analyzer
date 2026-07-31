@@ -44,6 +44,29 @@ def render_not_found_state(
         st.caption(hint)
 
 
+def render_warning_state(
+    message: str,
+    *,
+    detail: Exception | str | None = None,
+    hint: str | None = None,
+) -> None:
+    """顯示一致的警告與可選技術細節。"""
+
+    st.warning(message)
+
+    if detail is not None:
+        detail_text = str(detail).strip()
+
+        if detail_text:
+            st.code(
+                detail_text,
+                language=None,
+            )
+
+    if hint:
+        st.caption(hint)
+
+
 def render_api_error(
     title: str,
     error: Exception | str,

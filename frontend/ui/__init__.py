@@ -1,1 +1,1 @@
-"""Streamlit 共用 UI 元件。"""
+"""Streamlit 共用狀態、格式化與互動元件。"""
