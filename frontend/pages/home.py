@@ -9,6 +9,9 @@ from frontend.api_client import (
 from frontend.config import (
     get_api_base_url,
 )
+from frontend.ui.states import (
+    render_api_error,
+)
 
 
 @st.cache_data(
@@ -67,7 +70,10 @@ def render_home() -> None:
         api_base_url = get_api_base_url()
 
     except ValueError as error:
-        st.error(str(error))
+        render_api_error(
+            "前端 API 網址設定不正確。",
+            error,
+        )
         return
 
     st.caption(
@@ -86,19 +92,14 @@ def render_home() -> None:
         )
 
     except APIClientError as error:
-        st.error(
-            "目前無法連接 FastAPI 後端。"
+        render_api_error(
+            "目前無法連接 FastAPI 後端。",
+            error,
+            hint=(
+                "請確認 FastAPI 已在"
+                "另一個終端機啟動。"
+            ),
         )
-
-        st.code(
-            str(error),
-            language=None,
-        )
-
-        st.info(
-            "請確認 FastAPI 已在另一個終端機啟動。"
-        )
-
         return
 
     status_column, database_column = (

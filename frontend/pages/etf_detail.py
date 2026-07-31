@@ -17,8 +17,19 @@ from frontend.api_client import (
 from frontend.config import (
     get_api_base_url,
 )
-from frontend.pages.etf_search import (
-    render_etf_search,
+from frontend.navigation import (
+    build_detail_query_params,
+    create_streamlit_page,
+    resolve_detail_return,
+)
+from frontend.query_state import (
+    get_query_value,
+    sync_query_params,
+)
+from frontend.ui.states import (
+    loading_state,
+    render_api_error,
+    render_not_found_state,
 )
 
 
@@ -108,21 +119,10 @@ def load_dividend_detail(
 def get_requested_code() -> str:
     """從網址取得 ETF 代號。"""
 
-    raw_code = st.query_params.get(
+    return get_query_value(
+        st.query_params,
         "code",
-        "",
-    )
-
-    if isinstance(raw_code, list):
-        raw_code = (
-            raw_code[-1]
-            if raw_code
-            else ""
-        )
-
-    return str(
-        raw_code
-    ).strip().upper()
+    ).upper()
 
 
 def format_fund_size(
@@ -209,21 +209,27 @@ def build_performance_lookup(
 
 
 def render_back_button() -> None:
-    """顯示返回 ETF 查詢按鈕。"""
+    """依來源頁顯示返回按鈕並保留 URL 狀態。"""
 
-    search_page = st.Page(
-        render_etf_search,
-        title="ETF 查詢",
-        icon="🔍",
-        url_path="etf-search",
+    route, return_query_params = (
+        resolve_detail_return(
+            st.query_params
+        )
+    )
+
+    return_page = create_streamlit_page(
+        route
     )
 
     if st.button(
-        "← 返回 ETF 查詢",
+        f"← 返回 {route.title}",
         type="secondary",
     ):
         st.switch_page(
-            search_page
+            return_page,
+            query_params=(
+                return_query_params
+            ),
         )
 
 
@@ -261,8 +267,23 @@ def render_code_form(
         )
         return
 
-    st.query_params["code"] = (
-        normalized_code
+    route, return_query_params = (
+        resolve_detail_return(
+            st.query_params
+        )
+    )
+
+    sync_query_params(
+        st.query_params,
+        build_detail_query_params(
+            code=normalized_code,
+            source=str(
+                route.url_path
+            ),
+            source_query_params=(
+                return_query_params
+            ),
+        ),
     )
 
     load_etf_detail.clear()
@@ -942,11 +963,14 @@ def render_etf_detail() -> None:
         api_base_url = get_api_base_url()
 
     except ValueError as error:
-        st.error(str(error))
+        render_api_error(
+            "前端 API 網址設定不正確。",
+            error,
+        )
         return
 
     try:
-        with st.spinner(
+        with loading_state(
             f"正在讀取 {requested_code}..."
         ):
             etf = load_etf_detail(
@@ -955,13 +979,9 @@ def render_etf_detail() -> None:
             )
 
     except APIResourceNotFoundError as error:
-        st.warning(
-            f"找不到 ETF：{requested_code}"
-        )
-
-        st.code(
-            str(error),
-            language=None,
+        render_not_found_state(
+            f"找不到 ETF：{requested_code}",
+            hint=str(error),
         )
 
         render_code_form(
@@ -971,20 +991,14 @@ def render_etf_detail() -> None:
         return
 
     except APIClientError as error:
-        st.error(
-            "無法取得 ETF 詳細資料。"
+        render_api_error(
+            "無法取得 ETF 詳細資料。",
+            error,
+            hint=(
+                "請確認 FastAPI 已在 "
+                "127.0.0.1:8000 啟動。"
+            ),
         )
-
-        st.code(
-            str(error),
-            language=None,
-        )
-
-        st.info(
-            "請確認 FastAPI 已在 "
-            "127.0.0.1:8000 啟動。"
-        )
-
         return
 
     performance: dict[str, Any] | None = None

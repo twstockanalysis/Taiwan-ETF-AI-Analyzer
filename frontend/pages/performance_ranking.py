@@ -1,5 +1,6 @@
 """ETF 績效排行榜頁面。"""
 
+from dataclasses import replace
 import math
 from typing import Any
 
@@ -12,13 +13,26 @@ from frontend.api_client import (
 from frontend.config import (
     get_api_base_url,
 )
+from frontend.navigation import (
+    PERFORMANCE_RANKING_ROUTE,
+    build_detail_query_params,
+)
+from frontend.query_state import (
+    PAGE_SIZE_OPTIONS,
+    PERFORMANCE_PERIODS,
+    PerformanceQueryState,
+    parse_performance_query_state,
+    sync_query_params,
+)
+from frontend.ui.states import (
+    loading_state,
+    render_api_error,
+    render_empty_state,
+)
 
 
 PERFORMANCE_PERIOD_OPTIONS = (
-    "1M",
-    "3M",
-    "6M",
-    "1Y",
+    PERFORMANCE_PERIODS
 )
 
 ACTIVE_FILTER_OPTIONS: dict[
@@ -39,42 +53,9 @@ BOND_FILTER_OPTIONS: dict[
     "全部": None,
 }
 
-PAGE_SIZE_OPTIONS = (
-    10,
-    20,
-    50,
-    100,
+PERFORMANCE_QUERY_SIGNATURE_KEY = (
+    "_performance_query_signature"
 )
-
-PERFORMANCE_STATE_DEFAULTS: dict[
-    str,
-    object,
-] = {
-    "performance_period": "6M",
-    "performance_active_label": "全部",
-    "performance_bond_label": "非債券",
-    "performance_page_size": 20,
-    "performance_page_number": 1,
-}
-
-
-def initialize_performance_state() -> None:
-    """初始化績效排行榜 Session State。"""
-
-    for key, value in (
-        PERFORMANCE_STATE_DEFAULTS.items()
-    ):
-        if key not in st.session_state:
-            st.session_state[key] = value
-
-
-def reset_performance_state() -> None:
-    """重設績效排行榜查詢條件。"""
-
-    for key, value in (
-        PERFORMANCE_STATE_DEFAULTS.items()
-    ):
-        st.session_state[key] = value
 
 
 def format_performance_return(
@@ -157,8 +138,19 @@ def format_performance_ranking_row(
 
 def render_clickable_performance_rows(
     items: list[dict[str, Any]],
+    query_state: PerformanceQueryState | None = None,
 ) -> None:
     """顯示整列可點擊的績效排行榜。"""
+
+    source_state = (
+        query_state
+        if query_state is not None
+        else PerformanceQueryState()
+    )
+
+    source_params = (
+        source_state.to_query_params()
+    )
 
     st.caption(
         "排名與代號｜期間報酬率｜ETF 名稱｜"
@@ -187,10 +179,132 @@ def render_clickable_performance_rows(
                 f"查看 {code} {name} 詳細資料"
             ),
             width="stretch",
-            query_params={
-                "code": code,
-            },
+            query_params=(
+                build_detail_query_params(
+                    code=code,
+                    source=str(
+                        PERFORMANCE_RANKING_ROUTE.url_path
+                    ),
+                    source_query_params=(
+                        source_params
+                    ),
+                )
+            ),
         )
+
+
+def apply_performance_state(
+    state: PerformanceQueryState,
+) -> None:
+    """將 URL 狀態套用至 Session State。"""
+
+    st.session_state[
+        "performance_period"
+    ] = state.period
+
+    st.session_state[
+        "performance_active_label"
+    ] = state.active_label
+
+    st.session_state[
+        "performance_bond_label"
+    ] = state.bond_label
+
+    st.session_state[
+        "performance_page_size"
+    ] = state.page_size
+
+    st.session_state[
+        "performance_page_number"
+    ] = state.page
+
+    st.session_state[
+        PERFORMANCE_QUERY_SIGNATURE_KEY
+    ] = tuple(
+        sorted(
+            state.to_query_params().items()
+        )
+    )
+
+
+def get_performance_state() -> PerformanceQueryState:
+    """由 Session State 建立目前排行榜狀態。"""
+
+    return PerformanceQueryState(
+        period=str(
+            st.session_state[
+                "performance_period"
+            ]
+        ),
+        active_label=str(
+            st.session_state[
+                "performance_active_label"
+            ]
+        ),
+        bond_label=str(
+            st.session_state[
+                "performance_bond_label"
+            ]
+        ),
+        page=int(
+            st.session_state[
+                "performance_page_number"
+            ]
+        ),
+        page_size=int(
+            st.session_state[
+                "performance_page_size"
+            ]
+        ),
+    )
+
+
+def initialize_performance_state() -> None:
+    """由 URL 初始化或更新績效排行榜狀態。"""
+
+    state = parse_performance_query_state(
+        st.query_params
+    )
+
+    canonical = state.to_query_params()
+
+    sync_query_params(
+        st.query_params,
+        canonical,
+    )
+
+    signature = tuple(
+        sorted(canonical.items())
+    )
+
+    if (
+        st.session_state.get(
+            PERFORMANCE_QUERY_SIGNATURE_KEY
+        )
+        != signature
+    ):
+        apply_performance_state(state)
+
+
+def update_performance_state(
+    state: PerformanceQueryState,
+) -> None:
+    """同步排行榜 Session State 與網址。"""
+
+    apply_performance_state(state)
+
+    sync_query_params(
+        st.query_params,
+        state.to_query_params(),
+    )
+
+
+def reset_performance_state() -> None:
+    """重設績效排行榜查詢條件。"""
+
+    update_performance_state(
+        PerformanceQueryState()
+    )
 
 
 @st.cache_data(
@@ -311,28 +425,17 @@ def render_performance_filter_form() -> None:
         )
 
     if submitted:
-        st.session_state[
-            "performance_period"
-        ] = period
-
-        st.session_state[
-            "performance_active_label"
-        ] = active_label
-
-        st.session_state[
-            "performance_bond_label"
-        ] = bond_label
-
-        st.session_state[
-            "performance_page_size"
-        ] = page_size
-
-        st.session_state[
-            "performance_page_number"
-        ] = 1
+        update_performance_state(
+            PerformanceQueryState(
+                period=period,
+                active_label=active_label,
+                bond_label=bond_label,
+                page=1,
+                page_size=page_size,
+            )
+        )
 
         load_performance_ranking.clear()
-
         st.rerun()
 
 
@@ -372,7 +475,7 @@ def render_performance_action_buttons() -> None:
 
 
 def render_performance_pagination(
-    current_page: int,
+    state: PerformanceQueryState,
     total_pages: int,
 ) -> None:
     """顯示績效排行榜分頁控制項。"""
@@ -391,14 +494,14 @@ def render_performance_pagination(
         previous_clicked = st.button(
             "← 上一頁",
             disabled=(
-                current_page <= 1
+                state.page <= 1
             ),
             key="previous_performance_page",
         )
 
     with page_column:
         st.write(
-            f"第 {current_page} 頁，"
+            f"第 {state.page} 頁，"
             f"共 {total_pages} 頁"
         )
 
@@ -406,24 +509,27 @@ def render_performance_pagination(
         next_clicked = st.button(
             "下一頁 →",
             disabled=(
-                current_page
-                >= total_pages
+                state.page >= total_pages
             ),
             key="next_performance_page",
         )
 
     if previous_clicked:
-        st.session_state[
-            "performance_page_number"
-        ] = current_page - 1
-
+        update_performance_state(
+            replace(
+                state,
+                page=state.page - 1,
+            )
+        )
         st.rerun()
 
     if next_clicked:
-        st.session_state[
-            "performance_page_number"
-        ] = current_page + 1
-
+        update_performance_state(
+            replace(
+                state,
+                page=state.page + 1,
+            )
+        )
         st.rerun()
 
 
@@ -450,80 +556,48 @@ def render_performance_ranking() -> None:
         api_base_url = get_api_base_url()
 
     except ValueError as error:
-        st.error(str(error))
+        render_api_error(
+            "前端 API 網址設定不正確。",
+            error,
+        )
         return
 
-    period = str(
-        st.session_state[
-            "performance_period"
-        ]
-    )
-
-    active_label = str(
-        st.session_state[
-            "performance_active_label"
-        ]
-    )
-
-    bond_label = str(
-        st.session_state[
-            "performance_bond_label"
-        ]
-    )
-
-    page_size = int(
-        st.session_state[
-            "performance_page_size"
-        ]
-    )
-
-    current_page = int(
-        st.session_state[
-            "performance_page_number"
-        ]
-    )
+    state = get_performance_state()
 
     is_active = ACTIVE_FILTER_OPTIONS[
-        active_label
+        state.active_label
     ]
 
     is_bond = BOND_FILTER_OPTIONS[
-        bond_label
+        state.bond_label
     ]
 
     offset = (
-        current_page - 1
-    ) * page_size
+        state.page - 1
+    ) * state.page_size
 
     try:
-        with st.spinner(
+        with loading_state(
             "正在讀取績效排行榜..."
         ):
             result = load_performance_ranking(
                 api_base_url=api_base_url,
-                period=period,
+                period=state.period,
                 is_active=is_active,
                 is_bond=is_bond,
-                limit=page_size,
+                limit=state.page_size,
                 offset=offset,
             )
 
     except APIClientError as error:
-        st.error(
-            "無法取得 ETF 績效排行榜。"
+        render_api_error(
+            "無法取得 ETF 績效排行榜。",
+            error,
+            hint=(
+                "請確認 FastAPI 已啟動，"
+                "且已匯入績效資料。"
+            ),
         )
-
-        st.code(
-            str(error),
-            language=None,
-        )
-
-        st.info(
-            "請確認 FastAPI 已在 "
-            "127.0.0.1:8000 啟動，"
-            "且已匯入績效資料。"
-        )
-
         return
 
     total = int(result["total"])
@@ -532,15 +606,17 @@ def render_performance_ranking() -> None:
     total_pages = max(
         1,
         math.ceil(
-            total / page_size
+            total / state.page_size
         ),
     )
 
-    if current_page > total_pages:
-        st.session_state[
-            "performance_page_number"
-        ] = total_pages
-
+    if state.page > total_pages:
+        update_performance_state(
+            replace(
+                state,
+                page=total_pages,
+            )
+        )
         st.rerun()
 
     period_column, total_column, page_column = (
@@ -550,7 +626,7 @@ def render_performance_ranking() -> None:
     with period_column:
         st.metric(
             "績效期間",
-            period,
+            state.period,
         )
 
     with total_column:
@@ -563,7 +639,7 @@ def render_performance_ranking() -> None:
         st.metric(
             "目前頁次",
             (
-                f"{current_page}"
+                f"{state.page}"
                 f" / {total_pages}"
             ),
         )
@@ -571,13 +647,18 @@ def render_performance_ranking() -> None:
     st.divider()
 
     if not items:
-        st.info(
-            "目前沒有符合條件的績效資料。"
+        render_empty_state(
+            "目前沒有符合條件的績效資料。",
+            hint=(
+                "可清除條件或改用其他績效期間、"
+                "管理方式與資產類型。"
+            ),
         )
         return
 
     render_clickable_performance_rows(
-        items
+        items,
+        query_state=state,
     )
 
     st.caption(
@@ -593,6 +674,6 @@ def render_performance_ranking() -> None:
     )
 
     render_performance_pagination(
-        current_page=current_page,
+        state=state,
         total_pages=total_pages,
     )

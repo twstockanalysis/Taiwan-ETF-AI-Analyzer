@@ -15,6 +15,11 @@ from frontend.api_client import (
 from frontend.config import (
     get_api_base_url,
 )
+from frontend.ui.states import (
+    render_api_error,
+    render_empty_state,
+    render_not_found_state,
+)
 
 
 STATUS_FILTER_OPTIONS: dict[
@@ -431,18 +436,15 @@ def render_etf_coverage_form(
         )
 
     except APIResourceNotFoundError:
-        st.warning(
+        render_not_found_state(
             f"找不到 ETF：{requested_code}"
         )
         return
 
     except APIClientError as error:
-        st.warning(
-            "無法取得 ETF 個別覆蓋率。"
-        )
-        st.code(
-            str(error),
-            language=None,
+        render_api_error(
+            "無法取得 ETF 個別覆蓋率。",
+            error,
         )
         return
 
@@ -858,18 +860,15 @@ def render_review_queue(
         )
 
     except APIResourceNotFoundError:
-        st.warning(
+        render_not_found_state(
             f"找不到 ETF：{etf_code}"
         )
         return
 
     except APIClientError as error:
-        st.warning(
-            "無法取得正式配息待處理佇列。"
-        )
-        st.code(
-            str(error),
-            language=None,
+        render_api_error(
+            "無法取得正式配息待處理佇列。",
+            error,
         )
         return
 
@@ -917,8 +916,12 @@ def render_review_queue(
         )
 
     if not items:
-        st.info(
-            "目前沒有符合條件的待處理項目。"
+        render_empty_state(
+            "目前沒有符合條件的待處理項目。",
+            hint=(
+                "可清除條件或改用其他狀態、"
+                "問題類型與 ETF 代號。"
+            ),
         )
         return
 
@@ -959,12 +962,9 @@ def render_review_queue(
         )
 
     except APIClientError as error:
-        st.warning(
-            "無法取得佇列項目明細。"
-        )
-        st.code(
-            str(error),
-            language=None,
+        render_api_error(
+            "無法取得佇列項目明細。",
+            error,
         )
 
     else:
@@ -1000,7 +1000,10 @@ def render_dividend_data_quality() -> None:
         api_base_url = get_api_base_url()
 
     except ValueError as error:
-        st.error(str(error))
+        render_api_error(
+            "前端 API 網址設定不正確。",
+            error,
+        )
         return
 
     try:
@@ -1012,12 +1015,9 @@ def render_dividend_data_quality() -> None:
         )
 
     except APIClientError as error:
-        st.error(
-            "無法取得全站正式配息覆蓋率。"
-        )
-        st.code(
-            str(error),
-            language=None,
+        render_api_error(
+            "無法取得全站正式配息覆蓋率。",
+            error,
         )
 
     else:
