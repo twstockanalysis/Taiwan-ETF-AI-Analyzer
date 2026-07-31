@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-31 — M9-4 ETF detail information architecture
+
+### Added
+
+- Read-only ETF data-profile API with source and freshness metadata
+- ETF-master, performance, dividend and ACTUAL source references
+- Latest import, as-of, event and official-document dates
+- Reserved ETF comparison entry for M9-5
+- Repository, API, frontend Client and page-architecture tests
+
+### Changed
+
+- ETF detail now follows one fixed decision-oriented section order
+- Repeated identity and classification rows were consolidated
+- Secondary API failures no longer prevent unrelated detail sections from
+  rendering
+- Missing dates remain unavailable rather than using the current date
+
+
 ## 2026-07-31 — M9-3 homepage system overview
 
 ### Added

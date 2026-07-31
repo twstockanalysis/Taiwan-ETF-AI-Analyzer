@@ -52,6 +52,28 @@ SQLite read-only queries
 The overview endpoint returns stored dates only. It does not replace missing
 data dates with the request time or convert unavailable coverage into zero.
 
+## ETF detail read model
+
+```text
+ETF detail page
+    |
+    +--> GET /api/v1/etfs/{code}
+    +--> GET /api/v1/etfs/{code}/performance
+    +--> GET /api/v1/etfs/{code}/dividends
+    +--> GET /api/v1/etfs/{code}/dividends/76w
+    +--> GET /api/v1/etfs/{code}/data-profile
+```
+
+The data-profile endpoint is a read model only. It aggregates source IDs,
+display names, record counts and freshness dates from existing tables without
+creating a new persistence table. ETF-master freshness is dataset-level;
+performance, dividend and ACTUAL freshness is calculated for the requested
+ETF.
+
+Each secondary detail request has an isolated frontend error boundary. The ETF
+identity can remain visible when one analysis dataset is temporarily
+unavailable.
+
 ## Data update flow
 
 ```text

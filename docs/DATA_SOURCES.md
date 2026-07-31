@@ -129,6 +129,22 @@ Official HTML is stored by content checksum. Metadata includes:
 - Parse status and error
 - Linked import batch
 
+## Detail-page source display
+
+M9-4 exposes traceable source references through:
+
+```text
+GET /api/v1/etfs/{code}/data-profile
+```
+
+Display names are resolved from the official-source registries while stable
+`source_id` values remain visible. The endpoint does not infer a missing source
+or substitute the current date for unavailable freshness metadata.
+
+ETF-master freshness uses the latest successful `etf_master_pipeline` batch for
+the whole dataset. Performance, dividend and ACTUAL counts and dates are scoped
+to the requested ETF.
+
 ## Current limitations
 
 - TWSE ETF e添富 composition is estimated, not ACTUAL.

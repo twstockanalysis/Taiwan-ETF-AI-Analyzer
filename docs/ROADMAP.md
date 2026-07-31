@@ -154,17 +154,19 @@ Completed:
 - Added primary entry points for search, ranking and dividend data quality
 - Preserved null semantics for unavailable dates and zero-denominator rates
 
-### M9-4 — ETF detail-page organization
+### M9-4 — ETF detail-page organization — Completed
 
-Planned sections:
+Completed:
 
-- Basic information
-- Market-price performance
-- Dividend summary
-- Actual 76W
-- Dividend events and components
-- Data sources and freshness
-- Comparison entry point
+- Reorganized the detail page into a fixed decision-oriented section order
+- Removed duplicated ETF identity and classification rows
+- Kept 1M, 3M, 6M and 1Y market-price periods independent
+- Preserved strict ACTUAL 76W versus estimated-capital-gain semantics
+- Added `GET /api/v1/etfs/{code}/data-profile`
+- Added ETF-master, performance, dividend and ACTUAL source/freshness display
+- Isolated secondary API failures so successful sections remain visible
+- Added a disabled M9-5 comparison entry point
+- Added Repository, API, Client and information-architecture regression tests
 
 ### M9-5 — ETF comparison page
 

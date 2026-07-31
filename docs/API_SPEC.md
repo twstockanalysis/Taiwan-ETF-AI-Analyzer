@@ -92,6 +92,25 @@ GET /api/v1/etfs/{code}
 
 ETF codes are normalized to uppercase. Missing ETFs return `404`.
 
+### ETF data profile
+
+```http
+GET /api/v1/etfs/{code}/data-profile
+```
+
+Returns the detail page's traceable data profile:
+
+```text
+ETF-master source and latest successful dataset import
+PRICE_RETURN source, available periods and latest as-of date
+dividend-event sources, count and latest event date
+ACTUAL composition sources, 76W count and latest official-document date
+```
+
+Missing dates remain `null`. An ETF without performance, dividend or ACTUAL
+records returns zero counts and empty source lists rather than fabricated dates
+or percentages.
+
 ## Performance
 
 ### Ranking

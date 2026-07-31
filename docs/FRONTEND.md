@@ -163,14 +163,36 @@ The detail page is hidden from sidebar navigation and opened through:
 /etf-detail?code=0050
 ```
 
-It shows:
+M9-4 uses one fixed decision-oriented section order:
 
-- ETF identity and classifications
-- Listing date, fund size and expense ratio
-- Multi-period market-price performance
-- Dividend summary
-- Actual 76W summary
-- Dividend events and estimated/actual components
+```text
+ETF identity and classifications
+-> core data overview
+-> market-price performance
+-> dividend summary
+-> actual 76W
+-> dividend events and components
+-> data sources and freshness
+-> ETF comparison entry
+```
+
+The page keeps each secondary API call isolated. A performance, dividend,
+ACTUAL 76W or data-profile failure does not remove the ETF identity and other
+successfully loaded sections.
+
+Data sources and freshness come from:
+
+```text
+GET /api/v1/etfs/{code}/data-profile
+```
+
+The profile shows source IDs and display names, latest data dates, latest
+successful import times and record counts. ETF-master import time is explicitly
+labeled as dataset-level freshness. Missing dates display `尚未取得`; they are
+not replaced with the current date.
+
+The comparison entry is visible but disabled until M9-5 implements comparison
+state and the public comparison page.
 
 ### Dividend Data Quality
 
