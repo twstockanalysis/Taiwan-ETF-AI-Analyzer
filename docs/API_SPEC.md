@@ -92,6 +92,26 @@ GET /api/v1/etfs/{code}
 
 ETF codes are normalized to uppercase. Missing ETFs return `404`.
 
+### ETF comparison
+
+```http
+GET /api/v1/etfs/comparison?codes=0050,0056
+```
+
+The endpoint accepts 2–4 unique ETF codes and preserves request order. It returns:
+
+```text
+ETF master identity and classifications
+latest available 1M, 3M, 6M and 1Y PRICE_RETURN records
+dividend-event count and latest event summary
+ACTUAL 76W record count and latest/average ratio
+per-ETF source and freshness profile
+five-section data-completeness explanation
+```
+
+One code or more than four codes returns `422`. Missing ETF codes return `404`.
+Missing performance or ACTUAL 76W values remain `null` or absent; formal `76W = 0%` remains numerical zero.
+
 ### ETF data profile
 
 ```http

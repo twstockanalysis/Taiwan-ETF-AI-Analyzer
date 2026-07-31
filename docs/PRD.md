@@ -39,8 +39,9 @@ M9:
 
 - Completed navigation, URL state and performance-ranking information order
 - Completed the FastAPI-backed homepage system overview
-- Organize ETF detail sections and data freshness
-- Add ETF comparison and remaining shared frontend components
+- Completed ETF detail sections and data freshness
+- Completed 2–4 ETF comparison with URL state and data completeness
+- Finish remaining shared frontend components
 
 M10–M11:
 

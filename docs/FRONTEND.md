@@ -54,6 +54,7 @@ Public pages:
 /
 etf-search
 performance-ranking
+etf-comparison
 dividend-data-quality
 ```
 
@@ -155,6 +156,27 @@ The period and return are visually emphasized near the left edge. Classification
 labels remain on the right because users select those categories before
 reviewing the ranked results.
 
+### ETF Comparison
+
+The public comparison page uses:
+
+```text
+/etf-comparison?codes=0050,0056
+```
+
+It accepts 2–4 unique ETF codes and compares:
+
+- Management and asset classifications
+- Listing date, fund size and expense ratio
+- Independent 1M, 3M, 6M and 1Y `PRICE_RETURN` values
+- Dividend-event count and latest distribution summary
+- ACTUAL 76W availability, latest ratio and average ratio
+- Five-section data completeness
+
+The `codes` query parameter is canonical, ordered and deduplicated. Return-state parameters are namespaced with `return_`, allowing the page to return to ETF search, performance ranking or ETF detail without losing the source page state.
+
+Missing periods display `歷史資料不足`. Missing ACTUAL 76W displays `尚未取得`; an official `76W = 0%` displays `0.00%`. Data completeness describes available data sections only and is not an investment score.
+
 ### ETF Detail
 
 The detail page is hidden from sidebar navigation and opened through:
@@ -191,8 +213,7 @@ successful import times and record counts. ETF-master import time is explicitly
 labeled as dataset-level freshness. Missing dates display `尚未取得`; they are
 not replaced with the current date.
 
-The comparison entry is visible but disabled until M9-5 implements comparison
-state and the public comparison page.
+The comparison entry is enabled and carries the current ETF plus the detail page return state into the public comparison page.
 
 ### Dividend Data Quality
 

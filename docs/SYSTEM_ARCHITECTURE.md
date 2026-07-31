@@ -74,6 +74,32 @@ Each secondary detail request has an isolated frontend error boundary. The ETF
 identity can remain visible when one analysis dataset is temporarily
 unavailable.
 
+## ETF comparison read model
+
+```text
+Streamlit comparison page
+    |
+    +--> canonical codes URL state (2–4 ETFs)
+    +--> source-aware return state
+    |
+    v
+GET /api/v1/etfs/comparison
+    |
+    v
+ETF comparison Repository
+    |
+    +--> ETF master
+    +--> latest period-specific PRICE_RETURN
+    +--> dividend summary
+    +--> ACTUAL 76W summary
+    +--> per-ETF data profile and completeness
+    |
+    v
+SQLite read-only queries
+```
+
+The comparison read model preserves request order. Missing periods and missing ACTUAL 76W stay unavailable; formal zero remains numerical zero. The completeness percentage measures five data sections and is not an investment recommendation.
+
 ## Data update flow
 
 ```text

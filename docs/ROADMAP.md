@@ -168,16 +168,20 @@ Completed:
 - Added a disabled M9-5 comparison entry point
 - Added Repository, API, Client and information-architecture regression tests
 
-### M9-5 — ETF comparison page
+### M9-5 — ETF comparison page — Completed
 
-Planned comparison fields:
+Completed:
 
-- 1M, 3M, 6M and 1Y performance
-- Management and asset classifications
-- Listing date
-- Dividend history and frequency
-- Actual 76W availability
-- Data completeness
+- Added a public 2–4 ETF comparison page
+- Added stable, ordered and deduplicated `codes` URL state
+- Added source-aware return behavior for search, ranking and detail
+- Added `GET /api/v1/etfs/comparison` as the comparison read-model boundary
+- Compared management and asset classifications, listing date, fund size and expense ratio
+- Compared independent 1M, 3M, 6M and 1Y `PRICE_RETURN` values
+- Compared dividend history, latest distribution and ACTUAL 76W availability
+- Added explainable five-section data completeness
+- Preserved missing-versus-zero semantics
+- Added Repository, API, Client, URL-state and frontend display tests
 
 ### M9-6 — Shared frontend components
 

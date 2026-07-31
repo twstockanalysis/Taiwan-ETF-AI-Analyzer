@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-31 — M9-5 ETF comparison page
+
+### Added
+
+- Read-only `GET /api/v1/etfs/comparison` aggregation endpoint
+- Public ETF comparison page with stable `codes` URL state
+- 2–4 ETF comparison for identity, 1M/3M/6M/1Y PRICE_RETURN, dividends, ACTUAL 76W and data completeness
+- Source-aware return behavior from search, ranking and ETF detail
+- Comparison entry points on the homepage, search, ranking and detail pages
+- Repository, API, frontend Client, URL-state and display-contract tests
+
+### Changed
+
+- The M9-4 detail-page comparison placeholder is now enabled
+- Missing performance and missing ACTUAL 76W remain unavailable instead of becoming zero
+- Formal ACTUAL `76W = 0%` remains an available record
+
 ## 2026-07-31 — M9-4 ETF detail information architecture
 
 ### Added
