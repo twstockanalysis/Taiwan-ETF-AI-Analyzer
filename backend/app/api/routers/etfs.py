@@ -18,6 +18,12 @@ from backend.app.models.etf import (
     ETFListResponse,
     ETFResponse,
 )
+from backend.app.models.etf_data_profile_api import (
+    ETFDataProfileResponse,
+)
+from backend.app.repositories.etf_data_profile_repository import (
+    build_etf_data_profile,
+)
 from backend.app.repositories.etf_repository import (
     count_etfs,
     get_etf_by_code,
@@ -122,6 +128,38 @@ def read_etfs(
         "limit": limit,
         "offset": offset,
     }
+
+
+@router.get(
+    "/{code}/data-profile",
+    response_model=ETFDataProfileResponse,
+    summary="取得 ETF 資料來源與新鮮度",
+)
+def read_etf_data_profile(
+    code: str,
+    database_path: DatabasePath,
+) -> dict[str, Any]:
+    """回傳單一 ETF 的來源、覆蓋與最新日期。"""
+
+    normalized_code = (
+        code.strip().upper()
+    )
+
+    profile = build_etf_data_profile(
+        etf_code=normalized_code,
+        database_path=database_path,
+    )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"找不到 ETF："
+                f"{normalized_code}"
+            ),
+        )
+
+    return profile
 
 
 @router.get(
