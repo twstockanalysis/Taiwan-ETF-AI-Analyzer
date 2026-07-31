@@ -8,7 +8,7 @@ import streamlit as st
 
 from frontend.api_client import (
     APIClientError,
-    fetch_performance_ranking,
+    fetch_multi_period_performance_ranking,
 )
 from frontend.config import (
     get_api_base_url,
@@ -83,10 +83,104 @@ def format_performance_return(
     )
 
 
+def build_period_performance_lookup(
+    item: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """建立排行榜項目的期間績效查找表。"""
+
+    performance_items = item.get(
+        "performance_items"
+    )
+
+    if isinstance(
+        performance_items,
+        list,
+    ):
+        return {
+            str(
+                performance_item[
+                    "period_code"
+                ]
+            ).strip().upper(): (
+                performance_item
+            )
+            for performance_item in (
+                performance_items
+            )
+        }
+
+    period_code = str(
+        item.get(
+            "period_code",
+            item.get(
+                "sort_period",
+                "",
+            ),
+        )
+    ).strip().upper()
+
+    if not period_code:
+        return {}
+
+    return {
+        period_code: {
+            "period_code": period_code,
+            "as_of_date": item.get(
+                "as_of_date",
+                item.get(
+                    "sort_as_of_date"
+                ),
+            ),
+            "return_pct": item.get(
+                "return_pct",
+                item.get(
+                    "sort_return_pct"
+                ),
+            ),
+            "source_id": item.get(
+                "source_id"
+            ),
+        }
+    }
+
+
+def format_ranking_period(
+    *,
+    period_code: str,
+    performance_item: (
+        dict[str, Any] | None
+    ),
+    is_sort_period: bool,
+) -> str:
+    """格式化排行榜單一期間並強調排序期間。"""
+
+    if performance_item is None:
+        text = (
+            f"{period_code} "
+            "歷史資料不足"
+        )
+
+    else:
+        text = (
+            f"{period_code} "
+            + format_performance_return(
+                performance_item[
+                    "return_pct"
+                ]
+            )
+        )
+
+    return (
+        f"**{text}**"
+        if is_sort_period
+        else text
+    )
+
+
 def build_performance_ranking_segments(
     item: dict[str, Any],
 ) -> tuple[str, ...]:
-    """依固定 UX 契約建立排行榜欄位。"""
+    """建立四期間全可見且 6M 預設優先的排行榜欄位。"""
 
     rank = int(item["rank"])
 
@@ -94,21 +188,53 @@ def build_performance_ranking_segments(
         item["etf_code"]
     ).strip().upper()
 
-    period_code = str(
-        item["period_code"]
-    ).strip().upper()
-
-    return_text = format_performance_return(
-        item["return_pct"]
-    )
-
     name = str(
         item["name"]
     ).strip()
 
-    as_of_date = str(
-        item["as_of_date"]
+    sort_period = str(
+        item.get(
+            "sort_period",
+            item.get(
+                "period_code",
+                "6M",
+            ),
+        )
+    ).strip().upper()
+
+    sort_as_of_date = str(
+        item.get(
+            "sort_as_of_date",
+            item.get(
+                "as_of_date",
+                "",
+            ),
+        )
     ).strip()
+
+    performance_lookup = (
+        build_period_performance_lookup(
+            item
+        )
+    )
+
+    period_segments = tuple(
+        format_ranking_period(
+            period_code=period_code,
+            performance_item=(
+                performance_lookup.get(
+                    period_code
+                )
+            ),
+            is_sort_period=(
+                period_code
+                == sort_period
+            ),
+        )
+        for period_code in (
+            PERFORMANCE_PERIOD_OPTIONS
+        )
+    )
 
     management_type = (
         management_type_label(
@@ -122,9 +248,12 @@ def build_performance_ranking_segments(
 
     return (
         f"**#{rank}　{code}**",
-        f"**{period_code} {return_text}**",
         name,
-        f"截至 {as_of_date}",
+        *period_segments,
+        (
+            f"依 {sort_period} 排序"
+            f"｜截至 {sort_as_of_date}"
+        ),
         management_type,
         asset_type,
     )
@@ -157,8 +286,9 @@ def render_clickable_performance_rows(
     render_etf_detail_links(
         items,
         caption=(
-            "排名與代號｜期間報酬率｜ETF 名稱｜"
-            "基準日｜管理方式｜資產類型"
+            "排名與代號｜ETF 名稱｜"
+            "1M｜3M｜6M｜1Y｜"
+            "排序基準日｜管理方式｜資產類型"
         ),
         label_builder=(
             format_performance_ranking_row
@@ -302,14 +432,16 @@ def load_performance_ranking(
 ) -> dict[str, Any]:
     """取得並短暫快取績效排行榜。"""
 
-    return fetch_performance_ranking(
-        api_base_url=api_base_url,
-        period=period,
-        metric="PRICE_RETURN",
-        is_active=is_active,
-        is_bond=is_bond,
-        limit=limit,
-        offset=offset,
+    return (
+        fetch_multi_period_performance_ranking(
+            api_base_url=api_base_url,
+            sort_period=period,
+            metric="PRICE_RETURN",
+            is_active=is_active,
+            is_bond=is_bond,
+            limit=limit,
+            offset=offset,
+        )
     )
 
 
@@ -339,13 +471,18 @@ def render_performance_filter_form() -> None:
             )
 
             period = st.selectbox(
-                "績效期間",
+                "排序期間",
                 options=(
                     PERFORMANCE_PERIOD_OPTIONS
                 ),
                 index=(
                     PERFORMANCE_PERIOD_OPTIONS
                     .index(current_period)
+                ),
+                help=(
+                    "預設以 6M 排名；"
+                    "每列仍同步顯示 "
+                    "1M、3M、6M、1Y。"
                 ),
             )
 
@@ -499,7 +636,9 @@ def render_performance_ranking() -> None:
     st.title("ETF 績效排行榜")
 
     st.caption(
-        "依指定期間比較 ETF 市價報酬率"
+        "依指定主要期間排序；"
+        "每檔 ETF 同步顯示 "
+        "1M、3M、6M、1Y 市價報酬率"
     )
 
     st.info(
@@ -602,7 +741,7 @@ def render_performance_ranking() -> None:
 
     with period_column:
         st.metric(
-            "績效期間",
+            "排序期間",
             state.period,
         )
 
@@ -646,8 +785,9 @@ def render_performance_ranking() -> None:
     )
 
     st.caption(
-        "排行榜只比較相同期間，"
-        "不會混合不同期間的報酬率。"
+        f"名次只依 {state.period} 排序；"
+        "1M、3M、6M、1Y 仍分開顯示，"
+        "不會把不同期間混成同一個報酬率。"
     )
 
     render_performance_pagination(

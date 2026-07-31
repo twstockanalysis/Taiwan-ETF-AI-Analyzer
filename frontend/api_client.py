@@ -837,6 +837,415 @@ def fetch_performance_ranking(
     }
 
 
+def validate_multi_period_ranking_item(
+    item: object,
+    index: int,
+    expected_sort_period: str,
+    expected_metric: str,
+) -> dict[str, Any]:
+    """驗證單筆多期間績效排行榜資料。"""
+
+    if not isinstance(item, dict):
+        raise APIResponseError(
+            f"多期間績效排行榜第 {index} 筆"
+            "不是 JSON 物件"
+        )
+
+    required_fields = {
+        "rank",
+        "etf_code",
+        "name",
+        "is_active",
+        "is_bond",
+        "sort_period",
+        "sort_as_of_date",
+        "sort_return_pct",
+        "source_id",
+        "performance_items",
+    }
+
+    missing_fields = (
+        required_fields - item.keys()
+    )
+
+    if missing_fields:
+        missing_text = ", ".join(
+            sorted(missing_fields)
+        )
+
+        raise APIResponseError(
+            f"多期間績效排行榜第 {index} 筆"
+            f"缺少欄位：{missing_text}"
+        )
+
+    rank = item["rank"]
+
+    if (
+        not isinstance(rank, int)
+        or isinstance(rank, bool)
+        or rank < 1
+    ):
+        raise APIResponseError(
+            f"多期間績效排行榜第 {index} 筆 "
+            "rank 格式不正確"
+        )
+
+    etf_code = validate_required_text(
+        item["etf_code"],
+        (
+            f"多期間績效排行榜第 {index} 筆 "
+            "etf_code"
+        ),
+    ).upper()
+
+    name = validate_required_text(
+        item["name"],
+        (
+            f"多期間績效排行榜第 {index} 筆 "
+            "name"
+        ),
+    )
+
+    source_id = validate_required_text(
+        item["source_id"],
+        (
+            f"多期間績效排行榜第 {index} 筆 "
+            "source_id"
+        ),
+    ).lower()
+
+    for field_name in (
+        "is_active",
+        "is_bond",
+    ):
+        if not isinstance(
+            item[field_name],
+            bool,
+        ):
+            raise APIResponseError(
+                f"多期間績效排行榜第 {index} 筆 "
+                f"{field_name} 必須是布林值"
+            )
+
+    sort_period = str(
+        item["sort_period"]
+    ).strip().upper()
+
+    if sort_period != expected_sort_period:
+        raise APIResponseError(
+            "多期間績效排行榜排序期間"
+            "與查詢條件不一致"
+        )
+
+    sort_as_of_date = (
+        validate_performance_date(
+            item["sort_as_of_date"],
+            (
+                f"多期間績效排行榜第 {index} 筆 "
+                "sort_as_of_date"
+            ),
+        )
+    )
+
+    sort_return_pct = validate_return_pct(
+        item["sort_return_pct"],
+        (
+            f"多期間績效排行榜第 {index} 筆 "
+            "sort_return_pct"
+        ),
+    )
+
+    performance_items = item[
+        "performance_items"
+    ]
+
+    if not isinstance(
+        performance_items,
+        list,
+    ):
+        raise APIResponseError(
+            f"多期間績效排行榜第 {index} 筆 "
+            "performance_items 格式不正確"
+        )
+
+    validated_performance = [
+        validate_etf_performance_item(
+            performance_item,
+            performance_index,
+            expected_metric,
+        )
+        for performance_index, performance_item in enumerate(
+            performance_items,
+            start=1,
+        )
+    ]
+
+    period_codes = [
+        performance_item["period_code"]
+        for performance_item in (
+            validated_performance
+        )
+    ]
+
+    if len(period_codes) != len(
+        set(period_codes)
+    ):
+        raise APIResponseError(
+            "多期間績效排行榜包含重複期間"
+        )
+
+    sort_item = next(
+        (
+            performance_item
+            for performance_item in (
+                validated_performance
+            )
+            if performance_item[
+                "period_code"
+            ] == sort_period
+        ),
+        None,
+    )
+
+    if sort_item is None:
+        raise APIResponseError(
+            "多期間績效排行榜缺少排序期間資料"
+        )
+
+    if (
+        sort_item["as_of_date"]
+        != sort_as_of_date
+        or abs(
+            sort_item["return_pct"]
+            - sort_return_pct
+        )
+        > 0.000001
+        or sort_item["source_id"]
+        != source_id
+    ):
+        raise APIResponseError(
+            "多期間績效排行榜排序摘要"
+            "與期間明細不一致"
+        )
+
+    period_order = {
+        period_code: order
+        for order, period_code in enumerate(
+            SUPPORTED_PERFORMANCE_PERIODS
+        )
+    }
+
+    validated_performance.sort(
+        key=lambda performance_item: (
+            period_order[
+                performance_item[
+                    "period_code"
+                ]
+            ]
+        )
+    )
+
+    return {
+        "rank": rank,
+        "etf_code": etf_code,
+        "name": name,
+        "is_active": item["is_active"],
+        "is_bond": item["is_bond"],
+        "sort_period": sort_period,
+        "sort_as_of_date": (
+            sort_as_of_date
+        ),
+        "sort_return_pct": (
+            sort_return_pct
+        ),
+        "source_id": source_id,
+        "performance_items": (
+            validated_performance
+        ),
+    }
+
+
+def fetch_multi_period_performance_ranking(
+    api_base_url: str,
+    sort_period: str = "6M",
+    metric: str = "PRICE_RETURN",
+    is_active: bool | None = None,
+    is_bond: bool | None = False,
+    limit: int = 20,
+    offset: int = 0,
+    timeout_seconds: float = 10.0,
+) -> dict[str, Any]:
+    """取得以一個期間排序的多期間績效排行榜。"""
+
+    normalized_sort_period = (
+        normalize_performance_period(
+            sort_period
+        )
+    )
+
+    normalized_metric = (
+        normalize_performance_metric(
+            metric
+        )
+    )
+
+    if limit < 1 or limit > 100:
+        raise ValueError(
+            "limit 必須介於 1 到 100"
+        )
+
+    if offset < 0:
+        raise ValueError(
+            "offset 不得小於 0"
+        )
+
+    params: dict[str, str | int] = {
+        "sort_period": (
+            normalized_sort_period
+        ),
+        "metric": normalized_metric,
+        "limit": limit,
+        "offset": offset,
+    }
+
+    if is_active is not None:
+        params["is_active"] = (
+            "true"
+            if is_active
+            else "false"
+        )
+
+    if is_bond is not None:
+        params["is_bond"] = (
+            "true"
+            if is_bond
+            else "false"
+        )
+
+    payload = get_json(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            "/api/v1/performance/"
+            "multi-period-ranking"
+        ),
+        operation_name="ETF 多期間績效排行榜查詢",
+        params=params,
+        timeout_seconds=timeout_seconds,
+    )
+
+    if not isinstance(payload, dict):
+        raise APIResponseError(
+            "多期間績效排行榜回應"
+            "必須是 JSON 物件"
+        )
+
+    response_sort_period = str(
+        payload.get("sort_period", "")
+    ).strip().upper()
+
+    response_metric = str(
+        payload.get("metric_code", "")
+    ).strip().upper()
+
+    if (
+        response_sort_period
+        != normalized_sort_period
+    ):
+        raise APIResponseError(
+            "多期間績效排行榜回傳排序期間"
+            "與查詢條件不一致"
+        )
+
+    if response_metric != normalized_metric:
+        raise APIResponseError(
+            "多期間績效排行榜回傳類型"
+            "與查詢條件不一致"
+        )
+
+    raw_periods = payload.get(
+        "periods"
+    )
+
+    if (
+        not isinstance(raw_periods, list)
+        or [
+            str(value).strip().upper()
+            for value in raw_periods
+        ]
+        != list(
+            SUPPORTED_PERFORMANCE_PERIODS
+        )
+    ):
+        raise APIResponseError(
+            "多期間績效排行榜 periods "
+            "必須依序為 1M、3M、6M、1Y"
+        )
+
+    items = payload.get("items")
+
+    if not isinstance(items, list):
+        raise APIResponseError(
+            "多期間績效排行榜 items "
+            "格式不正確"
+        )
+
+    integer_values = {
+        "total": payload.get("total"),
+        "limit": payload.get("limit"),
+        "offset": payload.get("offset"),
+    }
+
+    for field_name, value in (
+        integer_values.items()
+    ):
+        if (
+            not isinstance(value, int)
+            or isinstance(value, bool)
+            or value < 0
+        ):
+            raise APIResponseError(
+                "多期間績效排行榜 "
+                f"{field_name} 必須是非負整數"
+            )
+
+    if integer_values["limit"] < 1:
+        raise APIResponseError(
+            "多期間績效排行榜 limit "
+            "必須大於 0"
+        )
+
+    validated_items = [
+        validate_multi_period_ranking_item(
+            item=item,
+            index=index,
+            expected_sort_period=(
+                normalized_sort_period
+            ),
+            expected_metric=(
+                normalized_metric
+            ),
+        )
+        for index, item in enumerate(
+            items,
+            start=1,
+        )
+    ]
+
+    return {
+        "sort_period": (
+            response_sort_period
+        ),
+        "metric_code": response_metric,
+        "periods": list(
+            SUPPORTED_PERFORMANCE_PERIODS
+        ),
+        "items": validated_items,
+        "total": integer_values["total"],
+        "limit": integer_values["limit"],
+        "offset": integer_values["offset"],
+    }
+
+
 def validate_etf_performance_item(
     item: object,
     index: int,

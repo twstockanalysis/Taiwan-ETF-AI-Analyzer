@@ -378,7 +378,8 @@ def render_performance_coverage(
     columns = st.columns(
         len(
             performance["periods"]
-        )
+        ),
+        gap="small",
     )
 
     for column, item in zip(
@@ -387,17 +388,26 @@ def render_performance_coverage(
         strict=True,
     ):
         with column:
+            period_code = str(
+                item["period_code"]
+            )
+
+            label = (
+                f"{period_code}（主要）"
+                if period_code == "6M"
+                else period_code
+            )
+
             st.metric(
-                str(
-                    item[
-                        "period_code"
-                    ]
-                ),
+                label,
                 (
                     f"{item['etf_count']:,}"
                     f" / "
                     f"{performance['total_etf_count']:,}"
-                    " 檔"
+                ),
+                help=(
+                    "已有此期間 PRICE_RETURN "
+                    "資料的 ETF 數量 / ETF 總數"
                 ),
             )
 
@@ -418,6 +428,11 @@ def render_performance_coverage(
                     ]
                 )
             )
+
+    st.caption(
+        "6M 為預設主要期間；"
+        "1M、3M、6M、1Y 覆蓋仍各自顯示。"
+    )
 
 
 def build_freshness_rows(

@@ -175,6 +175,12 @@ def create_streamlit_page(
 def create_navigation() -> Any:
     """建立網站唯一的 Streamlit 導覽表。"""
 
+    from frontend.ui.theme import (
+        apply_global_styles,
+    )
+
+    apply_global_styles()
+
     pages = [
         create_streamlit_page(route)
         for route in ALL_ROUTES
