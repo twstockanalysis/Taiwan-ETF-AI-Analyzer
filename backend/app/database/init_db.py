@@ -76,6 +76,14 @@ def initialize_database(
         target_path
     )
 
+    from backend.app.database.migrate_dividend_review_queue import (
+        migrate_dividend_review_queue,
+    )
+
+    migrate_dividend_review_queue(
+        target_path
+    )
+
     return target_path
 
 
