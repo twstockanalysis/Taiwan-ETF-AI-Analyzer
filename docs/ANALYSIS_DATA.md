@@ -425,3 +425,42 @@ are rejected, and `EST_REALIZED_CAPITAL_GAIN` is never converted to `76W`.
 
 Raw, processed, rejected and quality-report artifacts preserve the source
 document ID, URL and date. See `docs/ACTUAL_DIVIDEND_IMPORT.md`.
+
+## Actual Dividend Source Documents
+
+M8-4B adds the `dividend_source_document` audit table.
+
+Official source documents are versioned by:
+
+```text
+source ID
++ stable source document ID
++ SHA-256 checksum
+```
+
+Identical content reuses the existing version. Changed content creates a new
+version while preserving the previous snapshot.
+
+The first verified source adapter is:
+
+```text
+cathay_actual_dividend_announcement
+```
+
+It only accepts official Cathay SITE announcements that explicitly state actual
+distribution composition. Estimated wording is rejected before the M8-4A
+pipeline is called.
+
+The processing path is:
+
+```text
+official HTML
+-> source document snapshot
+-> verified adapter
+-> M8-4A standard JSON
+-> existing event matcher
+-> ACTUAL components
+```
+
+TWSE ETF e添富 remains an estimated-composition source and is not treated as an
+ACTUAL adapter. See `docs/ACTUAL_DIVIDEND_SOURCES.md`.

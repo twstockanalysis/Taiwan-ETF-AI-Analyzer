@@ -160,3 +160,17 @@ automatic inference of tax-source codes
 
 Public official-source adapters can be added after each issuer format and
 usage policy are verified.
+
+## M8-4B Official Source Adapters
+
+M8-4B adds source-document versioning and the first verified issuer adapter.
+
+The Cathay adapter converts explicitly actual official announcements into this
+same M8-4A JSON format. It does not bypass the existing validation, event
+matching or ACTUAL-only rules.
+
+See:
+
+```text
+docs/ACTUAL_DIVIDEND_SOURCES.md
+```

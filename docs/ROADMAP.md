@@ -198,3 +198,21 @@
 - Added import-batch success and failure tracking
 - Added model, matcher and pipeline tests
 - Kept estimated realized capital gains separate from 76W
+
+### M8-4B Completed
+
+- Added formal actual-dividend source Registry
+- Added source modes and explicit retrieval policies
+- Added dividend source-document audit table
+- Added idempotent source-document Migration
+- Added SHA-256 content-addressed HTML snapshots
+- Added official-domain and HTTPS validation
+- Added source-document version retention
+- Added downloaded, parsed, rejected and failed states
+- Added the first verified Cathay actual-dividend adapter
+- Required explicit actual-composition wording
+- Rejected estimated-composition wording
+- Preserved official 76W and 54C codes and descriptions
+- Reused the M8-4A event matcher and ACTUAL component import
+- Kept network retrieval explicit rather than automatic
+- Added source, repository, adapter and pipeline tests
