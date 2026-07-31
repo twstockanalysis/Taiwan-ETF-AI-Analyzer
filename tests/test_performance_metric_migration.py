@@ -178,6 +178,60 @@ class TestPerformanceMetricMigration(
         self.assertTrue(first_result)
         self.assertFalse(second_result)
 
+    def test_initialize_database_upgrades_old_schema(
+        self,
+    ) -> None:
+        """一般初始化也必須自動升級舊績效表。"""
+
+        initialize_database(
+            self.database_path
+        )
+
+        connection = get_connection(
+            self.database_path
+        )
+
+        try:
+            columns = connection.execute(
+                """
+                PRAGMA table_info(
+                    etf_performance
+                );
+                """
+            ).fetchall()
+
+            column_names = {
+                row["name"]
+                for row in columns
+            }
+
+            self.assertIn(
+                "metric_code",
+                column_names,
+            )
+
+            row = connection.execute(
+                """
+                SELECT
+                    metric_code,
+                    return_pct
+                FROM etf_performance;
+                """
+            ).fetchone()
+
+            self.assertEqual(
+                row["metric_code"],
+                "PRICE_RETURN",
+            )
+
+            self.assertEqual(
+                row["return_pct"],
+                20.0,
+            )
+
+        finally:
+            connection.close()
+
 
 if __name__ == "__main__":
     unittest.main()
