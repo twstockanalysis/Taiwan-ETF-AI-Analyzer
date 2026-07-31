@@ -3,10 +3,17 @@
 ## Current website request flow
 
 ```text
-User browser
+User browser URL
+    |
+    v
+Central Streamlit navigation
+    |
+    +--> URL query-state normalization
     |
     v
 Streamlit page
+    |
+    +--> shared loading / empty / error states
     |
     v
 Frontend API client

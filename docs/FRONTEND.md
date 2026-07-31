@@ -40,6 +40,64 @@ Override the backend URL with:
 TW_ETF_API_URL
 ```
 
+## Navigation and URL state
+
+Page metadata is centralized in:
+
+```text
+frontend/navigation.py
+```
+
+Public pages:
+
+```text
+/
+etf-search
+performance-ranking
+dividend-data-quality
+```
+
+Hidden page:
+
+```text
+etf-detail
+```
+
+ETF search URLs preserve:
+
+```text
+keyword
+active
+bond
+page
+page_size
+```
+
+Performance ranking URLs preserve:
+
+```text
+period
+active
+bond
+page
+page_size
+```
+
+ETF detail URLs include `code`, the source page in `from`, and the source
+page's canonical query state. Returning from detail therefore restores the
+search or ranking context.
+
+Invalid query values are normalized to safe defaults. Missing and zero values
+retain their existing domain semantics.
+
+Shared UI states are defined in:
+
+```text
+frontend/ui/states.py
+```
+
+They provide consistent loading, empty, not-found and API-error presentation.
+
 ## Pages
 
 ### Home

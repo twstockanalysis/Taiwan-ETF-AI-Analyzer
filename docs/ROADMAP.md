@@ -130,14 +130,16 @@ rank and ETF code
 - Preserved full-row navigation to the hidden ETF detail page
 - Added display-order, classification and return-format regression tests
 
-### M9-2 — Navigation and information architecture
+### M9-2 — Navigation and information architecture — Completed
 
-Planned:
+Completed:
 
-- Consistent page titles and return behavior
-- Stable URL/query-state rules
-- Shared empty, loading and error states
-- Clear relationship among search, ranking, detail, comparison and quality pages
+- Centralized public and hidden page definitions in `frontend/navigation.py`
+- Added stable URL state for ETF search and performance ranking filters
+- Preserved page number and page size across refresh and shared links
+- Added source-aware return behavior from ETF detail
+- Added reusable loading, empty, not-found and API-error states
+- Added invalid-query fallback and navigation regression tests
 
 ### M9-3 — Homepage and system overview
 

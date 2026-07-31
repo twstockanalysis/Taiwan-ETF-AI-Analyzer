@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-31 — M9-2 navigation and URL state
+
+### Added
+
+- Central Streamlit route definitions for public and hidden pages
+- URL-backed ETF search and performance ranking state
+- Source-aware return behavior from ETF detail
+- Shared loading, empty, not-found and API-error components
+- Query-state, navigation and shared-state regression tests
+
+### Changed
+
+- Search and ranking links now preserve filters and pagination
+- Invalid URL parameters now fall back to canonical safe defaults
+
 ## 2026-07-31 — M9-1 performance ranking UX
 
 ### Changed
