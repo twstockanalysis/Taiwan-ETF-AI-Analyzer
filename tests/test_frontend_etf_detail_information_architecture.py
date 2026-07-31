@@ -175,10 +175,10 @@ class TestFrontendETFDetailInformationArchitecture(
             sorted(positions),
         )
 
-    def test_comparison_entry_is_reserved(
+    def test_comparison_entry_is_enabled(
         self,
     ) -> None:
-        """確認 M9-5 比較入口存在但尚未啟用。"""
+        """確認詳細頁可將目前 ETF 帶入比較頁。"""
 
         module_source = inspect.getsource(
             __import__(
@@ -193,6 +193,16 @@ class TestFrontendETFDetailInformationArchitecture(
         )
 
         self.assertIn(
+            "build_comparison_query_params(",
+            module_source,
+        )
+
+        self.assertIn(
+            'label="加入 ETF 比較"',
+            module_source,
+        )
+
+        self.assertNotIn(
             "disabled=True",
             module_source,
         )
