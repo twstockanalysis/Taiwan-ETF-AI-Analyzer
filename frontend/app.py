@@ -2,6 +2,9 @@
 
 import streamlit as st
 
+from frontend.pages.dividend_data_quality import (
+    render_dividend_data_quality,
+)
 from frontend.pages.etf_search import (
     render_etf_search,
 )
@@ -44,6 +47,13 @@ def main() -> None:
         url_path="performance-ranking",
     )
 
+    dividend_data_quality_page = st.Page(
+        render_dividend_data_quality,
+        title="配息資料品質",
+        icon="🧪",
+        url_path="dividend-data-quality",
+    )
+
     etf_detail_page = st.Page(
         "page_scripts/etf_detail_page.py",
         title="ETF 詳細資料",
@@ -58,6 +68,7 @@ def main() -> None:
                 home_page,
                 etf_search_page,
                 performance_ranking_page,
+                dividend_data_quality_page,
                 etf_detail_page,
             ],
         }
