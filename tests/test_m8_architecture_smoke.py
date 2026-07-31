@@ -62,6 +62,18 @@ FRONTEND_MARKERS = {
     'hidden=True',
 }
 
+SHARED_FRONTEND_FILES = {
+    "frontend/ui/formatters.py": (
+        "def format_percentage("
+    ),
+    "frontend/ui/components.py": (
+        "def render_pagination_controls("
+    ),
+    "frontend/ui/states.py": (
+        "def render_warning_state("
+    ),
+}
+
 
 class TestM8ArchitectureSmoke(
     unittest.TestCase
@@ -159,6 +171,36 @@ class TestM8ArchitectureSmoke(
             with self.subTest(
                 marker=marker
             ):
+                self.assertIn(
+                    marker,
+                    source,
+                )
+
+
+    def test_shared_frontend_ui_contracts_exist(
+        self,
+    ) -> None:
+        """共用格式化、互動及狀態元件必須存在。"""
+
+        for relative_path, marker in (
+            SHARED_FRONTEND_FILES.items()
+        ):
+            path = (
+                PROJECT_ROOT
+                / relative_path
+            )
+
+            with self.subTest(
+                path=relative_path
+            ):
+                self.assertTrue(
+                    path.is_file()
+                )
+
+                source = path.read_text(
+                    encoding="utf-8"
+                )
+
                 self.assertIn(
                     marker,
                     source,
