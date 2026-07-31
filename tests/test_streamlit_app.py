@@ -7,7 +7,7 @@ from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 
 from frontend.pages.home import (
-    load_api_health,
+    load_system_overview,
 )
 
 
@@ -18,6 +18,111 @@ STREAMLIT_APP_PATH = (
     / "frontend"
     / "app.py"
 )
+
+
+def build_system_overview_payload() -> dict:
+    """建立首頁 AppTest 使用的合法系統總覽。"""
+
+    return {
+        "api_status": "healthy",
+        "database_type": "SQLite",
+        "etfs": {
+            "total_count": 4,
+            "active_count": 1,
+            "passive_count": 3,
+            "bond_count": 1,
+            "non_bond_count": 3,
+            "latest_master_import_at": (
+                "2026-07-30T00:05:00+00:00"
+            ),
+        },
+        "performance": {
+            "metric_code": "PRICE_RETURN",
+            "source_id": "twse_stock_day",
+            "etf_count": 2,
+            "total_etf_count": 4,
+            "coverage_pct": 50.0,
+            "latest_as_of_date": "2026-07-30",
+            "periods": [
+                {
+                    "period_code": "1M",
+                    "etf_count": 2,
+                    "coverage_pct": 50.0,
+                    "latest_as_of_date": (
+                        "2026-07-30"
+                    ),
+                },
+                {
+                    "period_code": "3M",
+                    "etf_count": 1,
+                    "coverage_pct": 25.0,
+                    "latest_as_of_date": (
+                        "2026-07-29"
+                    ),
+                },
+                {
+                    "period_code": "6M",
+                    "etf_count": 2,
+                    "coverage_pct": 50.0,
+                    "latest_as_of_date": (
+                        "2026-07-30"
+                    ),
+                },
+                {
+                    "period_code": "1Y",
+                    "etf_count": 1,
+                    "coverage_pct": 25.0,
+                    "latest_as_of_date": (
+                        "2026-07-29"
+                    ),
+                },
+            ],
+        },
+        "dividends": {
+            "event_count": 2,
+            "etf_count": 2,
+            "latest_event_date": "2026-08-10",
+            "actual_component_event_count": 1,
+            "actual_76w_event_count": 1,
+            "source_document_event_count": 1,
+            "actual_component_coverage_pct": (
+                50.0
+            ),
+            "actual_76w_coverage_pct": 50.0,
+            "source_document_coverage_pct": (
+                50.0
+            ),
+            (
+                "latest_actual_"
+                "source_document_date"
+            ): "2026-07-31",
+        },
+        "recent_import_batches": [
+            {
+                "batch_id": 1,
+                "pipeline_name": (
+                    "etf_master_pipeline"
+                ),
+                "source_id": "twse_openapi",
+                "endpoint_id": (
+                    "twse_fund_master"
+                ),
+                "started_at": (
+                    "2026-07-30T00:00:00+00:00"
+                ),
+                "completed_at": (
+                    "2026-07-30T00:05:00+00:00"
+                ),
+                "status": "success",
+                "raw_record_count": 4,
+                "accepted_record_count": 4,
+                "rejected_record_count": 0,
+                "inserted_record_count": 4,
+                "updated_record_count": 0,
+                "error_message": None,
+            },
+        ],
+    }
 
 
 SEARCH_PAGE_SCRIPT = """
@@ -182,19 +287,19 @@ class TestStreamlitApp(unittest.TestCase):
     """測試 Streamlit 網站主要頁面。"""
 
     @patch(
-        "frontend.pages.home.fetch_api_health"
+        "frontend.pages.home.fetch_system_overview"
     )
     def test_application_renders_home_page(
         self,
-        mock_fetch_api_health,
+        mock_fetch_system_overview,
     ) -> None:
-        """確認網站入口可顯示首頁。"""
+        """確認網站入口顯示首頁系統總覽。"""
 
-        mock_fetch_api_health.return_value = {
-            "status": "healthy",
-        }
+        mock_fetch_system_overview.return_value = (
+            build_system_overview_payload()
+        )
 
-        load_api_health.clear()
+        load_system_overview.clear()
 
         app = AppTest.from_file(
             STREAMLIT_APP_PATH,
@@ -229,6 +334,21 @@ class TestStreamlitApp(unittest.TestCase):
                 in message
                 for message in success_messages
             )
+        )
+
+        metric_values = [
+            str(item.value)
+            for item in app.metric
+        ]
+
+        self.assertIn(
+            "4 檔",
+            metric_values,
+        )
+
+        self.assertIn(
+            "50.00%",
+            metric_values,
         )
 
     def test_search_page_renders_clickable_rows(

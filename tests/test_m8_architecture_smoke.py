@@ -27,6 +27,7 @@ EXPECTED_TABLES = {
 EXPECTED_API_PATHS = {
     "/",
     "/health",
+    "/api/v1/system/overview",
     "/api/v1/etfs",
     "/api/v1/etfs/{code}",
     "/api/v1/performance/ranking",
