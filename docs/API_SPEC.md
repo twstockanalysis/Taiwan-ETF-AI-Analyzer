@@ -153,6 +153,22 @@ Query parameters:
 Ranking is calculated within one period and one metric. Global rank numbers
 include the pagination offset.
 
+### Multi-period ranking
+
+```http
+GET /api/v1/performance/multi-period-ranking
+```
+
+Query parameters match the existing ranking filters, with `sort_period`
+replacing `period`. The default `sort_period` is `6M`.
+
+The selected period controls ranking order only. Every item also returns the
+latest available `1M`, `3M`, `6M` and `1Y` records in `performance_items`.
+A missing period is absent and is never represented as `0%`.
+
+The original single-period ranking endpoint remains available for compatible
+clients.
+
 ### Single ETF performance
 
 ```http

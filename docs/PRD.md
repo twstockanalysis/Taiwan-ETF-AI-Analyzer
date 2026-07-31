@@ -45,6 +45,8 @@ M9 — completed:
 
 M10–M11 — next:
 
+- Multi-period performance display with 6M as the default preference
+- Responsive typography that preserves visible values with the sidebar open
 - Income-allocation and combination analysis
 - Explainable recommendation and decision workflows
 - Manual holdings and Excel export

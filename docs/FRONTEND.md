@@ -110,6 +110,16 @@ Page modules keep small domain-specific wrappers when their missing-value text
 must differ. All wrappers delegate numerical formatting to the shared layer, so
 formal zero remains numerical zero while missing data remains unavailable.
 
+Responsive typography is centralized in:
+
+```text
+frontend/ui/theme.py
+```
+
+It reduces oversized headings and metrics, allows metric values and page-link
+labels to wrap instead of using ellipsis, and uses smaller sidebar text when
+the navigation panel is open.
+
 ## Pages
 
 ### Home
@@ -148,24 +158,39 @@ Supports:
 
 Supports:
 
-- 1M, 3M, 6M and 1Y periods
+- 1M, 3M, 6M and 1Y sort periods
 - Active/passive and bond filters
 - Pagination and fully clickable rows
+- Simultaneous display of all available 1M, 3M, 6M and 1Y values
 
-M9-1 uses one fixed information order:
+The default and preferred sort period is `6M`. Changing the sort period changes
+ranking order only; it does not hide the other periods.
+
+Each row follows:
 
 ```text
 rank and ETF code
--> performance period and return
 -> ETF name
--> as-of date
+-> 1M
+-> 3M
+-> 6M
+-> 1Y
+-> selected sort period and as-of date
 -> active/passive
 -> bond/non-bond
 ```
 
-The period and return are visually emphasized near the left edge. Classification
-labels remain on the right because users select those categories before
-reviewing the ranked results.
+The selected sort period is emphasized. Missing periods display
+`歷史資料不足`; they are not converted to zero.
+
+The page reads:
+
+```text
+GET /api/v1/performance/multi-period-ranking
+```
+
+This avoids one API request per ETF while preserving independent period
+semantics.
 
 ### ETF Comparison
 

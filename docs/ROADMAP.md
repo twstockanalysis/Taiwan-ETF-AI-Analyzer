@@ -196,6 +196,16 @@ Completed:
 
 ## M10 — Core analysis features
 
+### M10-0 — Multi-period display foundation — Completed
+
+Completed:
+
+- Show all available 1M, 3M, 6M and 1Y values in performance rankings
+- Keep 6M as the default and preferred ranking period
+- Use the selected period only for ordering, not visibility
+- Prevent missing periods from becoming zero
+- Apply responsive metric, page-link and sidebar typography
+
 Next:
 
 - Monthly-income allocation

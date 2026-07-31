@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-01 — M10-0 multi-period performance display
+
+### Added
+
+- Read-only multi-period performance-ranking endpoint
+- Ranking rows that display available 1M, 3M, 6M and 1Y PRICE_RETURN together
+- Responsive Streamlit typography for metrics, page links and sidebar labels
+- Repository, API, frontend Client, display and responsive-style tests
+
+### Changed
+
+- Six months remains the default and preferred ranking period
+- Selecting another period changes ranking order without hiding other periods
+- Homepage performance-coverage metrics use compact values to avoid ellipsis
+- Missing period data remains `歷史資料不足` instead of numerical zero
+
 ## 2026-08-01 — M9-6 shared frontend UI
 
 ### Added

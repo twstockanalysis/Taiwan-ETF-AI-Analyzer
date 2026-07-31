@@ -216,6 +216,7 @@ Performance:
 
 ```text
 GET /api/v1/performance/ranking
+GET /api/v1/performance/multi-period-ranking
 GET /api/v1/etfs/{code}/performance
 ```
 

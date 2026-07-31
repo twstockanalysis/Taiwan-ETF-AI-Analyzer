@@ -59,6 +59,10 @@ Page modules retain only domain-specific labels and wrapper defaults. This keeps
 page wording stable while preventing separate implementations from changing
 zero-versus-missing semantics.
 
+`frontend/ui/theme.py` injects one responsive typography layer before navigation
+runs. Metric values and page-link labels can wrap instead of being truncated,
+while sidebar and heading sizes remain readable when the sidebar is expanded.
+
 ## Homepage overview flow
 
 ```text
@@ -82,6 +86,31 @@ SQLite read-only queries
 
 The overview endpoint returns stored dates only. It does not replace missing
 data dates with the request time or convert unavailable coverage into zero.
+
+## Multi-period performance ranking read model
+
+```text
+Streamlit performance ranking
+    |
+    +--> selected sort period (default 6M)
+    +--> all 1M / 3M / 6M / 1Y values remain visible
+    |
+    v
+GET /api/v1/performance/multi-period-ranking
+    |
+    v
+Performance Repository
+    |
+    +--> rank ETFs by one period
+    +--> fetch latest available records for all four periods
+    +--> preserve missing periods as absent
+    |
+    v
+SQLite read-only queries
+```
+
+The endpoint avoids N+1 frontend requests. Changing the sort period changes
+order only and never combines returns from different periods.
 
 ## ETF detail read model
 
