@@ -349,3 +349,110 @@ ON etf_dividend_component (
     component_code,
     ratio_pct DESC
 );
+
+-- ============================================================
+-- 正式配息來源文件
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS
+dividend_source_document (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    source_id TEXT NOT NULL
+        CHECK (length(trim(source_id)) > 0),
+
+    source_document_id TEXT NOT NULL
+        CHECK (
+            length(trim(source_document_id)) > 0
+        ),
+
+    version_number INTEGER NOT NULL
+        CHECK (version_number >= 1),
+
+    source_url TEXT NOT NULL
+        CHECK (length(trim(source_url)) > 0),
+
+    source_document_date TEXT,
+
+    downloaded_at TEXT NOT NULL,
+
+    content_type TEXT NOT NULL
+        CHECK (length(trim(content_type)) > 0),
+
+    information_basis TEXT NOT NULL
+        DEFAULT 'UNKNOWN'
+        CHECK (
+            information_basis IN (
+                'UNKNOWN',
+                'ACTUAL',
+                'ESTIMATED'
+            )
+        ),
+
+    checksum_sha256 TEXT NOT NULL
+        CHECK (length(checksum_sha256) = 64),
+
+    snapshot_path TEXT NOT NULL
+        CHECK (
+            length(trim(snapshot_path)) > 0
+        ),
+
+    metadata_path TEXT NOT NULL
+        CHECK (
+            length(trim(metadata_path)) > 0
+        ),
+
+    parse_status TEXT NOT NULL
+        DEFAULT 'downloaded'
+        CHECK (
+            parse_status IN (
+                'downloaded',
+                'parsed',
+                'rejected',
+                'failed'
+            )
+        ),
+
+    parse_error TEXT,
+
+    import_batch_id INTEGER,
+
+    created_at TEXT NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TEXT NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (import_batch_id)
+        REFERENCES import_batch (id)
+        ON DELETE SET NULL,
+
+    UNIQUE (
+        source_id,
+        source_document_id,
+        version_number
+    ),
+
+    UNIQUE (
+        source_id,
+        source_document_id,
+        checksum_sha256
+    )
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_dividend_source_document_lookup
+ON dividend_source_document (
+    source_id,
+    source_document_id,
+    version_number DESC
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_dividend_source_document_status
+ON dividend_source_document (
+    parse_status,
+    downloaded_at DESC
+);

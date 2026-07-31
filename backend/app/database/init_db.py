@@ -68,6 +68,14 @@ def initialize_database(
         target_path
     )
 
+    from backend.app.database.migrate_dividend_source_document import (
+        migrate_dividend_source_document,
+    )
+
+    migrate_dividend_source_document(
+        target_path
+    )
+
     return target_path
 
 
