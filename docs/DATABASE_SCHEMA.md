@@ -2,134 +2,179 @@
 
 ## Database
 
-The first version uses SQLite as its development database.
+Development database:
 
-- Database engine: SQLite
-- Database file: `database/tw_etf.db`
-- Character encoding: UTF-8
-- Foreign key enforcement: enabled for every application connection
+```text
+SQLite
+database/tw_etf.db
+UTF-8
+foreign_keys = ON
+```
 
-The SQLite database file and its `-shm` and `-wal` sidecar files are excluded
-from Git. The application creates the `database` directory when necessary.
+Application connections use
+`backend.app.database.connection.get_connection` and return `sqlite3.Row`.
 
-## Initialization
+## Initialization and upgrades
 
-Run the initialization module from the project root:
+Run from the project root:
 
 ```powershell
 python -m backend.app.database.init_db
 ```
 
-Initialization reads `backend/app/database/schema.sql`. All schema statements
-use `IF NOT EXISTS`, so running the command repeatedly is safe and does not
-remove existing data.
+Initialization executes `backend/app/database/schema.sql` and then runs the
+idempotent upgrade sequence:
 
-The application connects through
-`backend.app.database.connection.get_connection`. Query results use
-`sqlite3.Row`, allowing columns to be accessed by name.
+1. `migrate_performance_metric`
+2. `migrate_dividend_component_basis`
+3. `migrate_dividend_source_document`
+4. `migrate_dividend_review_queue`
 
-## ETF Master Table
+This order supports both a fresh database and databases created by earlier
+milestones. Initialization does not delete user data.
 
-Table name: `etf_master`
+## Tables
 
-The table stores the basic information needed to identify and filter a Taiwan
-ETF. Boolean values are represented by SQLite integers: `0` is false and `1`
-is true.
+### `etf_master`
 
-| Column | SQLite type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `code` | `TEXT` | Yes | None | ETF security code and primary key. |
-| `name` | `TEXT` | Yes | None | ETF name. |
-| `is_active` | `INTEGER` | Yes | `0` | Whether the ETF is currently active; only `0` or `1` is valid. |
-| `is_bond` | `INTEGER` | Yes | `0` | Whether the ETF is a bond ETF; only `0` or `1` is valid. |
-| `listing_date` | `TEXT` | No | `NULL` | Listing date. Date-format validation is handled by the application. |
-| `fund_size` | `REAL` | No | `NULL` | Fund size; when present, it must be zero or greater. |
-| `expense_ratio` | `REAL` | No | `NULL` | Expense ratio percentage; when present, it must be between 0 and 100. |
+Primary key:
 
-### Constraints
-
-- `code` is unique because it is the primary key.
-- `name` cannot be `NULL`.
-- `is_active` and `is_bond` accept only `0` or `1`.
-- `fund_size` cannot be negative.
-- `expense_ratio` must be between `0` and `100`, inclusive.
-
-The current schema intentionally permits an empty string for text columns and
-does not enforce the format of `listing_date`. Those validations belong to the
-future API/service input boundary.
-
-### Indexes
-
-| Index | Columns | Purpose |
-| --- | --- | --- |
-| `sqlite_autoindex_etf_master_1` | `code` | SQLite-generated primary-key index. |
-| `idx_etf_master_name` | `name` | Speeds up ETF name lookups. |
-
-## Schema Verification
-
-After initialization, inspect the table with:
-
-```powershell
-python -m backend.app.database.check_schema
+```text
+code
 ```
 
-Automated tests create an isolated temporary database and never read or write
-`database/tw_etf.db`.
-
-## ETF Master Upsert Policy
-
-The official master import updates:
+Main fields:
 
 - `name`
 - `is_active`
 - `is_bond`
 - `listing_date`
-
-The import does not overwrite:
-
 - `fund_size`
 - `expense_ratio`
 
-This prevents a master-data import that lacks financial metrics
-from clearing values obtained from other official sources.
+Deleting an ETF cascades to its performance and dividend history.
 
-## Import Batch Table
+### `import_batch`
 
-Table name:
+Tracks Pipeline execution:
+
+- Running, success or failed state
+- Raw, accepted, rejected, inserted and updated counts
+- Checksums and artifact paths
+- Completion timestamp and error message
+
+### `etf_performance`
+
+Uniqueness:
 
 ```text
+etf_code
++ as_of_date
++ period_code
++ metric_code
++ source_id
+```
+
+`metric_code` accepts:
+
+```text
+PRICE_RETURN
+TOTAL_RETURN
+NAV_RETURN
+```
+
+### `etf_dividend`
+
+Uniqueness:
+
+```text
+source_id + source_event_id
+```
+
+The table requires at least one event date and prevents a payment date earlier
+than the ex-dividend date.
+
+### `etf_dividend_component`
+
+Uniqueness:
+
+```text
+dividend_id
++ component_basis
++ component_code
++ source_id
+```
+
+`component_basis` accepts `ESTIMATED` or `ACTUAL`. At least one of
+`amount_per_unit` and `ratio_pct` is required. Ratios are constrained to
+0–100.
+
+Deleting the parent dividend event cascades to its components.
+
+### `dividend_source_document`
+
+Stores official-document versions and parsing results.
+
+Unique keys:
+
+```text
+source_id + source_document_id + version_number
+source_id + source_document_id + checksum_sha256
+```
+
+Parse states:
+
+```text
+downloaded
+parsed
+rejected
+failed
+```
+
+### `dividend_source_review_queue`
+
+Uniqueness:
+
+```text
+dividend_id + issue_type
+```
+
+The table references `etf_dividend` and optionally the source document that
+resolved the issue.
+
+## Expected table set after M8
+
+```text
+etf_master
 import_batch
+etf_performance
+etf_dividend
+etf_dividend_component
+dividend_source_document
+dividend_source_review_queue
+```
 
-## ETF Analysis Tables
+## Verification
 
-### etf_performance
+Run automated schema and Migration tests:
 
-Stores time-specific ETF performance values.
+```powershell
+python -m unittest `
+    tests.test_database `
+    tests.test_analysis_schema `
+    tests.test_performance_metric_migration `
+    tests.test_dividend_component_migration `
+    tests.test_dividend_source_document_repository `
+    tests.test_dividend_review_queue_migration `
+    tests.test_m8_architecture_smoke `
+    -v
+```
 
-A performance record belongs to one ETF and one period.
+Inspect the development database:
 
-### etf_dividend
+```powershell
+python -m backend.app.database.check_schema
+```
 
-Stores an ETF distribution event.
-
-Source event identifiers are used to make repeated imports
-idempotent.
-
-### etf_dividend_component
-
-Stores one component of an ETF distribution event.
-
-The table supports both:
-
-- Amount per unit
-- Percentage of total distribution
-
-Component records are deleted automatically when their parent
-distribution event is deleted.
-
-### Performance Upsert Policy
-
-A performance record is uniquely identified by:
-
-```text
-ETF code + as-of date + period + source
+Automated tests use temporary databases and do not modify
+`database/tw_etf.db`.

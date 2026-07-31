@@ -2,336 +2,224 @@
 
 ## Purpose
 
-Milestone 8 adds time-varying ETF analysis data.
+Milestone 8 adds time-varying ETF performance, dividend composition and data
+quality records. Time-varying values are stored outside `etf_master`.
 
-ETF analysis data must not be stored directly in `etf_master`.
+## Tables
 
-## Data Tables
+### `etf_performance`
 
-### etf_performance
+One row represents one ETF performance snapshot.
 
-Stores ETF performance snapshots by:
-
-- ETF code
-- Data date
-- Performance period
-- Return percentage
-- Source
-- Import batch
-
-Supported periods:
-
-```text
-1D
-1W
-1M
-3M
-6M
-1Y
-3Y
-5Y
-```
-
-The six-month period is the primary period used by the first
-recommendation-ranking model.
-
-### etf_dividend
-
-Stores one record for each ETF distribution event.
-
-Possible dates include:
-
-- Announcement date
-- Ex-dividend date
-- Record date
-- Payment date
-
-Every event includes:
-
-- Distribution amount per unit
-- Currency
-- Source event identifier
-- Source and import batch
-
-### etf_dividend_component
-
-Stores the source composition of one distribution event.
-
-Examples of source component codes may include:
-
-```text
-54C
-76W
-```
-
-The database preserves the source code and source description.
-
-It does not infer the meaning of a code solely from its spelling.
-
-## 76W Analysis
-
-`76W` is stored as a normal distribution component:
-
-```text
-component_code = 76W
-```
-
-Possible values include:
-
-```text
-amount_per_unit
-ratio_pct
-```
-
-A distribution may contain multiple component records.
-
-The application can later calculate:
-
-- 76W ratio for one distribution
-- Average 76W ratio
-- Latest 76W ratio
-- Percentage of distributions with 100% 76W
-- Six-month performance combined with 76W quality
-
-## Data Integrity
-
-Performance uniqueness:
-
-```text
-ETF + date + period + source
-```
-
-Dividend-event uniqueness:
-
-```text
-source + source event ID
-```
-
-Dividend-component uniqueness:
-
-```text
-dividend event + component code
-```
-
-Deleting an ETF deletes its performance and dividend history.
-
-Deleting a dividend event deletes all associated components.
-
-## Source Policy
-
-Official or explicitly permitted data sources have priority.
-
-HTML pages must not be scraped when their terms prohibit
-unauthorized automated retrieval.
-
-Source component codes and descriptions must be stored before
-the project applies analytical classifications.
-
-## Six-Month Price Return
-
-The first M8 performance metric is the six-month market-price
-return.
-
-Source:
-
-```text
-twse_stock_day
-
-## Six-Month Performance Pipeline
-
-Run a small validation batch:
-
-```powershell
-python -m backend.app.data_sources.performance_pipeline --limit 10
-
-## Performance Metric Types
-
-Each ETF performance record includes a metric type.
-
-Supported metric codes:
-
-```text
-PRICE_RETURN
-TOTAL_RETURN
-NAV_RETURN
-```
-
-The current TWSE closing-price pipeline produces:
-
-```text
-PRICE_RETURN
-```
-
-Future dividend-adjusted calculations will use:
-
-```text
-TOTAL_RETURN
-```
-
-Future NAV-based calculations will use:
-
-```text
-NAV_RETURN
-```
-
-Performance record uniqueness is:
+Uniqueness:
 
 ```text
 ETF code
 + as-of date
 + period
-+ metric type
++ metric
 + source
 ```
 
-## Supported Price-Return Periods
-
-The reusable market-price calculator currently supports:
+Schema-supported periods:
 
 ```text
-1M
-3M
-6M
-1Y
+1D  1W  1M  3M  6M  1Y  3Y  5Y
 ```
 
-The six-month period remains the primary recommendation period.
-
-Shorter periods allow recently listed ETFs to show meaningful
-performance without treating missing six-month history as zero.
-
-Performance periods must be ranked separately. Returns from different
-periods must not be combined into one ranking.
-
-## Multi-Period Performance Pipeline
-
-The price-return pipeline supports:
+Current calculated periods:
 
 ```text
-1M
-3M
-6M
-1Y
+1M  3M  6M  1Y
+```
 
-## Performance API
-
-The backend exposes two performance endpoints.
-
-### Ranking
+Metric codes:
 
 ```text
-GET /api/v1/performance/ranking
+PRICE_RETURN
+TOTAL_RETURN
+NAV_RETURN
+```
 
-## Frontend Performance Views
+The current TWSE closing-price Pipeline writes `PRICE_RETURN`. It does not
+include cash distributions or dividend reinvestment.
 
-The Streamlit frontend includes a performance-ranking page.
+### `etf_dividend`
 
-Supported periods:
+One row represents one distribution event. A source event is unique by:
 
 ```text
-1M
-3M
-6M
-1Y
+source_id + source_event_id
+```
 
-## Dividend Component Basis
+Stored fields include announcement, ex-dividend, record and payment dates,
+amount per unit, currency, source and import batch.
 
-Dividend components are classified by information basis:
+### `etf_dividend_component`
+
+One row represents one disclosed component for a distribution event.
+
+Uniqueness:
+
+```text
+dividend_id
++ component_basis
++ component_code
++ source_id
+```
+
+`component_basis` is one of:
 
 ```text
 ESTIMATED
 ACTUAL
 ```
 
-TWSE ETF e添富 composition percentages are stored as
-`ESTIMATED`. Official distribution-notice codes such as `76W`
-are stored as `ACTUAL`.
+A component must provide an amount per unit, a ratio, or both.
 
-Estimated realized capital gains are preserved as:
+### `dividend_source_document`
 
-```text
-EST_REALIZED_CAPITAL_GAIN
-```
+Stores immutable versions of official actual-composition source documents.
 
-They are not converted to `76W`.
-
-Dividend-component uniqueness is:
+A version is identified by:
 
 ```text
-dividend event
-+ component basis
-+ component code
-+ component source
+source_id
++ source_document_id
++ SHA-256 checksum
 ```
 
-This allows estimated disclosure and actual tax-source records
-to coexist without overwriting each other.
+Changed content creates a new version. Identical content reuses the existing
+version.
 
-Older component rows are migrated to `ACTUAL`. Database
-initialization runs this migration automatically.
+### `dividend_source_review_queue`
 
-## Dividend Repository
+Tracks unresolved actual-composition and source-document coverage issues.
 
-The dividend Repository supports:
+Issue types:
 
 ```text
-upsert_dividend_records
-upsert_dividend_component_records
-upsert_dividend_dataset
-get_dividend_id
-list_etf_dividends
-list_dividend_components
+MISSING_ACTUAL_COMPONENTS
+MISSING_SOURCE_DOCUMENT
 ```
 
-`upsert_dividend_dataset` writes events and components in one
-transaction. A component error rolls back the entire dataset,
-so the database never retains a partially imported dividend
-event.
+States:
 
-## Dividend Pipeline
+```text
+PENDING
+IN_REVIEW
+RESOLVED
+SKIPPED
+```
 
-Run the TWSE ETF dividend pipeline:
+One dividend event can have one row per issue type.
+
+## Performance calculation
+
+The multi-period price Pipeline:
+
+1. Selects non-bond ETF candidates.
+2. Downloads each ETF price history once.
+3. Reuses that history for all requested periods.
+4. Writes only periods with sufficient price history.
+5. Records insufficient history separately from execution failures.
+6. Ranks each period and metric independently.
+
+Default download windows:
+
+| Period | Download months |
+| --- | ---: |
+| 1M | 3 |
+| 3M | 5 |
+| 6M | 8 |
+| 1Y | 14 |
+
+A missing return is never converted to `0%`.
+
+Run:
 
 ```powershell
-python -m backend.app.data_sources.dividend_pipeline
+python -m backend.app.data_sources.performance_pipeline
 ```
 
-The pipeline performs:
+## Dividend composition policy
+
+TWSE ETF e添富 percentages are stored as estimated categories:
 
 ```text
-official HTML download
-raw HTML snapshot
-event and component normalization
-ETF-master validation
-processed and rejected artifacts
-atomic SQLite upsert
-import-batch completion
-quality-report generation
+EST_DIVIDEND
+EST_INTEREST
+EST_EQUALIZATION
+EST_REALIZED_CAPITAL_GAIN
+EST_OTHER
 ```
 
-Artifacts are written under:
+The estimated realized-capital-gain category is not an official tax-source
+code and is never converted to `76W`.
+
+Only an explicitly actual source can create:
 
 ```text
-data/raw/dividends
-data/processed/dividends
-data/rejected/dividends
-data/processed/reports/dividends
+component_basis = ACTUAL
+component_code = 76W
 ```
 
-The import-batch `accepted_record_count` counts accepted dividend
-events. `inserted_record_count` and `updated_record_count` combine
-dividend-event and component rows.
+A formally disclosed `76W = 0%` is an available record. Absence of an ACTUAL
+76W row is missing data, not zero.
 
-Events whose ETF code is absent from `etf_master` are written to the
-rejected artifact without failing other valid events.
+## Actual source processing
 
-TWSE composition rows are validated as `ESTIMATED`. The pipeline
-rejects any attempt to create `ACTUAL` components or `76W` from the
-TWSE estimated-composition source.
+### Human-reviewed JSON
 
-## Dividend API
+```powershell
+python -m backend.app.data_sources.actual_dividend_pipeline `
+    --input .\data\imports\actual_dividend_notice.json
+```
 
-The backend exposes ETF dividend history and component queries.
+Matching requires ETF code, ex-dividend date and amount per unit. Record date
+and payment date are additional exact checks when supplied.
+
+### Verified Cathay announcement Adapter
+
+```powershell
+python -m backend.app.data_sources.cathay_actual_dividend_pipeline `
+    --url "https://www.cathaysite.com.tw/announcement/5141" `
+    --etf-code 00878 `
+    --input-html .\data\imports\cathay_5141.html
+```
+
+The Adapter requires explicit actual-composition wording and rejects estimated
+wording before the ACTUAL Pipeline is called.
+
+## Coverage and review queue
+
+Run:
+
+```powershell
+python -m backend.app.data_sources.actual_dividend_coverage_pipeline
+```
+
+Coverage measures:
+
+- Dividend events with estimated components
+- Dividend events with ACTUAL components
+- Dividend events with ACTUAL `76W`
+- Dividend events linked to parsed ACTUAL source documents
+- Missing ACTUAL and source-document events
+
+The review queue is synchronized idempotently. Supplying missing data can
+resolve an item automatically. An unresolved `SKIPPED` item remains skipped.
+
+## APIs
+
+Performance:
+
+```text
+GET /api/v1/performance/ranking
+GET /api/v1/etfs/{code}/performance
+```
+
+Dividends:
 
 ```text
 GET /api/v1/etfs/{code}/dividends
@@ -340,167 +228,7 @@ GET /api/v1/dividends/{dividend_id}
 GET /api/v1/dividends/{dividend_id}/components
 ```
 
-ETF dividend history supports `limit` and `offset` pagination.
-
-Component queries support:
-
-```text
-component_basis
-component_code
-source_id
-```
-
-The 76W endpoint only includes records where:
-
-```text
-component_basis = ACTUAL
-component_code = 76W
-```
-
-`EST_REALIZED_CAPITAL_GAIN` is never included in 76W
-statistics.
-
-When an ETF has no actual 76W disclosure,
-`latest_76w_ratio_pct` and `average_76w_ratio_pct` are `null`.
-Missing data is not represented as zero percent.
-
-## Frontend Dividend Views
-
-The Streamlit ETF detail page includes:
-
-```text
-dividend-event summary
-actual 76W summary
-dividend-event history
-estimated component details
-actual component details
-```
-
-The frontend loads dividend data independently from ETF
-performance. A dividend API error does not prevent the ETF master
-data or performance section from rendering.
-
-Estimated and actual composition are displayed separately:
-
-```text
-ESTIMATED
-ACTUAL
-```
-
-`EST_REALIZED_CAPITAL_GAIN` is labeled as estimated realized
-capital gain. It is never relabeled as `76W`.
-
-The actual 76W summary only displays data returned by the
-`ACTUAL + 76W` endpoint. When no official actual record is
-available, the interface displays an explicit missing-data message
-instead of `0%`.
-
-A disclosed `0%` actual ratio remains distinguishable from missing
-data.
-
-## Actual Dividend Composition Import
-
-M8-4A adds a human-reviewed JSON import path for official actual
-distribution-source codes such as `76W` and `54C`.
-
-Run:
-
-```powershell
-python -m backend.app.data_sources.actual_dividend_pipeline `
-    --input .\data\imports\actual_dividend_notice.json
-```
-
-Matching requires:
-
-```text
-ETF code
-+ ex-dividend date
-+ amount per unit
-```
-
-Record date and payment date are additional exact checks when supplied.
-
-Only `information_basis = ACTUAL` is accepted. Codes beginning with `EST_`
-are rejected, and `EST_REALIZED_CAPITAL_GAIN` is never converted to `76W`.
-
-Raw, processed, rejected and quality-report artifacts preserve the source
-document ID, URL and date. See `docs/ACTUAL_DIVIDEND_IMPORT.md`.
-
-## Actual Dividend Source Documents
-
-M8-4B adds the `dividend_source_document` audit table.
-
-Official source documents are versioned by:
-
-```text
-source ID
-+ stable source document ID
-+ SHA-256 checksum
-```
-
-Identical content reuses the existing version. Changed content creates a new
-version while preserving the previous snapshot.
-
-The first verified source adapter is:
-
-```text
-cathay_actual_dividend_announcement
-```
-
-It only accepts official Cathay SITE announcements that explicitly state actual
-distribution composition. Estimated wording is rejected before the M8-4A
-pipeline is called.
-
-The processing path is:
-
-```text
-official HTML
--> source document snapshot
--> verified adapter
--> M8-4A standard JSON
--> existing event matcher
--> ACTUAL components
-```
-
-TWSE ETF e添富 remains an estimated-composition source and is not treated as an
-ACTUAL adapter. See `docs/ACTUAL_DIVIDEND_SOURCES.md`.
-
-## Actual Dividend Coverage and Review Queue
-
-M8-4C adds live coverage calculations for every dividend event.
-
-The coverage service distinguishes:
-
-```text
-ESTIMATED components
-ACTUAL components
-ACTUAL + 76W records
-parsed ACTUAL source documents
-```
-
-A formally disclosed `76W = 0%` counts as an available 76W record. Missing data
-remains missing and is never represented as zero. Estimated realized capital
-gains remain `EST_REALIZED_CAPITAL_GAIN` and do not count as 76W.
-
-The review queue table is:
-
-```text
-dividend_source_review_queue
-```
-
-The queue tracks missing ACTUAL composition and missing source-document issues.
-It is unique by dividend event and issue type. Re-running the synchronization
-does not create duplicate items. Supplying the missing data automatically marks
-the corresponding issue as resolved, while a still-missing skipped item remains
-skipped.
-
-Run:
-
-```powershell
-python -m backend.app.data_sources.actual_dividend_coverage_pipeline
-```
-
-Read-only API endpoints:
+Data quality:
 
 ```text
 GET /api/v1/data-quality/dividends/actual-coverage
@@ -508,42 +236,11 @@ GET /api/v1/data-quality/dividends/review-queue
 GET /api/v1/data-quality/dividends/review-queue/{queue_id}
 ```
 
-See `docs/DIVIDEND_DATA_QUALITY.md`.
+## Current limitations
 
-## Frontend Dividend Data Quality
-
-M8-4D adds a Streamlit data-quality page for the M8-4C read-only API.
-
-The page displays:
-
-```text
-global ACTUAL coverage
-global ACTUAL 76W coverage
-global source-document coverage
-single-ETF coverage
-review-queue filters and pagination
-single review-queue item details
-```
-
-The review queue can be filtered by:
-
-```text
-status
-issue type
-ETF code
-page size
-page number
-```
-
-The frontend preserves the same missing-data policy as the backend:
-
-```text
-no dividend events
--> coverage shown as unavailable
-
-formal 0% coverage
--> shown as 0.00%
-```
-
-Estimated realized capital gains remain separate from official `ACTUAL + 76W`
-coverage. M8-4D is read-only and does not expose review-status changes.
+- Production calculations currently provide market-price return only.
+- Actual-composition coverage is limited by available verified documents.
+- The source-review queue and Streamlit quality page are read-only.
+- Pipelines are manually started; scheduling belongs to M12.
+- Recommendation, comparison and portfolio decisions belong to M9–M11.
+- Broker and third-party market-data integrations are deferred optional work.

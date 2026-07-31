@@ -1,56 +1,63 @@
-##2026/7/28
+# Changelog
+
+## 2026-07-31 — M8 completion audit
+
 ### Added
 
-- ETF list pagination
-- ETF keyword search
-- Active ETF filtering
-- Bond ETF filtering
-- ETF list response metadata
-- API parameter validation
-- Automated filtering and pagination tests
+- M8 architecture smoke tests
+- M8 completion-audit document
+- Current API, schema, frontend, source and architecture documentation
 
 ### Changed
 
-- ETF list API now returns a paginated response object
-- ETF Repository now supports dynamic filtering
-
-
-##2026/7/29 morning
-### Added
-
-- End-to-end ETF master update pipeline
-- Import batch database table
-- Success and failure batch tracking
-- ETF data quality reports
-- Rejection reason summaries
-- Pipeline-level automated tests
-
-### Changed
-
-- ETF master download, normalization and import can now run
-  through one command
-
-
-##2026/7/29 afternoon
-### Added
-
-- Streamlit frontend application
-- FastAPI connection status
-- ETF search and filtering page
-- ETF pagination controls
-- Hidden ETF detail page
-- ETF detail query parameter navigation
-- Streamlit AppTest coverage
-- Frontend documentation
-
-### Changed
-
-- ETF listing dates are normalized and displayed using the
-  Gregorian ISO 8601 format
-- The website frontend obtains all ETF data through FastAPI
+- Normal database initialization now runs the performance-metric Migration
+- Roadmap now marks M8 completed and identifies M9 as the next website phase
 
 ### Fixed
 
-- Seven-digit ROC listing dates are no longer interpreted as
-  Gregorian years
-- ETF 0050 listing date now displays as 2003-06-30
+- Stale and duplicated API documentation
+- Unbalanced Markdown code fences in legacy documents
+- Missing automatic upgrade path for pre-`metric_code` performance tables
+
+## 2026-07-31 — M8 actual-dividend quality
+
+### Added
+
+- Human-reviewed ACTUAL dividend composition import
+- Official source-document versioning
+- Verified Cathay actual-composition Adapter
+- ACTUAL and 76W coverage calculations
+- Dividend source-review queue
+- Read-only data-quality APIs
+- Streamlit dividend-data-quality page
+
+## 2026-07-30 — M8 performance and dividends
+
+### Added
+
+- Multi-period price-return Pipeline and ranking API
+- Streamlit performance ranking
+- TWSE dividend events and estimated composition
+- Dividend history, detail and ACTUAL 76W APIs
+- ETF-detail dividend and 76W views
+
+## 2026-07-29 — ETF data engine and frontend
+
+### Added
+
+- End-to-end ETF master update Pipeline
+- Import-batch audit and quality reports
+- Streamlit frontend, ETF search and hidden detail page
+- Frontend API error handling and AppTest coverage
+
+### Fixed
+
+- ROC listing dates are normalized to Gregorian ISO dates
+
+## 2026-07-28 — ETF API
+
+### Added
+
+- ETF list pagination
+- Keyword, active/passive and bond filters
+- API response metadata and automated tests

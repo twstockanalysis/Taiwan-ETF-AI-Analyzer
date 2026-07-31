@@ -2,89 +2,40 @@
 
 ## Overview
 
-The TW ETF AI Analyzer backend is built with FastAPI.
+Framework:
+
+```text
+FastAPI
+```
 
 Development base URL:
 
 ```text
 http://127.0.0.1:8000
-
-
-## ETF Endpoints
-
-### List ETFs
-
-```http
-GET /api/v1/etfs
 ```
 
-Purpose:
-
-Returns all ETF master records ordered by ETF code.
-
-Example response:
-
-```json
-[
-  {
-    "code": "DEV001",
-    "name": "開發測試被動式ETF",
-    "is_active": false,
-    "is_bond": false,
-    "listing_date": null,
-    "fund_size": null,
-    "expense_ratio": null
-  }
-]
-```
-
-### Get ETF by Code
-
-```http
-GET /api/v1/etfs/{code}
-```
-
-Purpose:
-
-Returns one ETF master record by security code.
-
-ETF codes are normalized to uppercase before querying.
-
-Successful response status:
+Interactive OpenAPI documentation:
 
 ```text
-200 OK
+http://127.0.0.1:8000/docs
 ```
 
-Missing ETF response status:
+## System
 
-```text
-404 Not Found
+```http
+GET /
+GET /health
 ```
 
-Example missing response:
+`GET /health` returns:
 
 ```json
 {
-  "detail": "找不到 ETF：UNKNOWN"
+  "status": "healthy"
 }
 ```
 
-## Development Data
-
-M5 uses non-production demonstration records:
-
-```text
-DEV001
-DEV002A
-```
-
-These records are only used to verify the API workflow.
-
-They will be replaced by the official ETF data import process in M6.
-
-
-## ETF Endpoints
+## ETF master data
 
 ### List ETFs
 
@@ -92,75 +43,147 @@ They will be replaced by the official ETF data import process in M6.
 GET /api/v1/etfs
 ```
 
-Returns a filtered and paginated ETF list.
-
-#### Query Parameters
+Query parameters:
 
 | Parameter | Type | Default | Description |
-|---|---|---:|---|
-| keyword | string | null | Search ETF code or name |
-| is_active | boolean | null | Filter actively managed ETFs |
-| is_bond | boolean | null | Filter bond ETFs |
-| limit | integer | 20 | Number of records, from 1 to 100 |
-| offset | integer | 0 | Number of records to skip |
+| --- | --- | --- | --- |
+| `keyword` | string or null | null | ETF code or name |
+| `is_active` | boolean or null | null | Active/passive filter |
+| `is_bond` | boolean or null | null | Bond/non-bond filter |
+| `limit` | integer | 20 | 1–100 |
+| `offset` | integer | 0 | Non-negative |
 
-Example:
-
-```http
-GET /api/v1/etfs?is_active=true&is_bond=false&limit=20&offset=0
-```
-
-Example response:
-
-```json
-{
-  "items": [
-    {
-      "code": "DEV002A",
-      "name": "開發測試主動式ETF",
-      "is_active": true,
-      "is_bond": false,
-      "listing_date": null,
-      "fund_size": null,
-      "expense_ratio": null
-    }
-  ],
-  "total": 1,
-  "limit": 20,
-  "offset": 0
-}
-```
-
-Validation errors return:
+Response fields:
 
 ```text
-422 Unprocessable Entity
+items
+total
+limit
+offset
 ```
 
-### Get ETF by Code
+### ETF detail
 
 ```http
 GET /api/v1/etfs/{code}
 ```
 
-ETF codes are normalized to uppercase before querying.
+ETF codes are normalized to uppercase. Missing ETFs return `404`.
 
-Successful response:
+## Performance
+
+### Ranking
+
+```http
+GET /api/v1/performance/ranking
+```
+
+Query parameters:
+
+| Parameter | Type | Default |
+| --- | --- | --- |
+| `period` | `1M`, `3M`, `6M`, `1Y` | `6M` |
+| `metric` | `PRICE_RETURN`, `TOTAL_RETURN`, `NAV_RETURN` | `PRICE_RETURN` |
+| `is_active` | boolean or null | null |
+| `is_bond` | boolean or null | false |
+| `limit` | integer | 20 |
+| `offset` | integer | 0 |
+
+Ranking is calculated within one period and one metric. Global rank numbers
+include the pagination offset.
+
+### Single ETF performance
+
+```http
+GET /api/v1/etfs/{code}/performance
+```
+
+Returns the latest available records per supported period for one metric.
+Missing periods are absent rather than represented as zero.
+
+## Dividends
+
+### ETF dividend history
+
+```http
+GET /api/v1/etfs/{code}/dividends
+```
+
+Supports `limit` and `offset`. Missing ETFs return `404`; an ETF without
+dividend events returns an empty list.
+
+### Actual 76W history
+
+```http
+GET /api/v1/etfs/{code}/dividends/76w
+```
+
+Only `component_basis=ACTUAL` and `component_code=76W` are counted. Missing
+actual data produces `null` ratios, not zero.
+
+### Dividend event detail
+
+```http
+GET /api/v1/dividends/{dividend_id}
+```
+
+Returns one dividend event and all component records.
+
+### Filter dividend components
+
+```http
+GET /api/v1/dividends/{dividend_id}/components
+```
+
+Optional query filters:
 
 ```text
-200 OK
+component_basis
+component_code
+source_id
 ```
 
-Missing ETF response:
+## Dividend data quality
+
+### Coverage
+
+```http
+GET /api/v1/data-quality/dividends/actual-coverage
+```
+
+Optional `etf_code` limits the summary to one existing ETF.
+
+### Review queue
+
+```http
+GET /api/v1/data-quality/dividends/review-queue
+```
+
+Optional query filters:
 
 ```text
-404 Not Found
+status
+etf_code
+issue_type
+limit
+offset
 ```
 
-Example:
+### Review queue item
 
-```json
-{
-  "detail": "找不到 ETF：UNKNOWN"
-}
+```http
+GET /api/v1/data-quality/dividends/review-queue/{queue_id}
 ```
+
+The M8 data-quality API is read-only.
+
+## Status behavior
+
+```text
+200  successful response
+404  ETF, dividend event or queue item not found
+422  invalid path or query parameter
+```
+
+All API database access is injected through `get_database_path`, allowing tests
+to use isolated temporary SQLite databases.

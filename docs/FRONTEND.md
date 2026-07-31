@@ -1,171 +1,141 @@
 # Streamlit Frontend
 
-## Purpose
-
-The Streamlit frontend provides the first public-facing user
-interface for the TW ETF AI Analyzer.
-
-The frontend does not connect directly to SQLite.
-
-All ETF data is requested through the FastAPI backend.
-
 ## Architecture
 
 ```text
-Web Browser
-    |
-    v
-Streamlit Frontend
-    |
-    v
-FastAPI Backend
-    |
-    v
-SQLite Database
+Browser
+-> Streamlit page
+-> frontend/api_client.py
+-> FastAPI
+-> Repository
+-> SQLite
 ```
 
-## Local URLs
+The frontend never reads SQLite directly.
 
-FastAPI:
+## Local startup
 
-```text
-http://127.0.0.1:8000
-```
-
-Streamlit:
-
-```text
-http://localhost:8501
-```
-
-## Start FastAPI
-
-Open the first terminal:
+FastAPI terminal:
 
 ```powershell
 python -m uvicorn backend.app.main:app --reload
 ```
 
-## Start Streamlit
-
-Open the second terminal:
+Streamlit terminal:
 
 ```powershell
 python -m streamlit run frontend/app.py
 ```
 
-## Frontend Pages
-
-### Home
-
-Displays:
-
-- Project introduction
-- FastAPI connection status
-- Database type
-- Backend connection error messages
-
-### ETF Search
-
-Supports:
-
-- ETF code and name search
-- Active and passive ETF filtering
-- Bond and non-bond filtering
-- Page size selection
-- Previous and next page navigation
-- Single-row ETF selection
-
-### ETF Detail
-
-Displays:
-
-- ETF code
-- ETF name
-- Active or passive management
-- Bond or non-bond classification
-- Gregorian listing date
-- Fund size
-- Expense ratio
-
-The detail page is hidden from the sidebar and is opened from
-the ETF search page.
-
-Example route:
+Default URLs:
 
 ```text
-/etf-detail?code=0050
+FastAPI   http://127.0.0.1:8000
+Streamlit http://localhost:8501
 ```
 
-## API URL Configuration
-
-The default FastAPI URL is:
-
-```text
-http://127.0.0.1:8000
-```
-
-Production environments can override it with:
+Override the backend URL with:
 
 ```text
 TW_ETF_API_URL
 ```
 
-Example:
+## Pages
 
-```powershell
-$env:TW_ETF_API_URL = "https://api.example.com"
-```
+### Home
 
-## Date Standard
+Shows project scope, FastAPI connectivity and database type.
 
-All ETF listing dates shown by the frontend must use the
-Gregorian ISO 8601 format:
+### ETF Search
+
+Supports:
+
+- Code/name keyword search
+- Active/passive filter
+- Bond/non-bond filter
+- Page size and pagination
+- Fully clickable ETF rows
+
+### Performance Ranking
+
+Supports:
+
+- 1M, 3M, 6M and 1Y periods
+- Active/passive and bond filters
+- Pagination and clickable rows
+
+The M9-1 UX task will move period/return information to the left and move
+classification labels to the right. That visual redesign is intentionally not
+part of M8 closure.
+
+### ETF Detail
+
+The detail page is hidden from sidebar navigation and opened through:
 
 ```text
-YYYY-MM-DD
+/etf-detail?code=0050
 ```
 
-Example:
+It shows:
 
-```text
-2003-06-30
-```
+- ETF identity and classifications
+- Listing date, fund size and expense ratio
+- Multi-period market-price performance
+- Dividend summary
+- Actual 76W summary
+- Dividend events and estimated/actual components
 
-Republic of China calendar values must be converted during the
-data normalization stage before they are stored in SQLite.
+### Dividend Data Quality
 
-The frontend must not perform calendar conversion.
+Shows:
 
-## Missing Data
+- Global ACTUAL, 76W and source-document coverage
+- Single-ETF coverage
+- Review-queue filters and pagination
+- Read-only queue-item details
 
-A value of `null` for fund size or expense ratio is displayed as:
+## Data semantics
+
+Missing values are displayed as text such as:
 
 ```text
 尚無資料
+歷史資料不足
+尚未取得正式 76W 收益分配資料
 ```
 
-This indicates that the current official source has not yet
-provided or imported that metric.
+Missing values are not converted to numerical zero.
 
-## Automated Tests
+A formal `ACTUAL + 76W` record with a disclosed ratio of zero is displayed as
+`0.00%` and remains covered data.
 
-Run frontend API client tests:
+Estimated realized capital gains retain the label:
 
-```powershell
-python -m unittest tests.test_frontend_api_client -v
-python -m unittest tests.test_frontend_etf_api_client -v
-python -m unittest tests.test_frontend_etf_detail_client -v
+```text
+EST_REALIZED_CAPITAL_GAIN
 ```
 
-Run Streamlit AppTest:
+They are not displayed or counted as official `76W`.
+
+## Caching and refresh
+
+Pages use short `st.cache_data` TTLs. Refresh buttons clear relevant frontend
+cache entries. They do not run backend Pipelines; data Pipelines must be run
+separately.
+
+## Tests
+
+Frontend and AppTest coverage:
 
 ```powershell
-python -m unittest tests.test_streamlit_app -v
-```
-
-Run all project tests:
-
-```powershell
-python -m unittest discover -s tests -p "test_*.py" -v
+python -m unittest `
+    tests.test_frontend_api_client `
+    tests.test_frontend_etf_api_client `
+    tests.test_frontend_performance_api_client `
+    tests.test_frontend_dividend_api_client `
+    tests.test_frontend_dividend_quality_api_client `
+    tests.test_frontend_dividend_ui `
+    tests.test_frontend_dividend_quality_ui `
+    tests.test_streamlit_app `
+    -v
 ```
