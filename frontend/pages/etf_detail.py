@@ -31,10 +31,21 @@ from frontend.query_state import (
     query_params_to_dict,
     sync_query_params,
 )
+from frontend.ui.formatters import (
+    asset_type_label,
+    format_amount as format_shared_amount,
+    format_iso_date,
+    format_iso_datetime,
+    format_number,
+    format_percentage as format_shared_percentage,
+    format_source_references as format_shared_source_references,
+    management_type_label,
+)
 from frontend.ui.states import (
     loading_state,
     render_api_error,
     render_not_found_state,
+    render_warning_state,
 )
 
 
@@ -152,19 +163,12 @@ def format_fund_size(
 ) -> str:
     """格式化基金規模。"""
 
-    if value is None:
-        return "尚無資料"
-
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    return f"{number:,.2f} 億元"
+    return format_number(
+        value,
+        suffix=" 億元",
+        missing_text="尚無資料",
+        invalid_text="資料格式異常",
+    )
 
 
 def format_expense_ratio(
@@ -172,19 +176,11 @@ def format_expense_ratio(
 ) -> str:
     """格式化費用率。"""
 
-    if value is None:
-        return "尚無資料"
-
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    return f"{number:.2f}%"
+    return format_shared_percentage(
+        value,
+        missing_text="尚無資料",
+        invalid_text="資料格式異常",
+    )
 
 
 def format_performance_return(
@@ -192,16 +188,12 @@ def format_performance_return(
 ) -> str:
     """格式化績效報酬率。"""
 
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    return f"{number:+.2f}%"
+    return format_shared_percentage(
+        value,
+        signed=True,
+        missing_text="資料格式異常",
+        invalid_text="資料格式異常",
+    )
 
 
 def build_performance_lookup(
@@ -327,15 +319,13 @@ def render_etf_information(
     name = str(etf["name"])
 
     management_type = (
-        "主動式"
-        if etf["is_active"]
-        else "被動式"
+        management_type_label(
+            etf["is_active"]
+        )
     )
 
-    asset_type = (
-        "債券"
-        if etf["is_bond"]
-        else "非債券"
+    asset_type = asset_type_label(
+        etf["is_bond"]
     )
 
     listing_date = (
@@ -477,31 +467,11 @@ def format_dividend_amount(
 ) -> str:
     """格式化每單位配息金額。"""
 
-    if value is None:
-        return "尚無資料"
-
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    currency_text = str(
-        currency or "TWD"
-    ).strip().upper()
-
-    amount_text = (
-        f"{number:,.4f}"
-        .rstrip("0")
-        .rstrip(".")
-    )
-
-    return (
-        f"{amount_text} "
-        f"{currency_text}"
+    return format_shared_amount(
+        value,
+        currency,
+        missing_text="尚無資料",
+        invalid_text="資料格式異常",
     )
 
 
@@ -510,19 +480,11 @@ def format_dividend_percentage(
 ) -> str:
     """格式化配息組成比例並保留缺資料語意。"""
 
-    if value is None:
-        return "尚未取得"
-
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    return f"{number:.2f}%"
+    return format_shared_percentage(
+        value,
+        missing_text="尚未取得",
+        invalid_text="資料格式異常",
+    )
 
 
 def format_optional_date(
@@ -530,15 +492,9 @@ def format_optional_date(
 ) -> str:
     """格式化可能缺少的日期。"""
 
-    if value is None:
-        return "尚無資料"
-
-    text = str(value).strip()
-
-    return (
-        text
-        if text
-        else "尚無資料"
+    return format_iso_date(
+        value,
+        missing_text="尚無資料",
     )
 
 
@@ -931,18 +887,11 @@ def format_optional_datetime(
 ) -> str:
     """格式化可能缺少的 ISO 日期時間。"""
 
-    if value is None:
-        return "尚未取得"
-
-    text = str(value).strip()
-
-    if not text:
-        return "尚未取得"
-
-    return (
-        text
-        .replace("T", " ", 1)
-        .replace("+00:00", " UTC")
+    return format_iso_datetime(
+        value,
+        missing_text="尚未取得",
+        timespec=None,
+        utc_label=True,
     )
 
 
@@ -951,15 +900,9 @@ def format_freshness_date(
 ) -> str:
     """格式化新鮮度日期並保留缺資料語意。"""
 
-    if value is None:
-        return "尚未取得"
-
-    text = str(value).strip()
-
-    return (
-        text
-        if text
-        else "尚未取得"
+    return format_iso_date(
+        value,
+        missing_text="尚未取得",
     )
 
 
@@ -968,44 +911,9 @@ def format_source_references(
 ) -> str:
     """將資料來源清單格式化為可讀文字。"""
 
-    if not sources:
-        return "尚未取得"
-
-    labels: list[str] = []
-
-    for source in sources:
-        source_id = str(
-            source.get(
-                "source_id",
-                "",
-            )
-        ).strip()
-
-        display_name = str(
-            source.get(
-                "display_name",
-                "",
-            )
-        ).strip()
-
-        if (
-            display_name
-            and source_id
-            and display_name != source_id
-        ):
-            labels.append(
-                f"{display_name} ({source_id})"
-            )
-
-        elif display_name or source_id:
-            labels.append(
-                display_name or source_id
-            )
-
-    return (
-        "、".join(labels)
-        if labels
-        else "尚未取得"
+    return format_shared_source_references(
+        sources,
+        missing_text="尚未取得",
     )
 
 
@@ -1223,10 +1131,10 @@ def render_detail_section_error(
 
     st.divider()
     st.subheader(title)
-    st.warning(message)
-    st.code(
-        str(error),
-        language=None,
+
+    render_warning_state(
+        message,
+        detail=error,
     )
 
 

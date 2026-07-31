@@ -15,6 +15,14 @@ from frontend.api_client import (
 from frontend.config import (
     get_api_base_url,
 )
+from frontend.ui.components import (
+    render_pagination_controls,
+)
+from frontend.ui.formatters import (
+    format_amount,
+    format_optional_text,
+    format_percentage,
+)
 from frontend.ui.states import (
     render_api_error,
     render_empty_state,
@@ -168,19 +176,11 @@ def format_coverage_percentage(
 ) -> str:
     """格式化覆蓋率並保留缺資料語意。"""
 
-    if value is None:
-        return "尚無事件"
-
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    return f"{number:.2f}%"
+    return format_percentage(
+        value,
+        missing_text="尚無事件",
+        invalid_text="資料格式異常",
+    )
 
 
 def format_quality_amount(
@@ -189,28 +189,11 @@ def format_quality_amount(
 ) -> str:
     """格式化待處理事件配息金額。"""
 
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    amount_text = (
-        f"{number:,.4f}"
-        .rstrip("0")
-        .rstrip(".")
-    )
-
-    currency_text = str(
-        currency or "TWD"
-    ).strip().upper()
-
-    return (
-        f"{amount_text} "
-        f"{currency_text}"
+    return format_amount(
+        value,
+        currency,
+        missing_text="資料格式異常",
+        invalid_text="資料格式異常",
     )
 
 
@@ -219,12 +202,10 @@ def format_quality_optional(
 ) -> str:
     """格式化可能缺少的品質欄位。"""
 
-    if value is None:
-        return "—"
-
-    text = str(value).strip()
-
-    return text if text else "—"
+    return format_optional_text(
+        value,
+        missing_text="—",
+    )
 
 
 def get_review_issue_label(
@@ -741,47 +722,22 @@ def render_quality_pagination(
 ) -> None:
     """顯示待處理佇列分頁控制。"""
 
-    previous_column, page_column, next_column = (
-        st.columns(
-            [
-                1,
-                2,
-                1,
-            ]
-        )
+    action = render_pagination_controls(
+        current_page=current_page,
+        total_pages=total_pages,
+        previous_key=(
+            "previous_quality_page"
+        ),
+        next_key="next_quality_page",
     )
 
-    with previous_column:
-        previous_clicked = st.button(
-            "← 上一頁",
-            disabled=(
-                current_page <= 1
-            ),
-            key="previous_quality_page",
-        )
-
-    with page_column:
-        st.write(
-            f"第 {current_page} 頁，"
-            f"共 {total_pages} 頁"
-        )
-
-    with next_column:
-        next_clicked = st.button(
-            "下一頁 →",
-            disabled=(
-                current_page >= total_pages
-            ),
-            key="next_quality_page",
-        )
-
-    if previous_clicked:
+    if action == "previous":
         st.session_state[
             "quality_queue_page_number"
         ] = current_page - 1
         st.rerun()
 
-    if next_clicked:
+    if action == "next":
         st.session_state[
             "quality_queue_page_number"
         ] = current_page + 1

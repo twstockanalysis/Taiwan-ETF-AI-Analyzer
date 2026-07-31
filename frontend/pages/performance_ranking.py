@@ -27,6 +27,15 @@ from frontend.query_state import (
     parse_performance_query_state,
     sync_query_params,
 )
+from frontend.ui.components import (
+    render_etf_detail_links,
+    render_pagination_controls,
+)
+from frontend.ui.formatters import (
+    asset_type_label,
+    format_percentage,
+    management_type_label,
+)
 from frontend.ui.states import (
     loading_state,
     render_api_error,
@@ -66,16 +75,12 @@ def format_performance_return(
 ) -> str:
     """格式化績效百分比。"""
 
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "格式異常"
-
-    return f"{number:+.2f}%"
+    return format_percentage(
+        value,
+        signed=True,
+        missing_text="格式異常",
+        invalid_text="格式異常",
+    )
 
 
 def build_performance_ranking_segments(
@@ -106,15 +111,13 @@ def build_performance_ranking_segments(
     ).strip()
 
     management_type = (
-        "主動式"
-        if item["is_active"]
-        else "被動式"
+        management_type_label(
+            item["is_active"]
+        )
     )
 
-    asset_type = (
-        "債券"
-        if item["is_bond"]
-        else "非債券"
+    asset_type = asset_type_label(
+        item["is_bond"]
     )
 
     return (
@@ -151,49 +154,24 @@ def render_clickable_performance_rows(
         else PerformanceQueryState()
     )
 
-    source_params = (
-        source_state.to_query_params()
+    render_etf_detail_links(
+        items,
+        caption=(
+            "排名與代號｜期間報酬率｜ETF 名稱｜"
+            "基準日｜管理方式｜資產類型"
+        ),
+        label_builder=(
+            format_performance_ranking_row
+        ),
+        code_field="etf_code",
+        name_field="name",
+        source=str(
+            PERFORMANCE_RANKING_ROUTE.url_path
+        ),
+        source_query_params=(
+            source_state.to_query_params()
+        ),
     )
-
-    st.caption(
-        "排名與代號｜期間報酬率｜ETF 名稱｜"
-        "基準日｜管理方式｜資產類型"
-    )
-
-    for item in items:
-        code = str(
-            item["etf_code"]
-        ).strip().upper()
-
-        name = str(
-            item["name"]
-        ).strip()
-
-        st.page_link(
-            "page_scripts/etf_detail_page.py",
-            label=(
-                format_performance_ranking_row(
-                    item
-                )
-            ),
-            icon=":material/chevron_right:",
-            icon_position="right",
-            help=(
-                f"查看 {code} {name} 詳細資料"
-            ),
-            width="stretch",
-            query_params=(
-                build_detail_query_params(
-                    code=code,
-                    source=str(
-                        PERFORMANCE_RANKING_ROUTE.url_path
-                    ),
-                    source_query_params=(
-                        source_params
-                    ),
-                )
-            ),
-        )
 
 
 def apply_performance_state(
@@ -483,41 +461,18 @@ def render_performance_pagination(
 ) -> None:
     """顯示績效排行榜分頁控制項。"""
 
-    previous_column, page_column, next_column = (
-        st.columns(
-            [
-                1,
-                2,
-                1,
-            ]
-        )
+    action = render_pagination_controls(
+        current_page=state.page,
+        total_pages=total_pages,
+        previous_key=(
+            "previous_performance_page"
+        ),
+        next_key=(
+            "next_performance_page"
+        ),
     )
 
-    with previous_column:
-        previous_clicked = st.button(
-            "← 上一頁",
-            disabled=(
-                state.page <= 1
-            ),
-            key="previous_performance_page",
-        )
-
-    with page_column:
-        st.write(
-            f"第 {state.page} 頁，"
-            f"共 {total_pages} 頁"
-        )
-
-    with next_column:
-        next_clicked = st.button(
-            "下一頁 →",
-            disabled=(
-                state.page >= total_pages
-            ),
-            key="next_performance_page",
-        )
-
-    if previous_clicked:
+    if action == "previous":
         update_performance_state(
             replace(
                 state,
@@ -526,7 +481,7 @@ def render_performance_pagination(
         )
         st.rerun()
 
-    if next_clicked:
+    if action == "next":
         update_performance_state(
             replace(
                 state,

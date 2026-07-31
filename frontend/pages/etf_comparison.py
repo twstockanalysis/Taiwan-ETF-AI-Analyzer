@@ -25,6 +25,13 @@ from frontend.query_state import (
     query_params_to_dict,
     sync_query_params,
 )
+from frontend.ui.formatters import (
+    asset_type_label,
+    format_iso_date,
+    format_number,
+    format_percentage as format_shared_percentage,
+    management_type_label,
+)
 from frontend.ui.states import (
     loading_state,
     render_api_error,
@@ -44,12 +51,10 @@ def format_optional_date(
 ) -> str:
     """格式化可缺少日期。"""
 
-    if value is None:
-        return "尚無資料"
-
-    text = str(value).strip()
-
-    return text or "尚無資料"
+    return format_iso_date(
+        value,
+        missing_text="尚無資料",
+    )
 
 
 def format_optional_number(
@@ -60,21 +65,12 @@ def format_optional_number(
 ) -> str:
     """格式化可缺少數值。"""
 
-    if value is None:
-        return "尚無資料"
-
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    return (
-        f"{number:,.{decimal_places}f}"
-        f"{suffix}"
+    return format_number(
+        value,
+        decimal_places=decimal_places,
+        suffix=suffix,
+        missing_text="尚無資料",
+        invalid_text="資料格式異常",
     )
 
 
@@ -83,17 +79,12 @@ def format_return(
 ) -> str:
     """格式化市價報酬率。"""
 
-    if value is None:
-        return "歷史資料不足"
-
-    try:
-        return f"{float(value):+.2f}%"
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
+    return format_shared_percentage(
+        value,
+        signed=True,
+        missing_text="歷史資料不足",
+        invalid_text="資料格式異常",
+    )
 
 
 def format_percentage(
@@ -101,17 +92,11 @@ def format_percentage(
 ) -> str:
     """格式化正式百分比並區分缺資料與零。"""
 
-    if value is None:
-        return "尚未取得"
-
-    try:
-        return f"{float(value):.2f}%"
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
+    return format_shared_percentage(
+        value,
+        missing_text="尚未取得",
+        invalid_text="資料格式異常",
+    )
 
 
 def build_identity_rows(
@@ -130,14 +115,14 @@ def build_identity_rows(
                     f"{etf['code']} {etf['name']}"
                 ),
                 "管理方式": (
-                    "主動式"
-                    if etf["is_active"]
-                    else "被動式"
+                    management_type_label(
+                        etf["is_active"]
+                    )
                 ),
                 "資產類型": (
-                    "債券"
-                    if etf["is_bond"]
-                    else "非債券"
+                    asset_type_label(
+                        etf["is_bond"]
+                    )
                 ),
                 "上市日期": (
                     format_optional_date(

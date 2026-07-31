@@ -1,6 +1,5 @@
 """TW ETF AI Analyzer 首頁與系統資料總覽。"""
 
-from datetime import datetime
 from typing import Any
 
 import streamlit as st
@@ -18,6 +17,12 @@ from frontend.navigation import (
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
     create_streamlit_page,
+)
+from frontend.ui.formatters import (
+    format_iso_date,
+    format_iso_datetime,
+    format_percentage,
+    truncate_text,
 )
 from frontend.ui.states import (
     loading_state,
@@ -52,19 +57,11 @@ def format_overview_percentage(
 ) -> str:
     """格式化覆蓋率並保留缺資料語意。"""
 
-    if value is None:
-        return "尚無資料"
-
-    try:
-        number = float(value)
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return "資料格式異常"
-
-    return f"{number:.2f}%"
+    return format_percentage(
+        value,
+        missing_text="尚無資料",
+        invalid_text="資料格式異常",
+    )
 
 
 def format_overview_date(
@@ -72,15 +69,9 @@ def format_overview_date(
 ) -> str:
     """格式化首頁日期欄位。"""
 
-    if value is None:
-        return "尚未取得"
-
-    text = str(value).strip()
-
-    return (
-        text
-        if text
-        else "尚未取得"
+    return format_iso_date(
+        value,
+        missing_text="尚未取得",
     )
 
 
@@ -89,27 +80,9 @@ def format_overview_datetime(
 ) -> str:
     """格式化首頁 ISO 日期時間。"""
 
-    if value is None:
-        return "尚未取得"
-
-    text = str(value).strip()
-
-    if not text:
-        return "尚未取得"
-
-    try:
-        parsed = datetime.fromisoformat(
-            text.replace(
-                "Z",
-                "+00:00",
-            )
-        )
-
-    except ValueError:
-        return text
-
-    return parsed.isoformat(
-        sep=" ",
+    return format_iso_datetime(
+        value,
+        missing_text="尚未取得",
         timespec="minutes",
     )
 
@@ -119,22 +92,10 @@ def format_import_error(
 ) -> str:
     """格式化匯入批次錯誤摘要。"""
 
-    if value is None:
-        return "—"
-
-    text = str(value).strip()
-
-    if not text:
-        return "—"
-
-    maximum_length = 100
-
-    if len(text) <= maximum_length:
-        return text
-
-    return (
-        text[:maximum_length]
-        + "…"
+    return truncate_text(
+        value,
+        maximum_length=100,
+        missing_text="—",
     )
 
 
