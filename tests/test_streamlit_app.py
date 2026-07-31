@@ -468,14 +468,23 @@ class TestStreamlitApp(unittest.TestCase):
             for item in app.metric
         ]
 
+        caption_values = [
+            str(item.value)
+            for item in app.caption
+        ]
+
+        classification_text = "\n".join(
+            caption_values
+        )
+
         self.assertIn(
             "被動式",
-            metric_values,
+            classification_text,
         )
 
         self.assertIn(
             "非債券",
-            metric_values,
+            classification_text,
         )
 
         self.assertIn(
