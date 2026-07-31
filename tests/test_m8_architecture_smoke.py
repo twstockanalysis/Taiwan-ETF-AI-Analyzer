@@ -33,6 +33,10 @@ EXPECTED_API_PATHS = {
     "/api/v1/etfs/{code}/data-profile",
     "/api/v1/etfs/comparison",
     "/api/v1/performance/ranking",
+    (
+        "/api/v1/performance/"
+        "multi-period-ranking"
+    ),
     "/api/v1/etfs/{code}/performance",
     "/api/v1/etfs/{code}/dividends",
     "/api/v1/etfs/{code}/dividends/76w",
@@ -71,6 +75,9 @@ SHARED_FRONTEND_FILES = {
     ),
     "frontend/ui/states.py": (
         "def render_warning_state("
+    ),
+    "frontend/ui/theme.py": (
+        "def apply_global_styles("
     ),
 }
 

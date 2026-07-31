@@ -28,11 +28,56 @@ class TestFrontendPerformanceRanking(
             "name": "元大台灣50",
             "is_active": False,
             "is_bond": False,
-            "as_of_date": "2026-07-29",
-            "period_code": "6M",
-            "metric_code": "PRICE_RETURN",
-            "return_pct": 20.0,
+            "sort_period": "6M",
+            "sort_as_of_date": "2026-07-29",
+            "sort_return_pct": 20.0,
             "source_id": "twse_stock_day",
+            "performance_items": [
+                {
+                    "as_of_date": "2026-07-29",
+                    "period_code": "1M",
+                    "metric_code": (
+                        "PRICE_RETURN"
+                    ),
+                    "return_pct": 5.0,
+                    "source_id": (
+                        "twse_stock_day"
+                    ),
+                },
+                {
+                    "as_of_date": "2026-07-29",
+                    "period_code": "3M",
+                    "metric_code": (
+                        "PRICE_RETURN"
+                    ),
+                    "return_pct": 10.0,
+                    "source_id": (
+                        "twse_stock_day"
+                    ),
+                },
+                {
+                    "as_of_date": "2026-07-29",
+                    "period_code": "6M",
+                    "metric_code": (
+                        "PRICE_RETURN"
+                    ),
+                    "return_pct": 20.0,
+                    "source_id": (
+                        "twse_stock_day"
+                    ),
+                },
+                {
+                    "as_of_date": "2026-07-29",
+                    "period_code": "1Y",
+                    "metric_code": (
+                        "PRICE_RETURN"
+                    ),
+                    "return_pct": 30.0,
+                    "source_id": (
+                        "twse_stock_day"
+                    ),
+                },
+            ],
         }
 
     def test_positive_return_has_plus_sign(
@@ -85,9 +130,15 @@ class TestFrontendPerformanceRanking(
             ),
             (
                 "**#1　0050**",
-                "**6M +20.00%**",
                 "元大台灣50",
-                "截至 2026-07-29",
+                "1M +5.00%",
+                "3M +10.00%",
+                "**6M +20.00%**",
+                "1Y +30.00%",
+                (
+                    "依 6M 排序｜"
+                    "截至 2026-07-29"
+                ),
                 "被動式",
                 "非債券",
             ),
@@ -130,8 +181,12 @@ class TestFrontendPerformanceRanking(
         expected_values = (
             "#1",
             "0050",
-            "6M +20.00%",
             "元大台灣50",
+            "1M +5.00%",
+            "3M +10.00%",
+            "6M +20.00%",
+            "1Y +30.00%",
+            "依 6M 排序",
             "截至 2026-07-29",
             "被動式",
             "非債券",
@@ -145,6 +200,38 @@ class TestFrontendPerformanceRanking(
         self.assertEqual(
             positions,
             sorted(positions),
+        )
+
+    def test_missing_period_is_not_zero(
+        self,
+    ) -> None:
+        """確認缺少期間顯示歷史不足而不是零。"""
+
+        item = self.build_item()
+        item["performance_items"] = [
+            performance_item
+            for performance_item in (
+                item["performance_items"]
+            )
+            if performance_item[
+                "period_code"
+            ] != "3M"
+        ]
+
+        label = (
+            format_performance_ranking_row(
+                item
+            )
+        )
+
+        self.assertIn(
+            "3M 歷史資料不足",
+            label,
+        )
+
+        self.assertNotIn(
+            "3M +0.00%",
+            label,
         )
 
     @patch(
@@ -178,8 +265,9 @@ class TestFrontendPerformanceRanking(
         )
 
         mock_caption.assert_called_once_with(
-            "排名與代號｜期間報酬率｜ETF 名稱｜"
-            "基準日｜管理方式｜資產類型"
+            "排名與代號｜ETF 名稱｜"
+            "1M｜3M｜6M｜1Y｜"
+            "排序基準日｜管理方式｜資產類型"
         )
 
         mock_page_link.assert_called_once()

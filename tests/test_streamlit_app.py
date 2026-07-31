@@ -225,10 +225,18 @@ from unittest.mock import patch
 import frontend.pages.performance_ranking as page
 
 
-def fake_fetch_performance_ranking(**kwargs):
+def fake_fetch_multi_period_performance_ranking(
+    **kwargs,
+):
     return {
-        "period_code": "6M",
+        "sort_period": "6M",
         "metric_code": "PRICE_RETURN",
+        "periods": [
+            "1M",
+            "3M",
+            "6M",
+            "1Y",
+        ],
         "items": [
             {
                 "rank": 1,
@@ -236,11 +244,39 @@ def fake_fetch_performance_ranking(**kwargs):
                 "name": "元大台灣50",
                 "is_active": False,
                 "is_bond": False,
-                "as_of_date": "2026-07-29",
-                "period_code": "6M",
-                "metric_code": "PRICE_RETURN",
-                "return_pct": 20.0,
-                "source_id": "twse_stock_day",
+                "sort_period": "6M",
+                "sort_as_of_date": "2026-07-29",
+                "sort_return_pct": 20.0,
+                "performance_items": [
+                    {
+                        "as_of_date": "2026-07-29",
+                        "period_code": "1M",
+                        "metric_code": "PRICE_RETURN",
+                        "return_pct": 5.0,
+                        "source_id": "twse_stock_day",
+                    },
+                    {
+                        "as_of_date": "2026-07-29",
+                        "period_code": "3M",
+                        "metric_code": "PRICE_RETURN",
+                        "return_pct": 10.0,
+                        "source_id": "twse_stock_day",
+                    },
+                    {
+                        "as_of_date": "2026-07-29",
+                        "period_code": "6M",
+                        "metric_code": "PRICE_RETURN",
+                        "return_pct": 20.0,
+                        "source_id": "twse_stock_day",
+                    },
+                    {
+                        "as_of_date": "2026-07-29",
+                        "period_code": "1Y",
+                        "metric_code": "PRICE_RETURN",
+                        "return_pct": 30.0,
+                        "source_id": "twse_stock_day",
+                    },
+                ],
             },
         ],
         "total": 1,
@@ -249,8 +285,8 @@ def fake_fetch_performance_ranking(**kwargs):
     }
 
 
-page.fetch_performance_ranking = (
-    fake_fetch_performance_ranking
+page.fetch_multi_period_performance_ranking = (
+    fake_fetch_multi_period_performance_ranking
 )
 page.load_performance_ranking.clear()
 
@@ -423,13 +459,26 @@ class TestStreamlitApp(unittest.TestCase):
             for item in app.caption
         ]
 
-        self.assertTrue(
-            any(
-                "不會混合不同期間"
-                in caption
-                for caption in caption_values
-            )
+        caption_text = "\n".join(
+            str(item.value)
+            for item in app.caption
         )
+
+        self.assertIn(
+            "名次只依 6M 排序",
+            caption_text,
+        )
+
+        self.assertIn(
+            "1M、3M、6M、1Y",
+            caption_text,
+        )
+
+        self.assertIn(
+            "不會把不同期間混成同一個報酬率",
+            caption_text,
+        )
+
 
     def test_detail_page_uses_gregorian_date(
         self,
