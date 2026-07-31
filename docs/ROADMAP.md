@@ -141,14 +141,18 @@ Completed:
 - Added reusable loading, empty, not-found and API-error states
 - Added invalid-query fallback and navigation regression tests
 
-### M9-3 — Homepage and system overview
+### M9-3 — Homepage and system overview — Completed
 
-Planned:
+Completed:
 
-- ETF totals and latest data dates
-- Performance and dividend coverage
-- Latest import batches
-- Primary feature entry points
+- Added `GET /api/v1/system/overview` as the homepage data boundary
+- Added ETF totals and active/passive, bond/non-bond classifications
+- Added PRICE_RETURN coverage for 1M, 3M, 6M and 1Y
+- Added dividend-event, ACTUAL, 76W and source-document coverage
+- Added ETF-master, performance, dividend and ACTUAL-document freshness
+- Added the five most recent import batches with failure summaries
+- Added primary entry points for search, ranking and dividend data quality
+- Preserved null semantics for unavailable dates and zero-denominator rates
 
 ### M9-4 — ETF detail-page organization
 

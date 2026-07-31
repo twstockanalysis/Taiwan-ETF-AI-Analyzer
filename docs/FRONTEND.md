@@ -102,7 +102,25 @@ They provide consistent loading, empty, not-found and API-error presentation.
 
 ### Home
 
-Shows project scope, FastAPI connectivity and database type.
+The homepage reads only:
+
+```text
+GET /api/v1/system/overview
+```
+
+It shows:
+
+- Primary links to ETF search, performance ranking and dividend data quality
+- FastAPI and SQLite status
+- ETF totals and active/passive, bond/non-bond classifications
+- ETFs with PRICE_RETURN data and ETFs with dividend history
+- ACTUAL and official 76W event coverage
+- Separate 1M, 3M, 6M and 1Y performance coverage
+- ETF-master, performance, dividend and ACTUAL-document freshness
+- Five most recent import batches, including failed-batch error summaries
+
+Missing dates display `尚未取得`. A zero-event coverage ratio displays
+`尚無資料`, while a formally calculated zero remains `0.00%`.
 
 ### ETF Search
 

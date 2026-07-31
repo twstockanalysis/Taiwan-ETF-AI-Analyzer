@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-31 — M9-3 homepage system overview
+
+### Added
+
+- Read-only `GET /api/v1/system/overview` endpoint
+- ETF classification, performance-period and dividend-quality summaries
+- Data-freshness dates and five recent import-batch summaries
+- Homepage feature entry points and data overview cards
+- Repository, API, frontend Client and AppTest coverage
+
+### Changed
+
+- Homepage now loads operational data through FastAPI instead of showing only
+  a static feature list and health check
+- Empty coverage and missing dates retain null semantics
+
 ## 2026-07-31 — M9-2 navigation and URL state
 
 ### Added

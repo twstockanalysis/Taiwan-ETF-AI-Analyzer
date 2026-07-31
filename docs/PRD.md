@@ -37,10 +37,10 @@ Users who want to:
 
 M9:
 
-- Complete website information architecture and page consistency
-- Reorder performance ranking content
-- Improve homepage and ETF detail structure
-- Add ETF comparison
+- Completed navigation, URL state and performance-ranking information order
+- Completed the FastAPI-backed homepage system overview
+- Organize ETF detail sections and data freshness
+- Add ETF comparison and remaining shared frontend components
 
 M10–M11:
 

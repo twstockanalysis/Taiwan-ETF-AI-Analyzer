@@ -28,6 +28,30 @@ Repository
 SQLite
 ```
 
+## Homepage overview flow
+
+```text
+Streamlit home
+    |
+    v
+GET /api/v1/system/overview
+    |
+    v
+System overview Repository
+    |
+    +--> ETF classifications
+    +--> PRICE_RETURN period coverage
+    +--> dividend and ACTUAL coverage
+    +--> data freshness
+    +--> recent import batches
+    |
+    v
+SQLite read-only queries
+```
+
+The overview endpoint returns stored dates only. It does not replace missing
+data dates with the request time or convert unavailable coverage into zero.
+
 ## Data update flow
 
 ```text

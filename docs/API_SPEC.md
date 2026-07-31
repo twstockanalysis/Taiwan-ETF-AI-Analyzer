@@ -35,6 +35,28 @@ GET /health
 }
 ```
 
+### System overview
+
+```http
+GET /api/v1/system/overview
+```
+
+The homepage uses this single read-only endpoint for:
+
+```text
+ETF totals and classifications
+latest successful ETF-master import time
+PRICE_RETURN coverage for 1M, 3M, 6M and 1Y
+latest performance as-of date
+dividend-event and ETF counts
+ACTUAL, 76W and source-document coverage
+latest dividend and ACTUAL source-document dates
+five most recent import batches
+```
+
+Coverage percentages are `null` when the denominator is zero. Missing dates
+remain `null`; the API does not substitute the current date.
+
 ## ETF master data
 
 ### List ETFs
