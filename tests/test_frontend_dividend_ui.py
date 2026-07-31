@@ -135,8 +135,61 @@ def fake_fetch_dividend_detail(
     }
 
 
+def fake_fetch_etf_data_profile(**kwargs):
+    code = str(
+        kwargs.get("code", "00918")
+    ).strip().upper()
+
+    return {
+        "etf_code": code,
+        "master": {
+            "sources": [
+                {
+                    "source_id": "twse_openapi",
+                    "display_name": (
+                        "臺灣證券交易所 OpenAPI"
+                    ),
+                }
+            ],
+            "latest_import_at": (
+                "2026-07-30T00:05:00+00:00"
+            ),
+        },
+        "performance": {
+            "metric_code": "PRICE_RETURN",
+            "sources": [],
+            "record_count": 0,
+            "available_periods": [],
+            "latest_as_of_date": None,
+            "latest_import_at": None,
+        },
+        "dividends": {
+            "sources": [
+                {
+                    "source_id": "official",
+                    "display_name": "正式配息來源",
+                }
+            ],
+            "event_count": 0,
+            "latest_event_date": None,
+            "latest_import_at": None,
+        },
+        "actual_dividend": {
+            "sources": [],
+            "actual_component_event_count": 0,
+            "actual_76w_event_count": 0,
+            "source_document_event_count": 0,
+            "latest_source_document_date": None,
+            "latest_import_at": None,
+        },
+    }
+
+
 page.fetch_etf_by_code = (
     fake_fetch_etf_by_code
+)
+page.fetch_etf_data_profile = (
+    fake_fetch_etf_data_profile
 )
 page.fetch_etf_performance = (
     fake_fetch_etf_performance
@@ -152,6 +205,7 @@ page.fetch_dividend_detail = (
 )
 
 page.load_etf_detail.clear()
+page.load_etf_data_profile.clear()
 page.load_etf_performance.clear()
 page.load_etf_dividends.clear()
 page.load_etf_actual_76w.clear()
@@ -207,8 +261,61 @@ def fake_fetch_etf_actual_76w(**kwargs):
     }
 
 
+def fake_fetch_etf_data_profile(**kwargs):
+    code = str(
+        kwargs.get("code", "00918")
+    ).strip().upper()
+
+    return {
+        "etf_code": code,
+        "master": {
+            "sources": [
+                {
+                    "source_id": "twse_openapi",
+                    "display_name": (
+                        "臺灣證券交易所 OpenAPI"
+                    ),
+                }
+            ],
+            "latest_import_at": (
+                "2026-07-30T00:05:00+00:00"
+            ),
+        },
+        "performance": {
+            "metric_code": "PRICE_RETURN",
+            "sources": [],
+            "record_count": 0,
+            "available_periods": [],
+            "latest_as_of_date": None,
+            "latest_import_at": None,
+        },
+        "dividends": {
+            "sources": [
+                {
+                    "source_id": "official",
+                    "display_name": "正式配息來源",
+                }
+            ],
+            "event_count": 0,
+            "latest_event_date": None,
+            "latest_import_at": None,
+        },
+        "actual_dividend": {
+            "sources": [],
+            "actual_component_event_count": 0,
+            "actual_76w_event_count": 0,
+            "source_document_event_count": 0,
+            "latest_source_document_date": None,
+            "latest_import_at": None,
+        },
+    }
+
+
 page.fetch_etf_by_code = (
     fake_fetch_etf_by_code
+)
+page.fetch_etf_data_profile = (
+    fake_fetch_etf_data_profile
 )
 page.fetch_etf_performance = (
     fake_fetch_etf_performance
@@ -221,6 +328,7 @@ page.fetch_etf_actual_76w = (
 )
 
 page.load_etf_detail.clear()
+page.load_etf_data_profile.clear()
 page.load_etf_performance.clear()
 page.load_etf_dividends.clear()
 page.load_etf_actual_76w.clear()
@@ -276,8 +384,61 @@ def fake_fetch_etf_actual_76w(**kwargs):
     }
 
 
+def fake_fetch_etf_data_profile(**kwargs):
+    code = str(
+        kwargs.get("code", "00918")
+    ).strip().upper()
+
+    return {
+        "etf_code": code,
+        "master": {
+            "sources": [
+                {
+                    "source_id": "twse_openapi",
+                    "display_name": (
+                        "臺灣證券交易所 OpenAPI"
+                    ),
+                }
+            ],
+            "latest_import_at": (
+                "2026-07-30T00:05:00+00:00"
+            ),
+        },
+        "performance": {
+            "metric_code": "PRICE_RETURN",
+            "sources": [],
+            "record_count": 0,
+            "available_periods": [],
+            "latest_as_of_date": None,
+            "latest_import_at": None,
+        },
+        "dividends": {
+            "sources": [
+                {
+                    "source_id": "official",
+                    "display_name": "正式配息來源",
+                }
+            ],
+            "event_count": 0,
+            "latest_event_date": None,
+            "latest_import_at": None,
+        },
+        "actual_dividend": {
+            "sources": [],
+            "actual_component_event_count": 0,
+            "actual_76w_event_count": 0,
+            "source_document_event_count": 0,
+            "latest_source_document_date": None,
+            "latest_import_at": None,
+        },
+    }
+
+
 page.fetch_etf_by_code = (
     fake_fetch_etf_by_code
+)
+page.fetch_etf_data_profile = (
+    fake_fetch_etf_data_profile
 )
 page.fetch_etf_performance = (
     fake_fetch_etf_performance
@@ -290,6 +451,7 @@ page.fetch_etf_actual_76w = (
 )
 
 page.load_etf_detail.clear()
+page.load_etf_data_profile.clear()
 page.load_etf_performance.clear()
 page.load_etf_dividends.clear()
 page.load_etf_actual_76w.clear()

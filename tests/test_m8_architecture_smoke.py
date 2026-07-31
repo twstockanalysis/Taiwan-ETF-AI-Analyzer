@@ -30,6 +30,7 @@ EXPECTED_API_PATHS = {
     "/api/v1/system/overview",
     "/api/v1/etfs",
     "/api/v1/etfs/{code}",
+    "/api/v1/etfs/{code}/data-profile",
     "/api/v1/performance/ranking",
     "/api/v1/etfs/{code}/performance",
     "/api/v1/etfs/{code}/dividends",
