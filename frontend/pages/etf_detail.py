@@ -11,6 +11,7 @@ from frontend.api_client import (
     fetch_dividend_detail,
     fetch_etf_actual_76w,
     fetch_etf_by_code,
+    fetch_etf_data_profile,
     fetch_etf_dividends,
     fetch_etf_performance,
 )
@@ -47,6 +48,23 @@ def load_etf_detail(
         api_base_url=api_base_url,
         code=code,
     )
+
+
+@st.cache_data(
+    ttl=60,
+    show_spinner=False,
+)
+def load_etf_data_profile(
+    api_base_url: str,
+    code: str,
+) -> dict[str, Any]:
+    """取得並短暫快取 ETF 資料來源概況。"""
+
+    return fetch_etf_data_profile(
+        api_base_url=api_base_url,
+        code=code,
+    )
+
 
 
 @st.cache_data(
@@ -287,6 +305,7 @@ def render_code_form(
     )
 
     load_etf_detail.clear()
+    load_etf_data_profile.clear()
     load_etf_performance.clear()
     load_etf_dividends.clear()
     load_etf_actual_76w.clear()
@@ -298,18 +317,10 @@ def render_code_form(
 def render_etf_information(
     etf: dict[str, Any],
 ) -> None:
-    """顯示 ETF 詳細資料。"""
+    """顯示 ETF 身分、分類與核心資料。"""
 
     code = str(etf["code"])
     name = str(etf["name"])
-
-    st.header(
-        f"{code}　{name}"
-    )
-
-    st.caption(
-        "資料來源：TW ETF AI Analyzer FastAPI"
-    )
 
     management_type = (
         "主動式"
@@ -328,21 +339,20 @@ def render_etf_information(
         or "尚無資料"
     )
 
-    management_column, asset_column, date_column = (
-        st.columns(3)
+    st.header(
+        f"{code}　{name}"
     )
 
-    with management_column:
-        st.metric(
-            "管理方式",
-            management_type,
-        )
+    st.caption(
+        f"{management_type}　｜　"
+        f"{asset_type}"
+    )
 
-    with asset_column:
-        st.metric(
-            "資產類型",
-            asset_type,
-        )
+    st.subheader("核心資料概覽")
+
+    date_column, size_column, fee_column = (
+        st.columns(3)
+    )
 
     with date_column:
         st.metric(
@@ -350,48 +360,21 @@ def render_etf_information(
             listing_date,
         )
 
-    st.divider()
-
-    st.subheader("基本資料")
-
-    basic_information = [
-        {
-            "項目": "ETF 代號",
-            "內容": code,
-        },
-        {
-            "項目": "ETF 名稱",
-            "內容": name,
-        },
-        {
-            "項目": "管理方式",
-            "內容": management_type,
-        },
-        {
-            "項目": "資產類型",
-            "內容": asset_type,
-        },
-        {
-            "項目": "上市日期",
-            "內容": listing_date,
-        },
-        {
-            "項目": "基金規模",
-            "內容": format_fund_size(
+    with size_column:
+        st.metric(
+            "基金規模",
+            format_fund_size(
                 etf["fund_size"]
             ),
-        },
-        {
-            "項目": "費用率",
-            "內容": format_expense_ratio(
+        )
+
+    with fee_column:
+        st.metric(
+            "費用率",
+            format_expense_ratio(
                 etf["expense_ratio"]
             ),
-        },
-    ]
-
-    st.table(
-        basic_information
-    )
+        )
 
     if (
         etf["fund_size"] is None
@@ -402,6 +385,7 @@ def render_etf_information(
             "代表目前 ETF 主資料來源尚未提供或"
             "尚未匯入該項指標。"
         )
+
 
 
 def render_etf_performance(
@@ -936,6 +920,300 @@ def render_dividend_history(
 
 
 
+
+
+def format_optional_datetime(
+    value: Any,
+) -> str:
+    """格式化可能缺少的 ISO 日期時間。"""
+
+    if value is None:
+        return "尚未取得"
+
+    text = str(value).strip()
+
+    if not text:
+        return "尚未取得"
+
+    return (
+        text
+        .replace("T", " ", 1)
+        .replace("+00:00", " UTC")
+    )
+
+
+def format_freshness_date(
+    value: Any,
+) -> str:
+    """格式化新鮮度日期並保留缺資料語意。"""
+
+    if value is None:
+        return "尚未取得"
+
+    text = str(value).strip()
+
+    return (
+        text
+        if text
+        else "尚未取得"
+    )
+
+
+def format_source_references(
+    sources: list[dict[str, Any]],
+) -> str:
+    """將資料來源清單格式化為可讀文字。"""
+
+    if not sources:
+        return "尚未取得"
+
+    labels: list[str] = []
+
+    for source in sources:
+        source_id = str(
+            source.get(
+                "source_id",
+                "",
+            )
+        ).strip()
+
+        display_name = str(
+            source.get(
+                "display_name",
+                "",
+            )
+        ).strip()
+
+        if (
+            display_name
+            and source_id
+            and display_name != source_id
+        ):
+            labels.append(
+                f"{display_name} ({source_id})"
+            )
+
+        elif display_name or source_id:
+            labels.append(
+                display_name or source_id
+            )
+
+    return (
+        "、".join(labels)
+        if labels
+        else "尚未取得"
+    )
+
+
+def build_data_profile_rows(
+    profile: dict[str, Any],
+) -> list[dict[str, str]]:
+    """建立資料來源與新鮮度顯示列。"""
+
+    master = profile["master"]
+    performance = profile[
+        "performance"
+    ]
+    dividends = profile["dividends"]
+    actual = profile[
+        "actual_dividend"
+    ]
+
+    available_periods = (
+        performance[
+            "available_periods"
+        ]
+    )
+
+    period_text = (
+        "、".join(
+            available_periods
+        )
+        if available_periods
+        else "尚無期間"
+    )
+
+    return [
+        {
+            "資料區塊": "ETF 主資料",
+            "官方來源": (
+                format_source_references(
+                    master["sources"]
+                )
+            ),
+            "最新資料日期": "—",
+            "最近匯入": (
+                format_optional_datetime(
+                    master[
+                        "latest_import_at"
+                    ]
+                )
+            ),
+            "資料量": "1 檔 ETF",
+            "說明": (
+                "最近匯入時間為 ETF "
+                "主資料集層級"
+            ),
+        },
+        {
+            "資料區塊": "市價績效",
+            "官方來源": (
+                format_source_references(
+                    performance["sources"]
+                )
+            ),
+            "最新資料日期": (
+                format_freshness_date(
+                    performance[
+                        "latest_as_of_date"
+                    ]
+                )
+            ),
+            "最近匯入": (
+                format_optional_datetime(
+                    performance[
+                        "latest_import_at"
+                    ]
+                )
+            ),
+            "資料量": (
+                f"{performance['record_count']:,} 筆"
+            ),
+            "說明": (
+                "可用期間："
+                f"{period_text}；"
+                "目前為 PRICE_RETURN"
+            ),
+        },
+        {
+            "資料區塊": "配息事件",
+            "官方來源": (
+                format_source_references(
+                    dividends["sources"]
+                )
+            ),
+            "最新資料日期": (
+                format_freshness_date(
+                    dividends[
+                        "latest_event_date"
+                    ]
+                )
+            ),
+            "最近匯入": (
+                format_optional_datetime(
+                    dividends[
+                        "latest_import_at"
+                    ]
+                )
+            ),
+            "資料量": (
+                f"{dividends['event_count']:,} 次"
+            ),
+            "說明": (
+                "事件日期依除息、"
+                "基準、發放或公告日判定"
+            ),
+        },
+        {
+            "資料區塊": "正式配息組成",
+            "官方來源": (
+                format_source_references(
+                    actual["sources"]
+                )
+            ),
+            "最新資料日期": (
+                format_freshness_date(
+                    actual[
+                        "latest_source_document_date"
+                    ]
+                )
+            ),
+            "最近匯入": (
+                format_optional_datetime(
+                    actual[
+                        "latest_import_at"
+                    ]
+                )
+            ),
+            "資料量": (
+                "ACTUAL "
+                f"{actual['actual_component_event_count']:,} 次；"
+                "76W "
+                f"{actual['actual_76w_event_count']:,} 次；"
+                "來源文件 "
+                f"{actual['source_document_event_count']:,} 次"
+            ),
+            "說明": (
+                "僅統計正式 ACTUAL；"
+                "預估資本利得不算 76W"
+            ),
+        },
+    ]
+
+
+def render_data_profile(
+    profile: dict[str, Any],
+) -> None:
+    """顯示 ETF 資料來源與新鮮度。"""
+
+    st.divider()
+    st.subheader("資料來源與新鮮度")
+
+    st.caption(
+        "所有資訊均由 FastAPI 提供；"
+        "日期缺少時顯示尚未取得，"
+        "不以今天日期代替。"
+    )
+
+    st.table(
+        build_data_profile_rows(
+            profile
+        )
+    )
+
+
+def render_comparison_entry_point(
+    etf: dict[str, Any],
+) -> None:
+    """顯示 M9-5 ETF 比較功能預留入口。"""
+
+    st.divider()
+    st.subheader("ETF 比較")
+
+    st.caption(
+        f"後續可將 {etf['code']} "
+        "加入多檔 ETF 比較。"
+    )
+
+    st.button(
+        "加入 ETF 比較",
+        key=(
+            "add_to_comparison_"
+            f"{etf['code']}"
+        ),
+        disabled=True,
+        help=(
+            "ETF 比較頁將於 M9-5 啟用"
+        ),
+    )
+
+
+def render_detail_section_error(
+    title: str,
+    message: str,
+    error: APIClientError,
+) -> None:
+    """顯示不影響其他區塊的載入錯誤。"""
+
+    st.divider()
+    st.subheader(title)
+    st.warning(message)
+    st.code(
+        str(error),
+        language=None,
+    )
+
+
 def render_etf_detail() -> None:
     """顯示 ETF 詳細資料頁。"""
 
@@ -1000,6 +1278,18 @@ def render_etf_detail() -> None:
             ),
         )
         return
+
+    profile: dict[str, Any] | None = None
+    profile_error: APIClientError | None = None
+
+    try:
+        profile = load_etf_data_profile(
+            api_base_url=api_base_url,
+            code=requested_code,
+        )
+
+    except APIClientError as error:
+        profile_error = error
 
     performance: dict[str, Any] | None = None
     performance_error: APIClientError | None = None
@@ -1066,6 +1356,7 @@ def render_etf_detail() -> None:
             key="refresh_etf_detail",
         ):
             load_etf_detail.clear()
+            load_etf_data_profile.clear()
             load_etf_performance.clear()
             load_etf_dividends.clear()
             load_etf_actual_76w.clear()
@@ -1077,16 +1368,10 @@ def render_etf_detail() -> None:
     )
 
     if performance_error is not None:
-        st.divider()
-        st.subheader("市價績效")
-
-        st.warning(
-            "無法取得 ETF 績效資料。"
-        )
-
-        st.code(
-            str(performance_error),
-            language=None,
+        render_detail_section_error(
+            "市價績效",
+            "無法取得 ETF 績效資料。",
+            performance_error,
         )
 
     elif performance is not None:
@@ -1095,16 +1380,10 @@ def render_etf_detail() -> None:
         )
 
     if dividend_history_error is not None:
-        st.divider()
-        st.subheader("配息摘要")
-
-        st.warning(
-            "無法取得 ETF 配息歷史。"
-        )
-
-        st.code(
-            str(dividend_history_error),
-            language=None,
+        render_detail_section_error(
+            "配息摘要",
+            "無法取得 ETF 配息歷史。",
+            dividend_history_error,
         )
 
     elif dividend_history is not None:
@@ -1113,16 +1392,10 @@ def render_etf_detail() -> None:
         )
 
     if actual_76w_error is not None:
-        st.divider()
-        st.subheader("實際 76W 分析")
-
-        st.warning(
-            "無法取得實際 76W 資料。"
-        )
-
-        st.code(
-            str(actual_76w_error),
-            language=None,
+        render_detail_section_error(
+            "實際 76W 分析",
+            "無法取得實際 76W 資料。",
+            actual_76w_error,
         )
 
     elif actual_76w is not None:
@@ -1135,3 +1408,19 @@ def render_etf_detail() -> None:
             api_base_url=api_base_url,
             history=dividend_history,
         )
+
+    if profile_error is not None:
+        render_detail_section_error(
+            "資料來源與新鮮度",
+            "無法取得 ETF 資料概況。",
+            profile_error,
+        )
+
+    elif profile is not None:
+        render_data_profile(
+            profile
+        )
+
+    render_comparison_entry_point(
+        etf
+    )
