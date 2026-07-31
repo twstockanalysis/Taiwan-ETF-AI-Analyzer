@@ -55,7 +55,7 @@ FRONTEND_MARKERS = {
     'url_path="performance-ranking"',
     'url_path="dividend-data-quality"',
     'url_path="etf-detail"',
-    'visibility="hidden"',
+    'hidden=True',
 }
 
 
@@ -146,7 +146,7 @@ class TestM8ArchitectureSmoke(
         source = (
             PROJECT_ROOT
             / "frontend"
-            / "app.py"
+            / "navigation.py"
         ).read_text(
             encoding="utf-8"
         )

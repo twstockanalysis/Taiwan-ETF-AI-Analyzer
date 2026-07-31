@@ -7,6 +7,9 @@ from frontend.pages.etf_search import (
     format_clickable_etf_row,
     render_clickable_etf_rows,
 )
+from frontend.query_state import (
+    ETFSearchQueryState,
+)
 
 
 class TestFrontendETFClickableRows(
@@ -74,7 +77,13 @@ class TestFrontendETFClickableRows(
         render_clickable_etf_rows(
             [
                 self.build_item(),
-            ]
+            ],
+            query_state=(
+                ETFSearchQueryState(
+                    keyword="元大",
+                    page=2,
+                )
+            ),
         )
 
         mock_caption.assert_called_once()
@@ -100,6 +109,12 @@ class TestFrontendETFClickableRows(
             ],
             {
                 "code": "0050",
+                "from": "etf-search",
+                "active": "all",
+                "bond": "all",
+                "page": "2",
+                "page_size": "20",
+                "keyword": "元大",
             },
         )
 

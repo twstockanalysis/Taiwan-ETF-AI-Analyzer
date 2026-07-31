@@ -9,6 +9,9 @@ from frontend.pages.performance_ranking import (
     format_performance_return,
     render_clickable_performance_rows,
 )
+from frontend.query_state import (
+    PerformanceQueryState,
+)
 
 
 class TestFrontendPerformanceRanking(
@@ -162,7 +165,16 @@ class TestFrontendPerformanceRanking(
         render_clickable_performance_rows(
             [
                 self.build_item(),
-            ]
+            ],
+            query_state=(
+                PerformanceQueryState(
+                    period="6M",
+                    active_label="被動式",
+                    bond_label="非債券",
+                    page=3,
+                    page_size=50,
+                )
+            ),
         )
 
         mock_caption.assert_called_once_with(
@@ -192,6 +204,12 @@ class TestFrontendPerformanceRanking(
             ],
             {
                 "code": "0050",
+                "from": "performance-ranking",
+                "period": "6M",
+                "active": "passive",
+                "bond": "non-bond",
+                "page": "3",
+                "page_size": "50",
             },
         )
 

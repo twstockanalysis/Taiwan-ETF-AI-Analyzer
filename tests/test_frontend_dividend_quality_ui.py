@@ -249,22 +249,22 @@ class TestFrontendDividendQualityUI(
             __file__
         ).resolve().parents[1]
 
-        app_source = (
+        navigation_source = (
             project_root
             / "frontend"
-            / "app.py"
+            / "navigation.py"
         ).read_text(
             encoding="utf-8"
         )
 
         self.assertIn(
             'title="配息資料品質"',
-            app_source,
+            navigation_source,
         )
 
         self.assertIn(
             'url_path="dividend-data-quality"',
-            app_source,
+            navigation_source,
         )
 
     def test_quality_page_renders_summary_and_detail(
