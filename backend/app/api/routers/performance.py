@@ -19,6 +19,7 @@ from backend.app.models.etf_analysis import (
 )
 from backend.app.models.performance_api import (
     ETFPerformanceResponse,
+    MultiPeriodPerformanceRankingResponse,
     PerformanceRankingResponse,
     SupportedPerformancePeriod,
 )
@@ -26,8 +27,10 @@ from backend.app.repositories.etf_repository import (
     get_etf_by_code,
 )
 from backend.app.repositories.performance_repository import (
+    MULTI_PERIOD_RANKING_PERIODS,
     count_latest_performance_ranking,
     list_latest_etf_performance,
+    list_latest_multi_period_performance_ranking,
     list_latest_performance_ranking,
 )
 
@@ -133,6 +136,117 @@ def read_performance_ranking(
     return {
         "period_code": period_code,
         "metric_code": metric,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": items,
+    }
+
+
+@router.get(
+    "/api/v1/performance/multi-period-ranking",
+    response_model=(
+        MultiPeriodPerformanceRankingResponse
+    ),
+    summary=(
+        "依主要期間排序並取得 ETF 多期間績效"
+    ),
+)
+def read_multi_period_performance_ranking(
+    database_path: DatabasePath,
+    sort_period: Annotated[
+        SupportedPerformancePeriod,
+        Query(
+            description=(
+                "排行榜排序期間；"
+                "每筆仍回傳可用的 "
+                "1M、3M、6M、1Y"
+            ),
+        ),
+    ] = SupportedPerformancePeriod.SIX_MONTHS,
+    metric: Annotated[
+        PerformanceMetric,
+        Query(
+            description="績效計算類型",
+        ),
+    ] = PerformanceMetric.PRICE_RETURN,
+    is_active: Annotated[
+        bool | None,
+        Query(
+            description="篩選主動式或被動式 ETF",
+        ),
+    ] = None,
+    is_bond: Annotated[
+        bool | None,
+        Query(
+            description=(
+                "篩選債券或非債券 ETF；"
+                "預設只顯示非債券 ETF"
+            ),
+        ),
+    ] = False,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=100,
+            description="單次回傳筆數",
+        ),
+    ] = 20,
+    offset: Annotated[
+        int,
+        Query(
+            ge=0,
+            description="略過筆數",
+        ),
+    ] = 0,
+) -> dict[str, Any]:
+    """排名使用一個期間，但每筆同步提供四期間。"""
+
+    sort_period_code = (
+        sort_period.to_performance_period()
+    )
+
+    rows = (
+        list_latest_multi_period_performance_ranking(
+            database_path=database_path,
+            sort_period=sort_period_code,
+            metric_code=metric,
+            is_active=is_active,
+            is_bond=is_bond,
+            limit=limit,
+            offset=offset,
+        )
+    )
+
+    total = count_latest_performance_ranking(
+        database_path=database_path,
+        period_code=sort_period_code,
+        metric_code=metric,
+        is_active=is_active,
+        is_bond=is_bond,
+    )
+
+    items = [
+        {
+            **row,
+            "rank": offset + index,
+        }
+        for index, row in enumerate(
+            rows,
+            start=1,
+        )
+    ]
+
+    return {
+        "sort_period": sort_period_code,
+        "metric_code": metric,
+        "periods": [
+            period.value
+            for period in (
+                MULTI_PERIOD_RANKING_PERIODS
+            )
+        ],
         "total": total,
         "limit": limit,
         "offset": offset,

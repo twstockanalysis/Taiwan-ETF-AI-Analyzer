@@ -139,6 +139,93 @@ class ETFPerformanceItem(
     )
 
 
+class MultiPeriodPerformanceRankingItem(
+    PerformanceAPIBaseModel
+):
+    """多期間績效排行榜單筆資料。"""
+
+    rank: int = Field(
+        ge=1,
+        description="依主要期間計算的排行榜名次",
+    )
+
+    etf_code: str = Field(
+        min_length=1,
+        max_length=10,
+        description="ETF 證券代號",
+    )
+
+    name: str = Field(
+        min_length=1,
+        description="ETF 名稱",
+    )
+
+    is_active: bool = Field(
+        description="是否為主動式 ETF",
+    )
+
+    is_bond: bool = Field(
+        description="是否為債券 ETF",
+    )
+
+    sort_period: PerformancePeriod = Field(
+        description="排行榜排序使用的主要期間",
+    )
+
+    sort_as_of_date: date = Field(
+        description="主要期間績效資料基準日",
+    )
+
+    sort_return_pct: float = Field(
+        ge=-100,
+        description="主要期間報酬率百分比",
+    )
+
+    source_id: str = Field(
+        min_length=1,
+        description="主要期間資料來源識別碼",
+    )
+
+    performance_items: list[
+        ETFPerformanceItem
+    ] = Field(
+        description=(
+            "可用的 1M、3M、6M、1Y "
+            "最新績效；缺少期間不建立假資料"
+        ),
+    )
+
+
+class MultiPeriodPerformanceRankingResponse(
+    PerformanceAPIBaseModel
+):
+    """多期間績效排行榜分頁回應。"""
+
+    sort_period: PerformancePeriod
+
+    metric_code: PerformanceMetric
+
+    periods: list[
+        PerformancePeriod
+    ]
+
+    total: int = Field(
+        ge=0,
+    )
+
+    limit: int = Field(
+        ge=1,
+    )
+
+    offset: int = Field(
+        ge=0,
+    )
+
+    items: list[
+        MultiPeriodPerformanceRankingItem
+    ]
+
+
 class ETFPerformanceResponse(
     PerformanceAPIBaseModel
 ):
