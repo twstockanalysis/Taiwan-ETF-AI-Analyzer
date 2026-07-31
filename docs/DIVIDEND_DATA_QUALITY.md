@@ -94,3 +94,29 @@ offset
 
 M8-4C exposes read-only HTTP endpoints. Administrative status changes remain a
 Repository operation until the management interface is designed.
+
+## Streamlit Frontend
+
+M8-4D exposes the M8-4C read-only data through the Streamlit page:
+
+```text
+配息資料品質
+```
+
+The page includes:
+
+```text
+global coverage metrics
+single-ETF coverage lookup
+review-queue status and issue filters
+ETF-code filter
+pagination
+single queue-item details
+```
+
+Missing coverage and formally disclosed zero remain distinct. When there are no
+dividend events, the interface displays an unavailable state rather than
+`0.00%`.
+
+The page is read-only. Administrative transitions such as `IN_REVIEW`,
+`SKIPPED` and manual `RESOLVED` remain outside the public frontend.

@@ -231,3 +231,18 @@
 - Added coverage and queue quality-report artifacts
 - Added read-only data-quality API endpoints
 - Added Migration, Repository, Pipeline and API tests
+
+### M8-4D Completed
+
+- Added frontend actual-dividend coverage API clients
+- Added frontend review-queue API clients
+- Added strict coverage and queue response validation
+- Added the Streamlit dividend data-quality page
+- Added global ACTUAL, 76W and source-document coverage cards
+- Added single-ETF coverage lookup
+- Added review-queue status, issue and ETF filters
+- Added review-queue pagination
+- Added single queue-item details
+- Preserved missing-data versus formal-zero semantics
+- Kept the data-quality frontend read-only
+- Added API-client and Streamlit AppTest coverage

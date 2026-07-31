@@ -509,3 +509,41 @@ GET /api/v1/data-quality/dividends/review-queue/{queue_id}
 ```
 
 See `docs/DIVIDEND_DATA_QUALITY.md`.
+
+## Frontend Dividend Data Quality
+
+M8-4D adds a Streamlit data-quality page for the M8-4C read-only API.
+
+The page displays:
+
+```text
+global ACTUAL coverage
+global ACTUAL 76W coverage
+global source-document coverage
+single-ETF coverage
+review-queue filters and pagination
+single review-queue item details
+```
+
+The review queue can be filtered by:
+
+```text
+status
+issue type
+ETF code
+page size
+page number
+```
+
+The frontend preserves the same missing-data policy as the backend:
+
+```text
+no dividend events
+-> coverage shown as unavailable
+
+formal 0% coverage
+-> shown as 0.00%
+```
+
+Estimated realized capital gains remain separate from official `ACTUAL + 76W`
+coverage. M8-4D is read-only and does not expose review-status changes.
