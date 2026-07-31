@@ -35,15 +35,15 @@ Users who want to:
 
 ## Next product priorities
 
-M9:
+M9 — completed:
 
-- Completed navigation, URL state and performance-ranking information order
-- Completed the FastAPI-backed homepage system overview
-- Completed ETF detail sections and data freshness
-- Completed 2–4 ETF comparison with URL state and data completeness
-- Finish remaining shared frontend components
+- Navigation, URL state and performance-ranking information order
+- FastAPI-backed homepage system overview
+- ETF detail sections and data freshness
+- 2–4 ETF comparison with URL state and data completeness
+- Shared formatters, classification labels, clickable rows, pagination and states
 
-M10–M11:
+M10–M11 — next:
 
 - Income-allocation and combination analysis
 - Explainable recommendation and decision workflows

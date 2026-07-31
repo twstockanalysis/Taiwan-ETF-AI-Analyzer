@@ -13,7 +13,9 @@ Central Streamlit navigation
     v
 Streamlit page
     |
-    +--> shared loading / empty / error states
+    +--> shared formatters and classification labels
+    +--> shared clickable rows and pagination
+    +--> shared loading / empty / warning / error states
     |
     v
 Frontend API client
@@ -27,6 +29,35 @@ Repository
     v
 SQLite
 ```
+
+
+## Shared frontend UI layer
+
+```text
+frontend/ui/formatters.py
+    |
+    +--> numbers, percentages and amounts
+    +--> dates and datetimes
+    +--> ETF classification labels
+    +--> source references and truncated text
+
+frontend/ui/components.py
+    |
+    +--> full-row ETF detail links
+    +--> pagination controls
+
+frontend/ui/states.py
+    |
+    +--> loading
+    +--> empty
+    +--> not found
+    +--> warning
+    +--> API error
+```
+
+Page modules retain only domain-specific labels and wrapper defaults. This keeps
+page wording stable while preventing separate implementations from changing
+zero-versus-missing semantics.
 
 ## Homepage overview flow
 

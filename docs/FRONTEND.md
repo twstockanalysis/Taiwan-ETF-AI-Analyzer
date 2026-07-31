@@ -91,13 +91,24 @@ search or ranking context.
 Invalid query values are normalized to safe defaults. Missing and zero values
 retain their existing domain semantics.
 
-Shared UI states are defined in:
+Shared UI utilities are defined in:
 
 ```text
+frontend/ui/formatters.py
+frontend/ui/components.py
 frontend/ui/states.py
 ```
 
-They provide consistent loading, empty, not-found and API-error presentation.
+They provide:
+
+- Percentage, number, amount, date and datetime formatting
+- Active/passive and bond/non-bond labels
+- Full-row ETF detail links and pagination controls
+- Loading, empty, not-found, warning and API-error presentation
+
+Page modules keep small domain-specific wrappers when their missing-value text
+must differ. All wrappers delegate numerical formatting to the shared layer, so
+formal zero remains numerical zero while missing data remains unavailable.
 
 ## Pages
 
@@ -266,6 +277,9 @@ python -m unittest `
     tests.test_frontend_dividend_quality_api_client `
     tests.test_frontend_dividend_ui `
     tests.test_frontend_dividend_quality_ui `
+    tests.test_frontend_formatters `
+    tests.test_frontend_components `
+    tests.test_frontend_states `
     tests.test_streamlit_app `
     -v
 ```

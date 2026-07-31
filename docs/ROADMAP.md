@@ -105,7 +105,7 @@ Completed:
 - Reconciled M8 documentation with the implemented architecture
 - Recorded current limitations and deferred work
 
-## M9 — Website structure and page completeness
+## M9 — Website structure and page completeness — Completed
 
 M9 contains website product work only. Broker and market-vendor APIs are not
 part of M9.
@@ -183,18 +183,20 @@ Completed:
 - Preserved missing-versus-zero semantics
 - Added Repository, API, Client, URL-state and frontend display tests
 
-### M9-6 — Shared frontend components
+### M9-6 — Shared frontend components — Completed
 
-Planned:
+Completed:
 
-- Percentage, money and date formatters
-- ETF classification labels
-- Clickable rows and pagination
-- Empty, warning and error components
+- Added shared percentage, number, money, date and datetime formatters
+- Added shared active/passive and bond/non-bond labels
+- Consolidated full-row ETF detail links and pagination controls
+- Added a shared warning state alongside loading, empty, not-found and API errors
+- Preserved page-specific missing-value wording through small compatibility wrappers
+- Added formatter, component, state and architecture-contract regression tests
 
 ## M10 — Core analysis features
 
-Planned after M9:
+Next:
 
 - Monthly-income allocation
 - Dividend-month distribution

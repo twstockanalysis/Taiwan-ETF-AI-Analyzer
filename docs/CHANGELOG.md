@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-08-01 — M9-6 shared frontend UI
+
+### Added
+
+- Shared percentage, number, money, date and datetime formatters
+- Shared ETF management and asset-classification labels
+- Shared full-row ETF detail links and pagination controls
+- Shared warning-state presentation with optional diagnostic details
+- Formatter, component and architecture-contract tests
+
+### Changed
+
+- Search, ranking, detail, comparison, homepage and dividend-quality pages now reuse shared UI utilities
+- Existing page-level formatter names remain available for regression compatibility
+- Missing values remain distinct from formal numerical zero
+- M9 website structure and page-completeness phase is complete
+
+
 ## 2026-07-31 — M9-5 ETF comparison page
 
 ### Added
