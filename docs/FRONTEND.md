@@ -161,27 +161,29 @@ Supports:
 - 1M, 3M, 6M and 1Y sort periods
 - Active/passive and bond filters
 - Pagination and fully clickable rows
-- Simultaneous display of all available 1M, 3M, 6M and 1Y values
+- One clearly displayed return value for the currently selected sort period
 
 The default and preferred sort period is `6M`. Changing the sort period changes
-ranking order only; it does not hide the other periods.
+both ranking order and the one period displayed in each row. Other periods
+remain available through the selector and remain simultaneously visible on ETF
+detail and comparison pages.
 
 Each row follows:
 
 ```text
 rank and ETF code
--> ETF name
--> 1M
--> 3M
--> 6M
--> 1Y
--> selected sort period and as-of date
+-> display name
+-> selected-period return
+-> selected-period as-of date
 -> active/passive
 -> bond/non-bond
 ```
 
-The selected sort period is emphasized. Missing periods display
-`歷史資料不足`; they are not converted to zero.
+Ranking display names remove a trailing `(原名：...)` or `（原名：...）`
+annotation. The original database and API names remain unchanged.
+
+Missing selected-period data displays `歷史資料不足`; it is not converted to
+zero.
 
 The page reads:
 
@@ -189,8 +191,8 @@ The page reads:
 GET /api/v1/performance/multi-period-ranking
 ```
 
-This avoids one API request per ETF while preserving independent period
-semantics.
+The response keeps all four period records available without N+1 requests, while
+the ranking presentation shows only the selected period.
 
 ### ETF Comparison
 

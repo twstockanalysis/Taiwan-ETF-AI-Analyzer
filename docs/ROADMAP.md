@@ -200,9 +200,11 @@ Completed:
 
 Completed:
 
-- Show all available 1M, 3M, 6M and 1Y values in performance rankings
+- Support 1M, 3M, 6M and 1Y ranking periods
 - Keep 6M as the default and preferred ranking period
-- Use the selected period only for ordering, not visibility
+- Show only the selected ranking period in each ranking row
+- Keep all available periods visible on ETF detail and comparison pages
+- Hide trailing former-name annotations in ranking display names without changing source data
 - Prevent missing periods from becoming zero
 - Apply responsive metric, page-link and sidebar typography
 

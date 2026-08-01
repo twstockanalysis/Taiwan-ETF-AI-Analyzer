@@ -93,7 +93,8 @@ data dates with the request time or convert unavailable coverage into zero.
 Streamlit performance ranking
     |
     +--> selected sort period (default 6M)
-    +--> all 1M / 3M / 6M / 1Y values remain visible
+    +--> one selected-period return displayed per row
+    +--> former-name suffix removed only in the display layer
     |
     v
 GET /api/v1/performance/multi-period-ranking
@@ -109,8 +110,10 @@ Performance Repository
 SQLite read-only queries
 ```
 
-The endpoint avoids N+1 frontend requests. Changing the sort period changes
-order only and never combines returns from different periods.
+The endpoint avoids N+1 frontend requests and keeps all four period records
+available. The ranking page displays only the selected period for clarity;
+ETF detail and comparison pages continue to show all available periods. Stored
+ETF names and API names remain unchanged.
 
 ## ETF detail read model
 

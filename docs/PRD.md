@@ -45,7 +45,8 @@ M9 — completed:
 
 M10–M11 — next:
 
-- Multi-period performance display with 6M as the default preference
+- Period-selectable performance ranking with 6M as the default preference
+- All-period performance visibility on ETF detail and comparison pages
 - Responsive typography that preserves visible values with the sidebar open
 - Income-allocation and combination analysis
 - Explainable recommendation and decision workflows

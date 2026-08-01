@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-01 — M10-0R1 ranking display refinement
+
+### Changed
+
+- Performance ranking rows now show only the currently selected sort period
+- Six months remains the default ranking period
+- Other periods remain available through the sort-period selector and on ETF detail and comparison pages
+- Ranking display names hide trailing `(原名：...)` annotations without changing stored or API names
+
 ## 2026-08-01 — M10-0 multi-period performance display
 
 ### Added
