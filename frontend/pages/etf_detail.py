@@ -498,6 +498,153 @@ def format_optional_date(
     )
 
 
+def format_dividend_summary_date(
+    value: Any,
+) -> str:
+    """格式化配息摘要日期，缺少時顯示破折號。"""
+
+    return format_iso_date(
+        value,
+        missing_text="—",
+    )
+
+
+def format_dividend_yield(
+    value: Any,
+) -> str:
+    """格式化單次殖利率並保留缺資料語意。"""
+
+    return format_shared_percentage(
+        value,
+        missing_text="—",
+        invalid_text="資料格式異常",
+    )
+
+
+def build_dividend_summary_chart_rows(
+    items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """建立依除息日排序的股利與殖利率趨勢資料。"""
+
+    rows = [
+        {
+            "除息日": item["ex_dividend_date"],
+            "現金股利": float(
+                item["amount_per_unit"]
+            ),
+            "殖利率": (
+                float(item["yield_pct"])
+                if item.get("yield_pct")
+                is not None
+                else None
+            ),
+        }
+        for item in items
+        if item.get("ex_dividend_date")
+        is not None
+        and item.get("amount_per_unit")
+        is not None
+    ]
+
+    return sorted(
+        rows,
+        key=lambda row: str(row["除息日"]),
+    )
+
+
+def format_dividend_yield_basis(
+    item: dict[str, Any],
+) -> str:
+    """顯示官方或回退殖利率的可追溯依據。"""
+
+    basis = item.get("yield_basis")
+
+    if basis == "OFFICIAL":
+        source_id = item.get(
+            "yield_source_id"
+        )
+
+        return (
+            f"官方（{source_id}）"
+            if source_id
+            else "官方"
+        )
+
+    if basis == "CALCULATED":
+        reference_date = (
+            format_dividend_summary_date(
+                item.get(
+                    "reference_trade_date"
+                )
+            )
+        )
+
+        reference_price = item.get(
+            "reference_close_price"
+        )
+
+        price_text = (
+            format_dividend_amount(
+                reference_price,
+                "TWD",
+            )
+            if reference_price is not None
+            else "—"
+        )
+
+        return (
+            "回退計算（"
+            f"{reference_date} 收盤 {price_text}）"
+        )
+
+    return "—"
+
+
+def build_dividend_summary_rows(
+    items: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    """建立較完整的歷次配息摘要明細。"""
+
+    return [
+        {
+            "年季": (
+                str(item["distribution_period"])
+                if item.get(
+                    "distribution_period"
+                ) is not None
+                else "—"
+            ),
+            "現金股利": format_dividend_amount(
+                item.get("amount_per_unit"),
+                item.get("currency"),
+            ),
+            "殖利率": format_dividend_yield(
+                item.get("yield_pct")
+            ),
+            "殖利率依據": (
+                format_dividend_yield_basis(
+                    item
+                )
+            ),
+            "除息日": (
+                format_dividend_summary_date(
+                    item.get(
+                        "ex_dividend_date"
+                    )
+                )
+            ),
+            "股利發放日": (
+                format_dividend_summary_date(
+                    item.get(
+                        "payment_date"
+                    )
+                )
+            ),
+        }
+        for item in items
+    ]
+
+
 def get_component_display_name(
     component: dict[str, Any],
 ) -> str:
@@ -690,6 +837,342 @@ def render_dividend_summary(
                 )
             ),
         )
+
+    st.markdown(
+        "**歷次現金股利與殖利率趨勢**"
+    )
+
+    chart_rows = (
+        build_dividend_summary_chart_rows(
+            items
+        )
+    )
+
+    if chart_rows:
+        st.vega_lite_chart(
+            chart_rows,
+            {
+                "layer": [
+                    {
+                        "mark": {
+                            "type": "line",
+                            "point": True,
+                            "color": "#4C78A8",
+                        },
+                        "encoding": {
+                            "x": {
+                                "field": "除息日",
+                                "type": "temporal",
+                                "axis": {
+                                    "title": "除息日"
+                                },
+                            },
+                            "y": {
+                                "field": "現金股利",
+                                "type": "quantitative",
+                                "axis": {
+                                    "title": (
+                                        "現金股利／單位"
+                                    ),
+                                    "titleColor": (
+                                        "#4C78A8"
+                                    ),
+                                },
+                            },
+                            "tooltip": [
+                                {
+                                    "field": "除息日",
+                                    "type": "temporal",
+                                },
+                                {
+                                    "field": "現金股利",
+                                    "type": "quantitative",
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        "mark": {
+                            "type": "line",
+                            "point": True,
+                            "color": "#F58518",
+                        },
+                        "encoding": {
+                            "x": {
+                                "field": "除息日",
+                                "type": "temporal",
+                            },
+                            "y": {
+                                "field": "殖利率",
+                                "type": "quantitative",
+                                "axis": {
+                                    "title": "單次殖利率（%）",
+                                    "orient": "right",
+                                    "titleColor": (
+                                        "#F58518"
+                                    ),
+                                },
+                            },
+                            "tooltip": [
+                                {
+                                    "field": "除息日",
+                                    "type": "temporal",
+                                },
+                                {
+                                    "field": "殖利率",
+                                    "type": "quantitative",
+                                    "format": ".2f",
+                                },
+                            ],
+                        },
+                    },
+                ],
+                "resolve": {
+                    "scale": {
+                        "y": "independent"
+                    }
+                },
+            },
+            use_container_width=True,
+        )
+
+    else:
+        st.info(
+            "目前沒有可繪製趨勢的除息資料。"
+        )
+
+    st.caption(
+        "年季只採官方收益所屬年季；"
+        "殖利率優先採官方值，缺少時才以"
+        "每單位現金股利 ÷ 除息前一交易日收盤價 × 100 計算。"
+    )
+
+    st.table(
+        build_dividend_summary_rows(
+            items
+        )
+    )
+
+
+def format_monthly_income_amount(
+    value: Any,
+    currency: Any,
+) -> str:
+    """格式化每月領息金額。"""
+
+    return format_shared_amount(
+        value,
+        currency,
+        missing_text="—",
+        invalid_text="資料格式異常",
+    )
+
+
+def build_monthly_income_chart_rows(
+    distribution: dict[str, Any],
+) -> list[dict[str, int | str]]:
+    """建立 1–12 月配息事件圖表資料。"""
+
+    return [
+        {
+            "月份": f"{item['month']} 月",
+            "配息事件": int(
+                item["event_count"]
+            ),
+        }
+        for item in distribution["months"]
+    ]
+
+
+def build_monthly_income_rows(
+    distribution: dict[str, Any],
+) -> list[dict[str, str]]:
+    """建立保留缺資料語意的月份明細。"""
+
+    mixed_currencies = bool(
+        distribution[
+            "has_mixed_currencies"
+        ]
+    )
+
+    currency = distribution[
+        "analysis_currency"
+    ]
+
+    rows: list[dict[str, str]] = []
+
+    for item in distribution["months"]:
+        event_count = int(
+            item["event_count"]
+        )
+
+        if event_count == 0:
+            status = "近年無入帳紀錄"
+            total_amount = "—"
+            average_amount = "—"
+            latest_payment_date = "—"
+
+        else:
+            status = "有入帳紀錄"
+
+            if mixed_currencies:
+                total_amount = (
+                    "不同幣別，未加總"
+                )
+                average_amount = (
+                    "不同幣別，未加總"
+                )
+
+            else:
+                total_amount = (
+                    format_monthly_income_amount(
+                        item[
+                            "total_amount_per_unit"
+                        ],
+                        currency,
+                    )
+                )
+                average_amount = (
+                    format_monthly_income_amount(
+                        item[
+                            "average_amount_per_event"
+                        ],
+                        currency,
+                    )
+                )
+
+            latest_payment_date = (
+                format_iso_date(
+                    item[
+                        "latest_payment_date"
+                    ],
+                    missing_text="尚未取得",
+                )
+            )
+
+        rows.append(
+            {
+                "月份": f"{item['month']} 月",
+                "狀態": status,
+                "配息事件": (
+                    f"{event_count:,} 次"
+                ),
+                "出現年度": (
+                    f"{item['observed_year_count']:,} 年"
+                ),
+                "每單位累計": total_amount,
+                "單次平均": average_amount,
+                "最近入帳日": (
+                    latest_payment_date
+                ),
+            }
+        )
+
+    return rows
+
+
+def render_monthly_income_distribution(
+    distribution: dict[str, Any],
+) -> None:
+    """顯示依實際入帳日統計的月份分布。"""
+
+    st.divider()
+    st.subheader("每月領息分布")
+
+    lookback_years = int(
+        distribution["lookback_years"]
+    )
+
+    st.caption(
+        "月份一律依實際入帳日 payment_date "
+        f"統計最近 {lookback_years} 年；"
+        "除息日不代替入帳日。"
+    )
+
+    coverage_column, event_column, occurrence_column, missing_column = (
+        st.columns(4)
+    )
+
+    with coverage_column:
+        st.metric(
+            "有入帳紀錄月份",
+            (
+                f"{distribution['covered_month_count']}"
+                "/12 個月"
+            ),
+        )
+
+    with event_column:
+        st.metric(
+            "分析範圍內事件",
+            (
+                f"{distribution['analysis_event_count']:,} "
+                "次"
+            ),
+        )
+
+    with occurrence_column:
+        st.metric(
+            "涵蓋年月",
+            (
+                f"{distribution['covered_month_occurrence_count']:,} "
+                "個"
+            ),
+        )
+
+    with missing_column:
+        st.metric(
+            "缺少入帳日",
+            (
+                f"{distribution['missing_payment_date_count']:,} "
+                "次"
+            ),
+        )
+
+    as_of_date = distribution[
+        "as_of_date"
+    ]
+
+    window_start_date = distribution[
+        "window_start_date"
+    ]
+
+    if (
+        as_of_date is None
+        or window_start_date is None
+    ):
+        st.info(
+            "目前沒有可建立入帳月份分布的"
+            " payment_date 資料。"
+        )
+
+    else:
+        st.caption(
+            "分析範圍："
+            f"{window_start_date} 至 {as_of_date}"
+        )
+
+    if distribution[
+        "has_mixed_currencies"
+    ]:
+        st.warning(
+            "分析期間含不同幣別；"
+            "事件數仍可比較，但金額不直接加總。"
+        )
+
+    st.bar_chart(
+        build_monthly_income_chart_rows(
+            distribution
+        ),
+        x="月份",
+        y="配息事件",
+    )
+
+    st.table(
+        build_monthly_income_rows(
+            distribution
+        )
+    )
 
 
 def render_actual_76w_summary(

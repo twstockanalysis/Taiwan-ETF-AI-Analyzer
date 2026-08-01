@@ -208,10 +208,24 @@ Completed:
 - Prevent missing periods from becoming zero
 - Apply responsive metric, page-link and sidebar typography
 
+### M10-1 — Dividend analysis summary — In progress
+
+Completed:
+
+- Added a read-only monthly-income API without changing the database schema
+- Use actual `payment_date` instead of ex-dividend date to assign income months
+- Default to a three-year lookback and always return January through December
+- Keep missing payment dates separate from formal zero-event months
+- Prevent mixed currencies from being added into one amount
+- Retain the monthly-income API and its January–December data contract
+- Pause the monthly-income chart on ETF detail after visual review
+- Add traceable official distribution periods and per-event yields
+- Prefer official yield values and persist calculated fallback prices
+- Expand dividend summary with a dual-axis trend and event detail table
+
 Next:
 
 - Monthly-income allocation
-- Dividend-month distribution
 - Non-bond ETF selection
 - Active/passive comparison
 - Six-month performance and 76W scoring

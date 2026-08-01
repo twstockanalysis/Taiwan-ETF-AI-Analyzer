@@ -10,6 +10,7 @@ from pydantic import (
 
 from backend.app.models.etf_analysis import (
     DividendComponentBasis,
+    DividendYieldBasis,
 )
 
 
@@ -53,6 +54,37 @@ class DividendEventItem(
 
     source_id: str = Field(
         min_length=1,
+    )
+
+    distribution_period: str | None = Field(
+        default=None,
+        pattern=r"^[0-9]{4}Q[1-4]$",
+    )
+
+    distribution_period_source_id: (
+        str | None
+    ) = Field(
+        default=None,
+        min_length=1,
+    )
+
+    yield_pct: float | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    yield_basis: DividendYieldBasis | None = None
+
+    yield_source_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+
+    reference_trade_date: date | None = None
+
+    reference_close_price: float | None = Field(
+        default=None,
+        gt=0,
     )
 
 

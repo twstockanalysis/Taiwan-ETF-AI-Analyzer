@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-01 — M10-1C expanded dividend summary
+
+### Added
+
+- Traceable official distribution periods and per-event dividend yields
+- Official-first yield policy with a persisted previous-trading-day fallback
+- Dual-axis cash-dividend/yield trend and detailed dividend-summary table
+- Database, pipeline, API, Client and frontend regression coverage
+
+### Changed
+
+- ETF detail no longer requests or renders the monthly-income distribution
+- The monthly-income API and its tested data contract remain available
+- Missing official distribution periods display `—` and are never inferred
+
 ## 2026-08-01 — M10-0R1 ranking display refinement
 
 ### Changed

@@ -199,6 +199,27 @@ class TestDividendAPI(
                 ],
             )
 
+            connection.execute(
+                """
+                INSERT INTO etf_dividend_summary_metric (
+                    dividend_id,
+                    distribution_period,
+                    distribution_period_source_id,
+                    yield_pct,
+                    yield_basis,
+                    yield_source_id
+                )
+                VALUES (
+                    2,
+                    '2026Q2',
+                    'official_notice',
+                    2.8,
+                    'OFFICIAL',
+                    'official_notice'
+                );
+                """
+            )
+
             connection.commit()
 
         finally:
@@ -247,6 +268,23 @@ class TestDividendAPI(
         self.assertEqual(
             data["items"][0]["dividend_id"],
             2,
+        )
+
+        self.assertEqual(
+            data["items"][0][
+                "distribution_period"
+            ],
+            "2026Q2",
+        )
+
+        self.assertEqual(
+            data["items"][0]["yield_pct"],
+            2.8,
+        )
+
+        self.assertEqual(
+            data["items"][0]["yield_basis"],
+            "OFFICIAL",
         )
 
     def test_existing_etf_without_dividends_is_empty(

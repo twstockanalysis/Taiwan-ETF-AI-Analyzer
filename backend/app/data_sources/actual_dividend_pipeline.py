@@ -32,11 +32,14 @@ from backend.app.data_sources.actual_dividend_quality_report import (
 )
 from backend.app.models.etf_analysis import (
     DividendComponentBasis,
+    DividendYieldBasis,
     ETFDividendComponentImportRecord,
+    ETFDividendSummaryMetricRecord,
 )
 from backend.app.repositories.dividend_repository import (
     DividendComponentUpsertSummary,
     upsert_dividend_component_records,
+    upsert_dividend_summary_metrics,
 )
 from backend.app.repositories.import_batch_repository import (
     ImportBatchCompletion,
@@ -262,6 +265,59 @@ def build_actual_components(
     return components
 
 
+def build_actual_summary_metrics(
+    matched_notices,
+) -> list[
+    ETFDividendSummaryMetricRecord
+]:
+    """將官方年季與殖利率轉為可追溯摘要資料。"""
+
+    records: list[
+        ETFDividendSummaryMetricRecord
+    ] = []
+
+    for matched in matched_notices:
+        notice = matched.notice
+
+        if (
+            notice.distribution_period is None
+            and notice.official_yield_pct is None
+        ):
+            continue
+
+        records.append(
+            ETFDividendSummaryMetricRecord(
+                dividend_id=matched.dividend_id,
+                distribution_period=(
+                    notice.distribution_period
+                ),
+                distribution_period_source_id=(
+                    notice.source_id
+                    if notice.distribution_period
+                    is not None
+                    else None
+                ),
+                yield_pct=(
+                    notice.official_yield_pct
+                ),
+                yield_basis=(
+                    DividendYieldBasis.OFFICIAL
+                    if notice.official_yield_pct
+                    is not None
+                    else None
+                ),
+                yield_source_id=(
+                    notice.source_id
+                    if notice.official_yield_pct
+                    is not None
+                    else None
+                ),
+            )
+        )
+
+    return records
+
+
 def empty_component_summary(
 ) -> DividendComponentUpsertSummary:
     """建立零筆正式組成匯入摘要。"""
@@ -426,6 +482,14 @@ def run_actual_dividend_pipeline(
             batch_id=batch_id,
         )
 
+        summary_metrics = (
+            build_actual_summary_metrics(
+                matched_notices=(
+                    match_result.matched
+                ),
+            )
+        )
+
         accepted_notice_count = len(
             match_result.matched
         )
@@ -485,6 +549,13 @@ def run_actual_dividend_pipeline(
             import_summary = (
                 empty_component_summary()
             )
+
+        upsert_dividend_summary_metrics(
+            records=summary_metrics,
+            database_path=(
+                target_database_path
+            ),
+        )
 
         report = (
             build_actual_dividend_quality_report(

@@ -126,6 +126,25 @@ def map_dividend_item(
         ),
         "currency": row["currency"],
         "source_id": row["source_id"],
+        "distribution_period": (
+            row["distribution_period"]
+        ),
+        "distribution_period_source_id": (
+            row[
+                "distribution_period_source_id"
+            ]
+        ),
+        "yield_pct": row["yield_pct"],
+        "yield_basis": row["yield_basis"],
+        "yield_source_id": (
+            row["yield_source_id"]
+        ),
+        "reference_trade_date": (
+            row["reference_trade_date"]
+        ),
+        "reference_close_price": (
+            row["reference_close_price"]
+        ),
     }
 
 

@@ -13,6 +13,8 @@
       "record_date": "2023-08-22",
       "payment_date": "2023-09-11",
       "amount_per_unit": "0.35",
+      "distribution_period": "2023Q2",
+      "official_yield_pct": "1.75",
       "currency": "TWD",
       "components": [
         {

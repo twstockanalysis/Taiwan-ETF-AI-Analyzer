@@ -237,8 +237,30 @@ ETF identity and classifications
 ```
 
 The page keeps each secondary API call isolated. A performance, dividend,
-ACTUAL 76W or data-profile failure does not remove the ETF identity and other
-successfully loaded sections.
+ACTUAL 76W or data-profile failure does not remove the ETF
+identity and other successfully loaded sections.
+
+The expanded dividend summary shows:
+
+- Latest event metrics
+- A dual-axis trend of cash dividend and per-event yield
+- Official distribution period, cash dividend, yield, ex-dividend date and payment date
+- Yield provenance, including the reference trading date and close for calculated fallback values
+
+Distribution periods are never inferred from the ex-dividend date. Missing
+official periods display `—`. Official yield is preferred; a missing official
+value may be calculated as cash dividend divided by the previous trading-day
+close and is labeled as a fallback.
+
+The monthly-income API remains available at:
+
+```text
+GET /api/v1/etfs/{code}/monthly-income?lookback_years=3
+```
+
+It still returns January through December and uses only `payment_date` to assign
+a dividend event to a month. The ETF detail page does not currently request or
+render this distribution.
 
 Data sources and freshness come from:
 

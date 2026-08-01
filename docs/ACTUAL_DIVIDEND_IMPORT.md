@@ -48,6 +48,8 @@ Estimated announcements must remain in the existing TWSE estimated pipeline.
       "record_date": "2026-07-21",
       "payment_date": "2026-08-10",
       "amount_per_unit": "0.70",
+      "distribution_period": "2026Q2",
+      "official_yield_pct": "2.80",
       "currency": "TWD",
       "components": [
         {
@@ -64,6 +66,18 @@ Estimated announcements must remain in the existing TWSE estimated pipeline.
 
 The source description must be preserved as published. Do not infer a tax code
 from a general description.
+
+`distribution_period` and `official_yield_pct` are optional, but may be supplied
+only when the official document explicitly states them. The period is never
+derived from an event date. When an official yield is absent, run the separate
+fallback pipeline after the event import:
+
+```powershell
+python -m backend.app.data_sources.dividend_yield_pipeline --code 00918
+```
+
+The fallback stores the previous trading date, TWSE close and source together
+with the calculated value. It does not overwrite an official yield.
 
 ## Matching Policy
 

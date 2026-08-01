@@ -236,6 +236,20 @@ class TestActualDividendPipeline(
                 """
             ).fetchall()
 
+            summary_row = connection.execute(
+                """
+                SELECT
+                    distribution_period,
+                    distribution_period_source_id,
+                    yield_pct,
+                    yield_basis,
+                    yield_source_id,
+                    reference_trade_date,
+                    reference_close_price
+                FROM etf_dividend_summary_metric;
+                """
+            ).fetchone()
+
         finally:
             connection.close()
 
@@ -261,6 +275,29 @@ class TestActualDividendPipeline(
                 )
                 for row in rows
             )
+        )
+
+        self.assertIsNotNone(
+            summary_row
+        )
+        self.assertEqual(
+            summary_row[
+                "distribution_period"
+            ],
+            "2023Q2",
+        )
+        self.assertEqual(
+            summary_row["yield_pct"],
+            1.75,
+        )
+        self.assertEqual(
+            summary_row["yield_basis"],
+            "OFFICIAL",
+        )
+        self.assertIsNone(
+            summary_row[
+                "reference_trade_date"
+            ]
         )
 
     def test_repeated_import_updates_in_place(

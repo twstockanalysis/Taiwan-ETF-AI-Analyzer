@@ -8,6 +8,8 @@ from streamlit.testing.v1 import (
 
 from frontend.pages.etf_detail import (
     build_component_display_rows,
+    build_dividend_summary_chart_rows,
+    build_dividend_summary_rows,
     format_dividend_amount,
     format_dividend_percentage,
     get_component_display_name,
@@ -55,6 +57,15 @@ def fake_fetch_etf_dividends(**kwargs):
                 "amount_per_unit": 0.7,
                 "currency": "TWD",
                 "source_id": "official",
+                "distribution_period": "2026Q2",
+                "distribution_period_source_id": (
+                    "official"
+                ),
+                "yield_pct": 2.8,
+                "yield_basis": "OFFICIAL",
+                "yield_source_id": "official",
+                "reference_trade_date": None,
+                "reference_close_price": None,
             },
             {
                 "dividend_id": 1,
@@ -66,8 +77,69 @@ def fake_fetch_etf_dividends(**kwargs):
                 "amount_per_unit": 0.5,
                 "currency": "TWD",
                 "source_id": "official",
+                "distribution_period": None,
+                "distribution_period_source_id": None,
+                "yield_pct": 2.0,
+                "yield_basis": "CALCULATED",
+                "yield_source_id": "twse_stock_day",
+                "reference_trade_date": (
+                    "2026-03-19"
+                ),
+                "reference_close_price": 25.0,
             },
         ],
+    }
+
+
+def fake_fetch_etf_monthly_income(**kwargs):
+    months = [
+        {
+            "month": month,
+            "event_count": 0,
+            "observed_year_count": 0,
+            "total_amount_per_unit": None,
+            "average_amount_per_event": None,
+            "latest_payment_date": None,
+        }
+        for month in range(1, 13)
+    ]
+
+    months[3].update(
+        {
+            "event_count": 1,
+            "observed_year_count": 1,
+            "total_amount_per_unit": 0.5,
+            "average_amount_per_event": 0.5,
+            "latest_payment_date": "2026-04-15",
+        }
+    )
+    months[6].update(
+        {
+            "event_count": 1,
+            "observed_year_count": 1,
+            "total_amount_per_unit": 0.7,
+            "average_amount_per_event": 0.7,
+            "latest_payment_date": "2026-07-10",
+        }
+    )
+
+    return {
+        "etf_code": "00918",
+        "name": "大華優利高填息30",
+        "date_basis": "PAYMENT_DATE",
+        "lookback_years": 3,
+        "as_of_date": "2026-07-10",
+        "window_start_date": "2023-07-11",
+        "total_dividend_event_count": 2,
+        "dated_dividend_event_count": 2,
+        "missing_payment_date_count": 0,
+        "analysis_event_count": 2,
+        "covered_month_count": 2,
+        "covered_month_occurrence_count": 2,
+        "analysis_currency": "TWD",
+        "has_mixed_currencies": False,
+        "total_amount_per_unit": 1.2,
+        "months": months,
     }
 
 
@@ -197,6 +269,9 @@ page.fetch_etf_performance = (
 page.fetch_etf_dividends = (
     fake_fetch_etf_dividends
 )
+page.fetch_etf_monthly_income = (
+    fake_fetch_etf_monthly_income
+)
 page.fetch_etf_actual_76w = (
     fake_fetch_etf_actual_76w
 )
@@ -246,6 +321,37 @@ def fake_fetch_etf_dividends(**kwargs):
         "limit": 20,
         "offset": 0,
         "items": [],
+    }
+
+
+def fake_fetch_etf_monthly_income(**kwargs):
+    return {
+        "etf_code": "0050",
+        "name": "元大台灣50",
+        "date_basis": "PAYMENT_DATE",
+        "lookback_years": 3,
+        "as_of_date": None,
+        "window_start_date": None,
+        "total_dividend_event_count": 0,
+        "dated_dividend_event_count": 0,
+        "missing_payment_date_count": 0,
+        "analysis_event_count": 0,
+        "covered_month_count": 0,
+        "covered_month_occurrence_count": 0,
+        "analysis_currency": None,
+        "has_mixed_currencies": False,
+        "total_amount_per_unit": None,
+        "months": [
+            {
+                "month": month,
+                "event_count": 0,
+                "observed_year_count": 0,
+                "total_amount_per_unit": None,
+                "average_amount_per_event": None,
+                "latest_payment_date": None,
+            }
+            for month in range(1, 13)
+        ],
     }
 
 
@@ -323,6 +429,9 @@ page.fetch_etf_performance = (
 page.fetch_etf_dividends = (
     fake_fetch_etf_dividends
 )
+page.fetch_etf_monthly_income = (
+    fake_fetch_etf_monthly_income
+)
 page.fetch_etf_actual_76w = (
     fake_fetch_etf_actual_76w
 )
@@ -370,6 +479,37 @@ def raise_dividend_error(**kwargs):
     raise APIResponseError(
         "ETF 配息歷史回應格式不正確"
     )
+
+
+def fake_fetch_etf_monthly_income(**kwargs):
+    return {
+        "etf_code": "00918",
+        "name": "大華優利高填息30",
+        "date_basis": "PAYMENT_DATE",
+        "lookback_years": 3,
+        "as_of_date": None,
+        "window_start_date": None,
+        "total_dividend_event_count": 0,
+        "dated_dividend_event_count": 0,
+        "missing_payment_date_count": 0,
+        "analysis_event_count": 0,
+        "covered_month_count": 0,
+        "covered_month_occurrence_count": 0,
+        "analysis_currency": None,
+        "has_mixed_currencies": False,
+        "total_amount_per_unit": None,
+        "months": [
+            {
+                "month": month,
+                "event_count": 0,
+                "observed_year_count": 0,
+                "total_amount_per_unit": None,
+                "average_amount_per_event": None,
+                "latest_payment_date": None,
+            }
+            for month in range(1, 13)
+        ],
+    }
 
 
 def fake_fetch_etf_actual_76w(**kwargs):
@@ -445,6 +585,9 @@ page.fetch_etf_performance = (
 )
 page.fetch_etf_dividends = (
     raise_dividend_error
+)
+page.fetch_etf_monthly_income = (
+    fake_fetch_etf_monthly_income
 )
 page.fetch_etf_actual_76w = (
     fake_fetch_etf_actual_76w
@@ -593,6 +736,92 @@ class TestFrontendDividendUI(
             "76W",
         )
 
+    def test_summary_rows_preserve_official_period_and_yield_basis(
+        self,
+    ) -> None:
+        """確認年季缺值與殖利率依據不會被猜測。"""
+
+        items = [
+            {
+                "distribution_period": "2026Q2",
+                "amount_per_unit": 0.7,
+                "currency": "TWD",
+                "yield_pct": 2.8,
+                "yield_basis": "OFFICIAL",
+                "yield_source_id": "notice",
+                "ex_dividend_date": "2026-06-18",
+                "payment_date": "2026-07-10",
+            },
+            {
+                "distribution_period": None,
+                "amount_per_unit": 0.5,
+                "currency": "TWD",
+                "yield_pct": 2.0,
+                "yield_basis": "CALCULATED",
+                "yield_source_id": "twse_stock_day",
+                "reference_trade_date": "2026-03-19",
+                "reference_close_price": 25.0,
+                "ex_dividend_date": "2026-03-20",
+                "payment_date": "2026-04-15",
+            },
+        ]
+
+        rows = build_dividend_summary_rows(
+            items
+        )
+
+        self.assertEqual(
+            rows[0]["年季"],
+            "2026Q2",
+        )
+        self.assertEqual(
+            rows[0]["殖利率"],
+            "2.80%",
+        )
+        self.assertIn(
+            "官方",
+            rows[0]["殖利率依據"],
+        )
+        self.assertEqual(
+            rows[1]["年季"],
+            "—",
+        )
+        self.assertIn(
+            "2026-03-19 收盤 25 TWD",
+            rows[1]["殖利率依據"],
+        )
+
+    def test_summary_chart_is_chronological(
+        self,
+    ) -> None:
+        """確認趨勢圖按除息日排序且保留缺殖利率。"""
+
+        rows = build_dividend_summary_chart_rows(
+            [
+                {
+                    "ex_dividend_date": "2026-06-18",
+                    "amount_per_unit": 0.7,
+                    "yield_pct": None,
+                },
+                {
+                    "ex_dividend_date": "2026-03-20",
+                    "amount_per_unit": 0.5,
+                    "yield_pct": 2.0,
+                },
+            ]
+        )
+
+        self.assertEqual(
+            [row["除息日"] for row in rows],
+            [
+                "2026-03-20",
+                "2026-06-18",
+            ],
+        )
+        self.assertIsNone(
+            rows[1]["殖利率"]
+        )
+
     def test_detail_page_renders_dividend_sections(
         self,
     ) -> None:
@@ -629,6 +858,11 @@ class TestFrontendDividendUI(
 
         self.assertIn(
             "配息歷史與組成",
+            subheaders,
+        )
+
+        self.assertNotIn(
+            "每月領息分布",
             subheaders,
         )
 

@@ -146,6 +146,14 @@ def initialize_database(
         target_path
     )
 
+    from backend.app.database.migrate_dividend_summary_metric import (
+        migrate_dividend_summary_metric,
+    )
+
+    migrate_dividend_summary_metric(
+        target_path
+    )
+
     return target_path
 
 

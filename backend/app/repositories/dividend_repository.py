@@ -12,6 +12,7 @@ from backend.app.models.etf_analysis import (
     DividendComponentBasis,
     ETFDividendComponentImportRecord,
     ETFDividendImportRecord,
+    ETFDividendSummaryMetricRecord,
 )
 
 
@@ -48,6 +49,18 @@ class DividendDatasetUpsertSummary:
 
     dividends: DividendUpsertSummary
     components: DividendComponentUpsertSummary
+
+
+@dataclass(
+    frozen=True,
+    slots=True,
+)
+class DividendSummaryMetricUpsertSummary:
+    """配息摘要補充資料 upsert 結果。"""
+
+    total_records: int
+    inserted_records: int
+    updated_records: int
 
 
 def _normalize_text(
@@ -727,6 +740,313 @@ def upsert_dividend_dataset(
         connection.close()
 
 
+def upsert_dividend_summary_metrics(
+    records: list[
+        ETFDividendSummaryMetricRecord
+    ],
+    database_path: str | Path | None = None,
+) -> DividendSummaryMetricUpsertSummary:
+    """寫入可追溯年季與殖利率，並保留官方優先權。"""
+
+    if not records:
+        return DividendSummaryMetricUpsertSummary(
+            total_records=0,
+            inserted_records=0,
+            updated_records=0,
+        )
+
+    dividend_ids = [
+        record.dividend_id
+        for record in records
+    ]
+
+    if len(dividend_ids) != len(
+        set(dividend_ids)
+    ):
+        raise ValueError(
+            "配息摘要補充資料包含重複 dividend_id"
+        )
+
+    connection = get_connection(
+        database_path
+    )
+
+    try:
+        placeholders = ", ".join(
+            "?"
+            for _ in dividend_ids
+        )
+
+        dividend_rows = connection.execute(
+            f"""
+            SELECT id
+            FROM etf_dividend
+            WHERE id IN ({placeholders});
+            """,
+            dividend_ids,
+        ).fetchall()
+
+        existing_dividend_ids = {
+            int(row["id"])
+            for row in dividend_rows
+        }
+
+        missing_ids = (
+            set(dividend_ids)
+            - existing_dividend_ids
+        )
+
+        if missing_ids:
+            raise KeyError(
+                "找不到配息事件："
+                + ", ".join(
+                    str(value)
+                    for value in sorted(
+                        missing_ids
+                    )
+                )
+            )
+
+        existing_rows = connection.execute(
+            f"""
+            SELECT dividend_id
+            FROM etf_dividend_summary_metric
+            WHERE dividend_id IN ({placeholders});
+            """,
+            dividend_ids,
+        ).fetchall()
+
+        existing_metric_ids = {
+            int(row["dividend_id"])
+            for row in existing_rows
+        }
+
+        connection.execute(
+            "BEGIN IMMEDIATE;"
+        )
+
+        connection.executemany(
+            """
+            INSERT INTO etf_dividend_summary_metric (
+                dividend_id,
+                distribution_period,
+                distribution_period_source_id,
+                yield_pct,
+                yield_basis,
+                yield_source_id,
+                reference_trade_date,
+                reference_close_price
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (dividend_id)
+            DO UPDATE SET
+                distribution_period = COALESCE(
+                    excluded.distribution_period,
+                    etf_dividend_summary_metric
+                        .distribution_period
+                ),
+                distribution_period_source_id = COALESCE(
+                    excluded.distribution_period_source_id,
+                    etf_dividend_summary_metric
+                        .distribution_period_source_id
+                ),
+                yield_pct = CASE
+                    WHEN etf_dividend_summary_metric.yield_basis
+                        = 'OFFICIAL'
+                        AND excluded.yield_basis = 'CALCULATED'
+                    THEN etf_dividend_summary_metric.yield_pct
+                    ELSE COALESCE(
+                        excluded.yield_pct,
+                        etf_dividend_summary_metric.yield_pct
+                    )
+                END,
+                yield_basis = CASE
+                    WHEN etf_dividend_summary_metric.yield_basis
+                        = 'OFFICIAL'
+                        AND excluded.yield_basis = 'CALCULATED'
+                    THEN etf_dividend_summary_metric.yield_basis
+                    ELSE COALESCE(
+                        excluded.yield_basis,
+                        etf_dividend_summary_metric.yield_basis
+                    )
+                END,
+                yield_source_id = CASE
+                    WHEN etf_dividend_summary_metric.yield_basis
+                        = 'OFFICIAL'
+                        AND excluded.yield_basis = 'CALCULATED'
+                    THEN etf_dividend_summary_metric.yield_source_id
+                    ELSE COALESCE(
+                        excluded.yield_source_id,
+                        etf_dividend_summary_metric.yield_source_id
+                    )
+                END,
+                reference_trade_date = CASE
+                    WHEN etf_dividend_summary_metric.yield_basis
+                        = 'OFFICIAL'
+                        AND excluded.yield_basis = 'CALCULATED'
+                    THEN etf_dividend_summary_metric
+                        .reference_trade_date
+                    WHEN excluded.yield_basis = 'OFFICIAL'
+                    THEN NULL
+                    ELSE COALESCE(
+                        excluded.reference_trade_date,
+                        etf_dividend_summary_metric
+                            .reference_trade_date
+                    )
+                END,
+                reference_close_price = CASE
+                    WHEN etf_dividend_summary_metric.yield_basis
+                        = 'OFFICIAL'
+                        AND excluded.yield_basis = 'CALCULATED'
+                    THEN etf_dividend_summary_metric
+                        .reference_close_price
+                    WHEN excluded.yield_basis = 'OFFICIAL'
+                    THEN NULL
+                    ELSE COALESCE(
+                        excluded.reference_close_price,
+                        etf_dividend_summary_metric
+                            .reference_close_price
+                    )
+                END,
+                updated_at = CURRENT_TIMESTAMP;
+            """,
+            [
+                (
+                    record.dividend_id,
+                    record.distribution_period,
+                    (
+                        record
+                        .distribution_period_source_id
+                    ),
+                    (
+                        float(record.yield_pct)
+                        if record.yield_pct
+                        is not None
+                        else None
+                    ),
+                    (
+                        record.yield_basis.value
+                        if record.yield_basis
+                        is not None
+                        else None
+                    ),
+                    record.yield_source_id,
+                    (
+                        record.reference_trade_date
+                        .isoformat()
+                        if record.reference_trade_date
+                        is not None
+                        else None
+                    ),
+                    (
+                        float(
+                            record
+                            .reference_close_price
+                        )
+                        if record.reference_close_price
+                        is not None
+                        else None
+                    ),
+                )
+                for record in records
+            ],
+        )
+
+        connection.commit()
+
+        inserted_records = len(
+            set(dividend_ids)
+            - existing_metric_ids
+        )
+
+        return DividendSummaryMetricUpsertSummary(
+            total_records=len(records),
+            inserted_records=inserted_records,
+            updated_records=(
+                len(records)
+                - inserted_records
+            ),
+        )
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+
+
+def list_dividend_yield_candidates(
+    database_path: str | Path | None = None,
+    etf_code: str | None = None,
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
+    """列出尚無官方或回退殖利率的配息事件。"""
+
+    conditions = [
+        "d.ex_dividend_date IS NOT NULL",
+        "m.yield_pct IS NULL",
+    ]
+
+    parameters: list[Any] = []
+
+    if etf_code is not None:
+        conditions.append(
+            "d.etf_code = ?"
+        )
+        parameters.append(
+            _normalize_text(
+                etf_code,
+                "etf_code",
+                uppercase=True,
+            )
+        )
+
+    limit_sql = ""
+
+    if limit is not None:
+        if limit < 1:
+            raise ValueError(
+                "limit 必須大於 0"
+            )
+
+        limit_sql = "LIMIT ?"
+        parameters.append(limit)
+
+    connection = get_connection(
+        database_path
+    )
+
+    try:
+        rows = connection.execute(
+            f"""
+            SELECT
+                d.id AS dividend_id,
+                d.etf_code,
+                d.ex_dividend_date,
+                d.amount_per_unit,
+                d.currency
+            FROM etf_dividend AS d
+            LEFT JOIN etf_dividend_summary_metric AS m
+                ON m.dividend_id = d.id
+            WHERE {" AND ".join(conditions)}
+            ORDER BY
+                d.ex_dividend_date DESC,
+                d.id DESC
+            {limit_sql};
+            """,
+            parameters,
+        ).fetchall()
+
+        return [
+            dict(row)
+            for row in rows
+        ]
+
+    finally:
+        connection.close()
+
+
 def get_dividend_id(
     etf_code: str,
     source_event_id: str,
@@ -814,28 +1134,37 @@ def list_etf_dividends(
         rows = connection.execute(
             """
             SELECT
-                id,
-                etf_code,
-                source_event_id,
-                announcement_date,
-                ex_dividend_date,
-                record_date,
-                payment_date,
-                amount_per_unit,
-                currency,
-                source_id,
-                import_batch_id,
-                source_updated_at
-            FROM etf_dividend
-            WHERE etf_code = ?
+                d.id,
+                d.etf_code,
+                d.source_event_id,
+                d.announcement_date,
+                d.ex_dividend_date,
+                d.record_date,
+                d.payment_date,
+                d.amount_per_unit,
+                d.currency,
+                d.source_id,
+                d.import_batch_id,
+                d.source_updated_at,
+                m.distribution_period,
+                m.distribution_period_source_id,
+                m.yield_pct,
+                m.yield_basis,
+                m.yield_source_id,
+                m.reference_trade_date,
+                m.reference_close_price
+            FROM etf_dividend AS d
+            LEFT JOIN etf_dividend_summary_metric AS m
+                ON m.dividend_id = d.id
+            WHERE d.etf_code = ?
             ORDER BY
                 COALESCE(
-                    ex_dividend_date,
-                    record_date,
-                    payment_date,
-                    announcement_date
+                    d.ex_dividend_date,
+                    d.record_date,
+                    d.payment_date,
+                    d.announcement_date
                 ) DESC,
-                id DESC
+                d.id DESC
             LIMIT ?
             OFFSET ?;
             """,
@@ -997,20 +1326,29 @@ def get_dividend_by_id(
         row = connection.execute(
             """
             SELECT
-                id,
-                etf_code,
-                source_event_id,
-                announcement_date,
-                ex_dividend_date,
-                record_date,
-                payment_date,
-                amount_per_unit,
-                currency,
-                source_id,
-                import_batch_id,
-                source_updated_at
-            FROM etf_dividend
-            WHERE id = ?;
+                d.id,
+                d.etf_code,
+                d.source_event_id,
+                d.announcement_date,
+                d.ex_dividend_date,
+                d.record_date,
+                d.payment_date,
+                d.amount_per_unit,
+                d.currency,
+                d.source_id,
+                d.import_batch_id,
+                d.source_updated_at,
+                m.distribution_period,
+                m.distribution_period_source_id,
+                m.yield_pct,
+                m.yield_basis,
+                m.yield_source_id,
+                m.reference_trade_date,
+                m.reference_close_price
+            FROM etf_dividend AS d
+            LEFT JOIN etf_dividend_summary_metric AS m
+                ON m.dividend_id = d.id
+            WHERE d.id = ?;
             """,
             (dividend_id,),
         ).fetchone()

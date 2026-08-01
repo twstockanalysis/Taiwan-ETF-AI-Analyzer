@@ -170,6 +170,20 @@ class ActualDividendNoticeInput(
         decimal_places=8,
     )
 
+    distribution_period: str | None = Field(
+        default=None,
+        pattern=r"^[0-9]{4}Q[1-4]$",
+        description="官方收益所屬年季",
+    )
+
+    official_yield_pct: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=14,
+        decimal_places=6,
+        description="正式文件揭露的單次殖利率",
+    )
+
     currency: str = Field(
         default="TWD",
         min_length=3,
@@ -216,6 +230,27 @@ class ActualDividendNoticeInput(
         if not isinstance(value, str):
             raise TypeError(
                 "ETF 代號與幣別必須是文字"
+            )
+
+        return value.strip().upper()
+
+    @field_validator(
+        "distribution_period",
+        mode="before",
+    )
+    @classmethod
+    def normalize_distribution_period(
+        cls,
+        value: object,
+    ) -> object:
+        """將官方收益所屬年季正規化。"""
+
+        if value is None:
+            return None
+
+        if not isinstance(value, str):
+            raise TypeError(
+                "收益所屬年季必須是文字"
             )
 
         return value.strip().upper()

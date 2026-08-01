@@ -65,7 +65,7 @@ class TestAnalysisSchema(unittest.TestCase):
     def test_analysis_tables_exist(
         self,
     ) -> None:
-        """確認三張分析資料表存在。"""
+        """確認核心分析資料表存在。"""
 
         rows = self.connection.execute(
             """
@@ -75,7 +75,8 @@ class TestAnalysisSchema(unittest.TestCase):
               AND name IN (
                   'etf_performance',
                   'etf_dividend',
-                  'etf_dividend_component'
+                  'etf_dividend_component',
+                  'etf_dividend_summary_metric'
               );
             """
         ).fetchall()
@@ -91,6 +92,7 @@ class TestAnalysisSchema(unittest.TestCase):
                 "etf_performance",
                 "etf_dividend",
                 "etf_dividend_component",
+                "etf_dividend_summary_metric",
             },
         )
 

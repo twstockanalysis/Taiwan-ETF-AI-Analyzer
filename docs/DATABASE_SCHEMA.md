@@ -111,6 +111,21 @@ dividend_id
 
 Deleting the parent dividend event cascades to its components.
 
+### `etf_dividend_summary_metric`
+
+Stores one nullable, traceable summary record per dividend event:
+
+```text
+distribution_period + distribution_period_source_id
+yield_pct + yield_basis + yield_source_id
+reference_trade_date + reference_close_price
+```
+
+Official distribution periods accept only `YYYYQ1`–`YYYYQ4`. `yield_basis`
+accepts `OFFICIAL` or `CALCULATED`. Calculated yields require a reference trade
+date and positive close; official yields prohibit those fallback fields.
+Deleting the parent dividend event cascades to this row.
+
 ### `dividend_source_document`
 
 Stores official-document versions and parsing results.

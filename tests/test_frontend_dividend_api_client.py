@@ -35,6 +35,15 @@ class TestFrontendDividendAPIClient(
             "amount_per_unit": 0.7,
             "currency": "TWD",
             "source_id": "official",
+            "distribution_period": "2026Q2",
+            "distribution_period_source_id": (
+                "official"
+            ),
+            "yield_pct": 2.8,
+            "yield_basis": "OFFICIAL",
+            "yield_source_id": "official",
+            "reference_trade_date": None,
+            "reference_close_price": None,
         }
 
     def build_component(

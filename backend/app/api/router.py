@@ -6,6 +6,7 @@ from backend.app.api.routers import (
     data_quality,
     dividends,
     etfs,
+    monthly_income,
     performance,
     system,
 )
@@ -27,6 +28,10 @@ api_router.include_router(
 
 api_router.include_router(
     dividends.router
+)
+
+api_router.include_router(
+    monthly_income.router
 )
 
 api_router.include_router(

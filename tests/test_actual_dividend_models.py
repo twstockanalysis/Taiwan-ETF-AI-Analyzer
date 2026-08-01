@@ -44,6 +44,8 @@ class TestActualDividendModels(
                 "2026-07-10"
             ),
             "amount_per_unit": "0.70",
+            "distribution_period": "2026q2",
+            "official_yield_pct": "2.8",
             "currency": "twd",
             "components": [
                 {
@@ -86,6 +88,16 @@ class TestActualDividendModels(
             notice.components[0]
             .ratio_pct,
             Decimal("100"),
+        )
+
+        self.assertEqual(
+            notice.distribution_period,
+            "2026Q2",
+        )
+
+        self.assertEqual(
+            notice.official_yield_pct,
+            Decimal("2.8"),
         )
 
     def test_estimated_code_is_rejected(

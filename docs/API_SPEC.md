@@ -189,6 +189,23 @@ GET /api/v1/etfs/{code}/dividends
 Supports `limit` and `offset`. Missing ETFs return `404`; an ETF without
 dividend events returns an empty list.
 
+Each event also returns nullable summary fields:
+
+```text
+distribution_period
+distribution_period_source_id
+yield_pct
+yield_basis
+yield_source_id
+reference_trade_date
+reference_close_price
+```
+
+`distribution_period` accepts only an official `YYYYQ1`–`YYYYQ4` value.
+`yield_basis` is `OFFICIAL` or `CALCULATED`. A calculated value includes the
+previous trading date and close; an official value never carries a calculated
+price reference.
+
 ### Actual 76W history
 
 ```http

@@ -42,6 +42,13 @@ class DividendComponentBasis(StrEnum):
     ACTUAL = "ACTUAL"
 
 
+class DividendYieldBasis(StrEnum):
+    """單次配息殖利率的資料基礎。"""
+
+    OFFICIAL = "OFFICIAL"
+    CALCULATED = "CALCULATED"
+
+
 class EstimatedDividendComponent(StrEnum):
     """官方預估配息組成大類。"""
 
@@ -290,6 +297,170 @@ class ETFDividendImportRecord(
         ):
             raise ValueError(
                 "配息發放日不可早於除息日"
+            )
+
+        return self
+
+
+class ETFDividendSummaryMetricRecord(
+    ETFAnalysisBaseModel
+):
+    """單次配息摘要的可追溯補充資料。"""
+
+    dividend_id: int = Field(
+        ge=1,
+    )
+
+    distribution_period: str | None = Field(
+        default=None,
+        pattern=r"^[0-9]{4}Q[1-4]$",
+        description="官方收益所屬年季",
+    )
+
+    distribution_period_source_id: (
+        str | None
+    ) = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+    )
+
+    yield_pct: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=14,
+        decimal_places=6,
+    )
+
+    yield_basis: DividendYieldBasis | None = None
+
+    yield_source_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+    )
+
+    reference_trade_date: date | None = None
+
+    reference_close_price: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=20,
+        decimal_places=8,
+    )
+
+    @field_validator(
+        "distribution_period",
+        mode="before",
+    )
+    @classmethod
+    def normalize_distribution_period(
+        cls,
+        value: object,
+    ) -> object:
+        """將官方年季正規化為 YYYYQn。"""
+
+        if value is None:
+            return None
+
+        if not isinstance(value, str):
+            raise TypeError(
+                "收益所屬年季必須是文字"
+            )
+
+        return value.strip().upper()
+
+    @field_validator(
+        "distribution_period_source_id",
+        "yield_source_id",
+        mode="before",
+    )
+    @classmethod
+    def normalize_optional_source_id(
+        cls,
+        value: object,
+    ) -> object:
+        """正規化可選來源識別碼。"""
+
+        if value is None:
+            return None
+
+        if not isinstance(value, str):
+            raise TypeError(
+                "資料來源識別碼必須是文字"
+            )
+
+        return value.strip().lower()
+
+    @model_validator(
+        mode="after",
+    )
+    def validate_metric_provenance(
+        self,
+    ) -> Self:
+        """確認年季與殖利率都附帶必要來源。"""
+
+        if (
+            self.distribution_period is None
+        ) != (
+            self.distribution_period_source_id
+            is None
+        ):
+            raise ValueError(
+                "收益所屬年季與來源必須同時提供"
+            )
+
+        if self.yield_pct is None:
+            if any(
+                value is not None
+                for value in (
+                    self.yield_basis,
+                    self.yield_source_id,
+                    self.reference_trade_date,
+                    self.reference_close_price,
+                )
+            ):
+                raise ValueError(
+                    "缺少殖利率時不得提供殖利率來源"
+                )
+
+            return self
+
+        if (
+            self.yield_basis is None
+            or self.yield_source_id is None
+        ):
+            raise ValueError(
+                "殖利率必須提供資料基礎與來源"
+            )
+
+        reference_values = (
+            self.reference_trade_date,
+            self.reference_close_price,
+        )
+
+        if (
+            self.yield_basis
+            == DividendYieldBasis.CALCULATED
+            and any(
+                value is None
+                for value in reference_values
+            )
+        ):
+            raise ValueError(
+                "回退殖利率必須提供參考交易日與收盤價"
+            )
+
+        if (
+            self.yield_basis
+            == DividendYieldBasis.OFFICIAL
+            and any(
+                value is not None
+                for value in reference_values
+            )
+        ):
+            raise ValueError(
+                "官方殖利率不得混入回退價格基準"
             )
 
         return self
