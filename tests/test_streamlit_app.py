@@ -465,17 +465,17 @@ class TestStreamlitApp(unittest.TestCase):
         )
 
         self.assertIn(
-            "名次只依 6M 排序",
+            "依指定期間排序並只顯示該期間",
             caption_text,
         )
 
         self.assertIn(
-            "1M、3M、6M、1Y",
+            "名次與每列報酬率均依 6M",
             caption_text,
         )
 
         self.assertIn(
-            "不會把不同期間混成同一個報酬率",
+            "其他期間可從排序期間切換查看",
             caption_text,
         )
 

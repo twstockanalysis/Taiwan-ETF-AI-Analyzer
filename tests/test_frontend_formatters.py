@@ -5,6 +5,7 @@ import unittest
 from frontend.ui.formatters import (
     asset_type_label,
     format_amount,
+    format_etf_display_name,
     format_iso_date,
     format_iso_datetime,
     format_number,
@@ -103,6 +104,38 @@ class TestFrontendFormatters(
                 "   ",
             ),
             "—",
+        )
+
+    def test_etf_display_name_hides_former_name_suffix(
+        self,
+    ) -> None:
+        """確認 ETF 原名註記只在顯示層移除。"""
+
+        self.assertEqual(
+            format_etf_display_name(
+                (
+                    "期元大S&P黃金反1"
+                    "(原名：元大S&P黃金反1)"
+                )
+            ),
+            "期元大S&P黃金反1",
+        )
+
+        self.assertEqual(
+            format_etf_display_name(
+                (
+                    "期街口布蘭特正2"
+                    "（原名:街口布蘭特正2）"
+                )
+            ),
+            "期街口布蘭特正2",
+        )
+
+        self.assertEqual(
+            format_etf_display_name(
+                "某某ETF（美元）"
+            ),
+            "某某ETF（美元）",
         )
 
     def test_classification_labels(

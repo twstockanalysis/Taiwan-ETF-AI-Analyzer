@@ -119,10 +119,10 @@ class TestFrontendPerformanceRanking(
             "格式異常",
         )
 
-    def test_segments_follow_m9_1_order(
+    def test_segments_show_only_sort_period(
         self,
     ) -> None:
-        """確認欄位依 M9-1 契約排列。"""
+        """確認排行榜只顯示目前排序期間。"""
 
         self.assertEqual(
             build_performance_ranking_segments(
@@ -131,17 +131,38 @@ class TestFrontendPerformanceRanking(
             (
                 "**#1　0050**",
                 "元大台灣50",
-                "1M +5.00%",
-                "3M +10.00%",
                 "**6M +20.00%**",
-                "1Y +30.00%",
-                (
-                    "依 6M 排序｜"
-                    "截至 2026-07-29"
-                ),
+                "截至 2026-07-29",
                 "被動式",
                 "非債券",
             ),
+        )
+
+    def test_former_name_suffix_is_hidden(
+        self,
+    ) -> None:
+        """確認排行榜名稱不顯示原名註記。"""
+
+        item = self.build_item()
+        item["name"] = (
+            "期元大S&P黃金反1"
+            "(原名：元大S&P黃金反1)"
+        )
+
+        segments = (
+            build_performance_ranking_segments(
+                item
+            )
+        )
+
+        self.assertEqual(
+            segments[1],
+            "期元大S&P黃金反1",
+        )
+
+        self.assertNotIn(
+            "原名",
+            "｜".join(segments),
         )
 
     def test_active_bond_labels(
@@ -170,7 +191,7 @@ class TestFrontendPerformanceRanking(
     def test_row_field_order(
         self,
     ) -> None:
-        """確認績效早於名稱，分類位於右側。"""
+        """確認排序期間位於名稱後、分類位於右側。"""
 
         label = (
             format_performance_ranking_row(
@@ -182,11 +203,7 @@ class TestFrontendPerformanceRanking(
             "#1",
             "0050",
             "元大台灣50",
-            "1M +5.00%",
-            "3M +10.00%",
             "6M +20.00%",
-            "1Y +30.00%",
-            "依 6M 排序",
             "截至 2026-07-29",
             "被動式",
             "非債券",
@@ -202,10 +219,20 @@ class TestFrontendPerformanceRanking(
             sorted(positions),
         )
 
-    def test_missing_period_is_not_zero(
+        for hidden_period in (
+            "1M +5.00%",
+            "3M +10.00%",
+            "1Y +30.00%",
+        ):
+            self.assertNotIn(
+                hidden_period,
+                label,
+            )
+
+    def test_missing_sort_period_is_not_zero(
         self,
     ) -> None:
-        """確認缺少期間顯示歷史不足而不是零。"""
+        """確認缺少排序期間時不會偽造零值。"""
 
         item = self.build_item()
         item["performance_items"] = [
@@ -215,7 +242,7 @@ class TestFrontendPerformanceRanking(
             )
             if performance_item[
                 "period_code"
-            ] != "3M"
+            ] != "6M"
         ]
 
         label = (
@@ -225,12 +252,12 @@ class TestFrontendPerformanceRanking(
         )
 
         self.assertIn(
-            "3M 歷史資料不足",
+            "6M 歷史資料不足",
             label,
         )
 
         self.assertNotIn(
-            "3M +0.00%",
+            "6M +0.00%",
             label,
         )
 
@@ -266,7 +293,7 @@ class TestFrontendPerformanceRanking(
 
         mock_caption.assert_called_once_with(
             "排名與代號｜ETF 名稱｜"
-            "1M｜3M｜6M｜1Y｜"
+            "6M 報酬率｜"
             "排序基準日｜管理方式｜資產類型"
         )
 
