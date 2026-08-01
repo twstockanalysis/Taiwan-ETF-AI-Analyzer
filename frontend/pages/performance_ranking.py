@@ -33,6 +33,7 @@ from frontend.ui.components import (
 )
 from frontend.ui.formatters import (
     asset_type_label,
+    format_etf_display_name,
     format_percentage,
     management_type_label,
 )
@@ -180,7 +181,7 @@ def format_ranking_period(
 def build_performance_ranking_segments(
     item: dict[str, Any],
 ) -> tuple[str, ...]:
-    """建立四期間全可見且 6M 預設優先的排行榜欄位。"""
+    """建立只顯示目前排序期間的排行榜欄位。"""
 
     rank = int(item["rank"])
 
@@ -188,9 +189,9 @@ def build_performance_ranking_segments(
         item["etf_code"]
     ).strip().upper()
 
-    name = str(
+    name = format_etf_display_name(
         item["name"]
-    ).strip()
+    )
 
     sort_period = str(
         item.get(
@@ -218,21 +219,15 @@ def build_performance_ranking_segments(
         )
     )
 
-    period_segments = tuple(
+    selected_period_segment = (
         format_ranking_period(
-            period_code=period_code,
+            period_code=sort_period,
             performance_item=(
                 performance_lookup.get(
-                    period_code
+                    sort_period
                 )
             ),
-            is_sort_period=(
-                period_code
-                == sort_period
-            ),
-        )
-        for period_code in (
-            PERFORMANCE_PERIOD_OPTIONS
+            is_sort_period=True,
         )
     )
 
@@ -249,11 +244,8 @@ def build_performance_ranking_segments(
     return (
         f"**#{rank}　{code}**",
         name,
-        *period_segments,
-        (
-            f"依 {sort_period} 排序"
-            f"｜截至 {sort_as_of_date}"
-        ),
+        selected_period_segment,
+        f"截至 {sort_as_of_date}",
         management_type,
         asset_type,
     )
@@ -287,7 +279,7 @@ def render_clickable_performance_rows(
         items,
         caption=(
             "排名與代號｜ETF 名稱｜"
-            "1M｜3M｜6M｜1Y｜"
+            f"{source_state.period} 報酬率｜"
             "排序基準日｜管理方式｜資產類型"
         ),
         label_builder=(
@@ -481,8 +473,8 @@ def render_performance_filter_form() -> None:
                 ),
                 help=(
                     "預設以 6M 排名；"
-                    "每列仍同步顯示 "
-                    "1M、3M、6M、1Y。"
+                    "排行榜每列只顯示"
+                    "目前選取期間。"
                 ),
             )
 
@@ -636,9 +628,8 @@ def render_performance_ranking() -> None:
     st.title("ETF 績效排行榜")
 
     st.caption(
-        "依指定主要期間排序；"
-        "每檔 ETF 同步顯示 "
-        "1M、3M、6M、1Y 市價報酬率"
+        "依指定期間排序並只顯示該期間；"
+        "預設為 6M。"
     )
 
     st.info(
@@ -785,9 +776,9 @@ def render_performance_ranking() -> None:
     )
 
     st.caption(
-        f"名次只依 {state.period} 排序；"
-        "1M、3M、6M、1Y 仍分開顯示，"
-        "不會把不同期間混成同一個報酬率。"
+        f"名次與每列報酬率均依 "
+        f"{state.period}；"
+        "其他期間可從排序期間切換查看。"
     )
 
     render_performance_pagination(

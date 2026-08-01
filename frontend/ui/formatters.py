@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 from typing import Any
 
 
@@ -205,6 +206,44 @@ def asset_type_label(
         if bool(is_bond)
         else "非債券"
     )
+
+
+FORMER_ETF_NAME_SUFFIX_PATTERN = re.compile(
+    (
+        r"(?:"
+        r"\s*\(\s*原名\s*[:：][^)]*\)"
+        r"|"
+        r"\s*（\s*原名\s*[:：][^）]*）"
+        r")\s*$"
+    )
+)
+
+
+def format_etf_display_name(
+    value: Any,
+    *,
+    missing_text: str = "—",
+) -> str:
+    """移除 ETF 名稱尾端的原名註記。"""
+
+    text = format_optional_text(
+        value,
+        missing_text=missing_text,
+    )
+
+    if text == missing_text:
+        return missing_text
+
+    cleaned = (
+        FORMER_ETF_NAME_SUFFIX_PATTERN
+        .sub(
+            "",
+            text,
+        )
+        .strip()
+    )
+
+    return cleaned or text
 
 
 def format_source_references(
