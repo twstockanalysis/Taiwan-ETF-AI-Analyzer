@@ -6,23 +6,12 @@ from urllib.parse import quote
 
 import httpx
 
-
-class APIClientError(RuntimeError):
-    """FastAPI Client 的共用錯誤。"""
-
-
-class APIConnectionError(APIClientError):
-    """無法連接 FastAPI 時的錯誤。"""
-
-
-class APIResponseError(APIClientError):
-    """FastAPI 回應內容不正確時的錯誤。"""
-
-
-class APIResourceNotFoundError(
-    APIResponseError
-):
-    """FastAPI 找不到指定資源。"""
+from frontend.api.errors import (
+    APIClientError,
+    APIConnectionError,
+    APIResourceNotFoundError,
+    APIResponseError,
+)
 
 
 def extract_response_detail(
