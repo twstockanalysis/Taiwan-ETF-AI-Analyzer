@@ -11,6 +11,20 @@ from frontend.api.errors import (
     APIResourceNotFoundError,
     APIResponseError,
 )
+from frontend.api.normalizers import (
+    COMPARISON_PERIODS,
+    SUPPORTED_DIVIDEND_COMPONENT_BASES,
+    SUPPORTED_DIVIDEND_REVIEW_ISSUE_TYPES,
+    SUPPORTED_DIVIDEND_REVIEW_STATUSES,
+    SUPPORTED_PERFORMANCE_METRICS,
+    SUPPORTED_PERFORMANCE_PERIODS,
+    normalize_component_basis,
+    normalize_dividend_review_issue_type,
+    normalize_dividend_review_status,
+    normalize_etf_comparison_codes,
+    normalize_performance_metric,
+    normalize_performance_period,
+)
 
 from frontend.api.validators import (
     validate_non_negative_integer,
@@ -447,59 +461,6 @@ def fetch_etf_by_code(
         )
 
     return item
-
-SUPPORTED_PERFORMANCE_PERIODS = (
-    "1M",
-    "3M",
-    "6M",
-    "1Y",
-)
-
-SUPPORTED_PERFORMANCE_METRICS = (
-    "PRICE_RETURN",
-    "TOTAL_RETURN",
-    "NAV_RETURN",
-)
-
-
-def normalize_performance_period(
-    value: str,
-) -> str:
-    """正規化前端使用的績效期間。"""
-
-    normalized_value = value.strip().upper()
-
-    if (
-        normalized_value
-        not in SUPPORTED_PERFORMANCE_PERIODS
-    ):
-        raise ValueError(
-            "period 必須是 "
-            "1M、3M、6M 或 1Y"
-        )
-
-    return normalized_value
-
-
-def normalize_performance_metric(
-    value: str,
-) -> str:
-    """正規化前端使用的績效類型。"""
-
-    normalized_value = value.strip().upper()
-
-    if (
-        normalized_value
-        not in SUPPORTED_PERFORMANCE_METRICS
-    ):
-        raise ValueError(
-            "metric 必須是 "
-            "PRICE_RETURN、TOTAL_RETURN "
-            "或 NAV_RETURN"
-        )
-
-    return normalized_value
-
 
 def validate_return_pct(
     value: object,
@@ -1436,11 +1397,6 @@ def fetch_etf_performance(
         "metric_code": response_metric,
         "items": validated_items,
     }
-
-SUPPORTED_DIVIDEND_COMPONENT_BASES = (
-    "ESTIMATED",
-    "ACTUAL",
-)
 
 SUPPORTED_DIVIDEND_YIELD_BASES = (
     "OFFICIAL",
@@ -2631,30 +2587,6 @@ def fetch_dividend_detail(
     }
 
 
-def normalize_component_basis(
-    value: str | None,
-) -> str | None:
-    """正規化配息組成資訊基礎。"""
-
-    if value is None:
-        return None
-
-    normalized_value = (
-        value.strip().upper()
-    )
-
-    if (
-        normalized_value
-        not in SUPPORTED_DIVIDEND_COMPONENT_BASES
-    ):
-        raise ValueError(
-            "component_basis 必須是 "
-            "ESTIMATED 或 ACTUAL"
-        )
-
-    return normalized_value
-
-
 def fetch_dividend_components(
     api_base_url: str,
     dividend_id: int,
@@ -3015,64 +2947,6 @@ def fetch_etf_actual_76w(
         ),
         "items": validated_items,
     }
-
-SUPPORTED_DIVIDEND_REVIEW_STATUSES = (
-    "PENDING",
-    "IN_REVIEW",
-    "RESOLVED",
-    "SKIPPED",
-)
-
-SUPPORTED_DIVIDEND_REVIEW_ISSUE_TYPES = (
-    "MISSING_ACTUAL_COMPONENTS",
-    "MISSING_SOURCE_DOCUMENT",
-)
-
-
-def normalize_dividend_review_status(
-    value: str | None,
-) -> str | None:
-    """正規化正式配息審核狀態。"""
-
-    if value is None:
-        return None
-
-    normalized_value = value.strip().upper()
-
-    if (
-        normalized_value
-        not in SUPPORTED_DIVIDEND_REVIEW_STATUSES
-    ):
-        raise ValueError(
-            "status 必須是 PENDING、IN_REVIEW、"
-            "RESOLVED 或 SKIPPED"
-        )
-
-    return normalized_value
-
-
-def normalize_dividend_review_issue_type(
-    value: str | None,
-) -> str | None:
-    """正規化正式配息缺失類型。"""
-
-    if value is None:
-        return None
-
-    normalized_value = value.strip().upper()
-
-    if (
-        normalized_value
-        not in SUPPORTED_DIVIDEND_REVIEW_ISSUE_TYPES
-    ):
-        raise ValueError(
-            "issue_type 必須是 "
-            "MISSING_ACTUAL_COMPONENTS 或 "
-            "MISSING_SOURCE_DOCUMENT"
-        )
-
-    return normalized_value
-
 
 def validate_actual_dividend_coverage(
     payload: object,
@@ -5245,53 +5119,6 @@ def fetch_etf_data_profile(
         )
 
     return profile
-
-
-COMPARISON_PERIODS = (
-    "1M",
-    "3M",
-    "6M",
-    "1Y",
-)
-
-
-def normalize_etf_comparison_codes(
-    codes: list[str] | tuple[str, ...],
-) -> tuple[str, ...]:
-    """正規化並驗證 2 至 4 個 ETF 代號。"""
-
-    normalized: list[str] = []
-    seen: set[str] = set()
-
-    for value in codes:
-        code = str(value).strip().upper()
-
-        if not code or code in seen:
-            continue
-
-        if (
-            len(code) < 4
-            or len(code) > 10
-            or not code.isalnum()
-        ):
-            raise ValueError(
-                f"ETF 代號格式不正確：{code}"
-            )
-
-        normalized.append(code)
-        seen.add(code)
-
-    if len(normalized) < 2:
-        raise ValueError(
-            "ETF 比較至少需要 2 個不同代號"
-        )
-
-    if len(normalized) > 4:
-        raise ValueError(
-            "ETF 比較最多支援 4 個不同代號"
-        )
-
-    return tuple(normalized)
 
 
 def validate_etf_comparison(
