@@ -1,4 +1,0 @@
-PROJECT_NAME = "TW ETF AI Analyzer"
-VERSION = "3.0"
-AUTHOR = "TU"
-DATABASE_NAME = "tw_etf.db"
