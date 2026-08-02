@@ -1,6 +1,45 @@
 """前端 API 回應的共用驗證函式。"""
 
+from datetime import date
+
 from frontend.api.errors import APIResponseError
+
+
+def validate_performance_date(
+    value: object,
+    field_name: str,
+) -> str:
+    """驗證 API 回傳的 ISO 日期文字。"""
+
+    if not isinstance(value, str):
+        raise APIResponseError(
+            f"{field_name} 必須是日期文字"
+        )
+
+    try:
+        date.fromisoformat(value)
+
+    except ValueError as error:
+        raise APIResponseError(
+            f"{field_name} 不是有效西元日期"
+        ) from error
+
+    return value
+
+
+def validate_optional_iso_date(
+    value: object,
+    field_name: str,
+) -> str | None:
+    """驗證可能為空值的 ISO 日期。"""
+
+    if value is None:
+        return None
+
+    return validate_performance_date(
+        value,
+        field_name,
+    )
 
 
 def validate_non_negative_integer(
