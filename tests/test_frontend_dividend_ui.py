@@ -91,58 +91,6 @@ def fake_fetch_etf_dividends(**kwargs):
     }
 
 
-def fake_fetch_etf_monthly_income(**kwargs):
-    months = [
-        {
-            "month": month,
-            "event_count": 0,
-            "observed_year_count": 0,
-            "total_amount_per_unit": None,
-            "average_amount_per_event": None,
-            "latest_payment_date": None,
-        }
-        for month in range(1, 13)
-    ]
-
-    months[3].update(
-        {
-            "event_count": 1,
-            "observed_year_count": 1,
-            "total_amount_per_unit": 0.5,
-            "average_amount_per_event": 0.5,
-            "latest_payment_date": "2026-04-15",
-        }
-    )
-    months[6].update(
-        {
-            "event_count": 1,
-            "observed_year_count": 1,
-            "total_amount_per_unit": 0.7,
-            "average_amount_per_event": 0.7,
-            "latest_payment_date": "2026-07-10",
-        }
-    )
-
-    return {
-        "etf_code": "00918",
-        "name": "大華優利高填息30",
-        "date_basis": "PAYMENT_DATE",
-        "lookback_years": 3,
-        "as_of_date": "2026-07-10",
-        "window_start_date": "2023-07-11",
-        "total_dividend_event_count": 2,
-        "dated_dividend_event_count": 2,
-        "missing_payment_date_count": 0,
-        "analysis_event_count": 2,
-        "covered_month_count": 2,
-        "covered_month_occurrence_count": 2,
-        "analysis_currency": "TWD",
-        "has_mixed_currencies": False,
-        "total_amount_per_unit": 1.2,
-        "months": months,
-    }
-
-
 def fake_fetch_etf_actual_76w(**kwargs):
     return {
         "etf_code": "00918",
@@ -269,9 +217,6 @@ page.fetch_etf_performance = (
 page.fetch_etf_dividends = (
     fake_fetch_etf_dividends
 )
-page.fetch_etf_monthly_income = (
-    fake_fetch_etf_monthly_income
-)
 page.fetch_etf_actual_76w = (
     fake_fetch_etf_actual_76w
 )
@@ -321,37 +266,6 @@ def fake_fetch_etf_dividends(**kwargs):
         "limit": 20,
         "offset": 0,
         "items": [],
-    }
-
-
-def fake_fetch_etf_monthly_income(**kwargs):
-    return {
-        "etf_code": "0050",
-        "name": "元大台灣50",
-        "date_basis": "PAYMENT_DATE",
-        "lookback_years": 3,
-        "as_of_date": None,
-        "window_start_date": None,
-        "total_dividend_event_count": 0,
-        "dated_dividend_event_count": 0,
-        "missing_payment_date_count": 0,
-        "analysis_event_count": 0,
-        "covered_month_count": 0,
-        "covered_month_occurrence_count": 0,
-        "analysis_currency": None,
-        "has_mixed_currencies": False,
-        "total_amount_per_unit": None,
-        "months": [
-            {
-                "month": month,
-                "event_count": 0,
-                "observed_year_count": 0,
-                "total_amount_per_unit": None,
-                "average_amount_per_event": None,
-                "latest_payment_date": None,
-            }
-            for month in range(1, 13)
-        ],
     }
 
 
@@ -429,9 +343,6 @@ page.fetch_etf_performance = (
 page.fetch_etf_dividends = (
     fake_fetch_etf_dividends
 )
-page.fetch_etf_monthly_income = (
-    fake_fetch_etf_monthly_income
-)
 page.fetch_etf_actual_76w = (
     fake_fetch_etf_actual_76w
 )
@@ -479,37 +390,6 @@ def raise_dividend_error(**kwargs):
     raise APIResponseError(
         "ETF 配息歷史回應格式不正確"
     )
-
-
-def fake_fetch_etf_monthly_income(**kwargs):
-    return {
-        "etf_code": "00918",
-        "name": "大華優利高填息30",
-        "date_basis": "PAYMENT_DATE",
-        "lookback_years": 3,
-        "as_of_date": None,
-        "window_start_date": None,
-        "total_dividend_event_count": 0,
-        "dated_dividend_event_count": 0,
-        "missing_payment_date_count": 0,
-        "analysis_event_count": 0,
-        "covered_month_count": 0,
-        "covered_month_occurrence_count": 0,
-        "analysis_currency": None,
-        "has_mixed_currencies": False,
-        "total_amount_per_unit": None,
-        "months": [
-            {
-                "month": month,
-                "event_count": 0,
-                "observed_year_count": 0,
-                "total_amount_per_unit": None,
-                "average_amount_per_event": None,
-                "latest_payment_date": None,
-            }
-            for month in range(1, 13)
-        ],
-    }
 
 
 def fake_fetch_etf_actual_76w(**kwargs):
@@ -585,9 +465,6 @@ page.fetch_etf_performance = (
 )
 page.fetch_etf_dividends = (
     raise_dividend_error
-)
-page.fetch_etf_monthly_income = (
-    fake_fetch_etf_monthly_income
 )
 page.fetch_etf_actual_76w = (
     fake_fetch_etf_actual_76w
