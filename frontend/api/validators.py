@@ -1,6 +1,6 @@
 """前端 API 回應的共用驗證函式。"""
 
-from datetime import date
+from datetime import date, datetime
 
 from frontend.api.errors import APIResponseError
 
@@ -40,6 +40,64 @@ def validate_optional_iso_date(
         value,
         field_name,
     )
+
+
+def validate_optional_iso_datetime(
+    value: object,
+    field_name: str,
+) -> str | None:
+    """驗證可能為空值的 ISO 日期時間。"""
+
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        raise APIResponseError(
+            f"{field_name} 必須是日期時間文字"
+        )
+
+    normalized_value = value.strip()
+
+    if not normalized_value:
+        raise APIResponseError(
+            f"{field_name} 不可為空白"
+        )
+
+    try:
+        datetime.fromisoformat(
+            normalized_value.replace(
+                "Z",
+                "+00:00",
+            )
+        )
+
+    except ValueError as error:
+        raise APIResponseError(
+            f"{field_name} 不是有效 ISO 日期時間"
+        ) from error
+
+    return normalized_value
+
+
+def validate_required_iso_datetime(
+    value: object,
+    field_name: str,
+) -> str:
+    """驗證必要 ISO 日期時間。"""
+
+    normalized_value = (
+        validate_optional_iso_datetime(
+            value,
+            field_name,
+        )
+    )
+
+    if normalized_value is None:
+        raise APIResponseError(
+            f"{field_name} 不可為空值"
+        )
+
+    return normalized_value
 
 
 def validate_non_negative_integer(
