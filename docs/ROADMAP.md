@@ -1,6 +1,30 @@
 # Project Roadmap
 
+## Product direction
+
+The website is a Taiwan ETF cash-flow decision tool for individual investors
+with limited professional information. A user starts from one self-selected ETF
+and a fixed monthly after-tax cash-flow target. The website then evaluates
+required capital, tax effects, total return, reinvestment and optional monthly
+payment coverage.
+
+All new decision features follow this priority:
+
+```text
+total-return and principal-risk checks
+-> after-tax cash-flow feasibility
+-> tax-efficiency improvement
+-> optional monthly-payment coverage
+```
+
+The decision layer remains stateless through M10. User conditions and holdings
+are persisted only after the calculation contracts are stable in M11.
+
 ## Completed foundation
+
+The current Roadmap source begins at M5. M1–M4 names and acceptance records must
+be recovered from Git history or documented as an early-project foundation;
+they are not inferred here.
 
 ### M5 — FastAPI backend
 
@@ -208,37 +232,152 @@ Completed:
 - Prevent missing periods from becoming zero
 - Apply responsive metric, page-link and sidebar typography
 
-### M10-1 — Dividend analysis summary — In progress
+### M10-1 — Dividend analysis summary — Completed
 
 Completed:
 
-- Added a read-only monthly-income API without changing the database schema
-- Use actual `payment_date` instead of ex-dividend date to assign income months
-- Default to a three-year lookback and always return January through December
-- Keep missing payment dates separate from formal zero-event months
-- Prevent mixed currencies from being added into one amount
-- Retain the monthly-income API and its January–December data contract
-- Pause the monthly-income chart on ETF detail after visual review
-- Add traceable official distribution periods and per-event yields
-- Prefer official yield values and persist calculated fallback prices
-- Expand dividend summary with a dual-axis trend and event detail table
+- M10-1A: added a read-only monthly-income API without changing the database
+  schema
+- M10-1A: used actual `payment_date` to assign income months
+- M10-1A: defaulted to a three-year lookback and always returned January through
+  December
+- M10-1A: kept missing payment dates separate from formal zero-event months
+- M10-1A: prevented mixed currencies from being added into one amount
+- M10-1B: retained the monthly-income API and its tested January–December data
+  contract, but paused the ETF-detail chart after visual review
+- M10-1C: added traceable official distribution periods and per-event yields
+- M10-1C: preferred official yield values and persisted calculated fallback
+  prices
+- M10-1C: expanded the ETF-detail dividend summary with a dual-axis trend and
+  event detail table
 
-Next:
+### M10-2 — Cash-flow and total-return calculation contract — Next
 
-- Monthly-income allocation
-- Non-bond ETF selection
-- Active/passive comparison
-- Six-month performance and 76W scoring
-- ETF combination analysis and explanation
+Goal:
+
+- Establish one deterministic calculation contract before creating user tables
+  or recommendation scores
+
+Planned:
+
+- Define a fixed monthly after-tax cash-flow target that does not rise when
+  available capital rises
+- Define gross distribution cash, after-tax usable cash, required capital,
+  target coverage and funding shortfall
+- Define market-value gain or loss, taxes, modeled premiums, transaction costs,
+  after-tax total gain or loss and after-tax total-return rate
+- Prevent reinvested distributions from being double-counted as profit
+- Prevent taxes, premiums and costs from being deducted twice when already
+  reflected in net cash or ending value
+- Separate historical replay from scenario estimates
+- Preserve missing values instead of assigning zero or a neutral score
+- Define currency, rounding, unit and date-basis rules
+- Add table-driven calculation tests, including positive distributions with a
+  negative market-value result
+
+Acceptance:
+
+- The same inputs always produce the same explainable result
+- Cash distributions cannot by themselves be labeled as profit
+- Every unavailable result contains a machine-readable reason
+- No database schema, user account or persisted profile is introduced
+
+### M10-3 — Single-ETF target analysis
+
+Goal:
+
+- Let a user select one base ETF and determine whether it can support the fixed
+  cash-flow target without hiding total-return deterioration
+
+Planned:
+
+- Add a stateless analysis request for ETF, available capital, fixed monthly
+  target and analysis horizon
+- Calculate gross and after-tax cash flow by payment month
+- Calculate annual target coverage, required capital and funding shortfall
+- Show market-value result, cash received and total result together
+- Add warnings for negative total return, persistent decline, weak recovery,
+  insufficient history and stale or incomplete data
+- Expose assumptions, source dates and calculation reasons through FastAPI
+- Add a plain-language Streamlit result flow for non-professional users
+
+Acceptance:
+
+- A user can understand the base ETF result before any complementary ETF is
+  suggested
+- Missing data blocks or qualifies the affected conclusion instead of becoming
+  zero
+- The feature does not claim that historical distributions will continue
+
+### M10-4 — Tax and reinvestment scenarios
+
+Goal:
+
+- Compare usable cash and ending wealth under explicit Taiwan individual-tax
+  assumptions and distribution-use choices
+
+Planned:
+
+- Scope the first estimator to Taiwan tax-resident individuals holding
+  Taiwan-listed ETFs
+- Preserve and explain ACTUAL `54C`, `76W` and other official components
+- Keep official `76W` separate from estimated realized capital gains
+- Model tax and applicable supplementary-premium assumptions with a visible
+  rule version and effective date
+- Avoid universal "tax free" or "higher 76W is always better" conclusions
+- Compare no reinvestment, excess-only reinvestment, a custom percentage and
+  full reinvestment
+- Show usable cash, reinvested cash, ending units, ending value, modeled tax
+  cost and after-tax total return
+- Add boundary tests for formal zero, missing components and different user tax
+  assumptions
+
+Acceptance:
+
+- Tax optimization cannot override a failed total-return check
+- Reinvested cash is not double-counted
+- Historical facts and forward-looking assumptions are visibly separate
+- Results are labeled as estimates rather than tax advice
+
+### M10-5 — Monthly-payment combination and candidate exclusions
+
+Goal:
+
+- Starting from the user's base ETF, optionally add a small number of ETFs to
+  improve monthly payment coverage without sacrificing total-return quality
+
+Planned:
+
+- Make monthly payment coverage an explicit option; retain it as the initial
+  default planning goal
+- Identify payment-month gaps in the base ETF
+- Add at most one to three complementary ETFs
+- Define eligibility rules for data completeness, freshness, distribution
+  stability, downside risk and total return
+- Evaluate after-tax cash-flow contribution, holding overlap and concentration
+- Exclude high-distribution candidates whose total-return or data-quality rules
+  fail
+- Explain each inclusion, exclusion, supported month and remaining trade-off
+- Compare active/passive and bond/non-bond classifications as transparent
+  attributes rather than automatic quality labels
+
+Acceptance:
+
+- No ETF is selected only because it fills a missing payment month
+- Every selected and rejected candidate has an explainable reason
+- The base ETF remains visible as the anchor of every result
+- The combination remains a scenario, not an investment guarantee
 
 ## M11 — Decision platform
 
 Planned:
 
-- User conditions and manual holdings
-- Candidate scoring, exclusions and alternatives
-- Recommendation rationale and risk notes
-- Decision records and Excel export
+- Persist user conditions only after M10 calculation contracts are stable
+- Add manual holdings with no broker connection
+- Reuse M10 calculations for current-holding and candidate analysis
+- Preserve recommendation rationale, exclusions, alternatives and risk notes
+- Add decision records and Excel export
+- Keep the initial public release single-user and exclude automatic trading
 
 ## M12 — Automation and deployment
 
