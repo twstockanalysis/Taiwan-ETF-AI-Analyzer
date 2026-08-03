@@ -81,6 +81,10 @@ The required-capital result is unavailable when reference capital, gross cash
 or any modeled deduction is missing. It is also unavailable when the resulting
 after-tax cash rate is zero or negative. A zero monthly target is a valid formal
 zero and produces no funding shortfall; it must not be treated as missing.
+For that formal-zero target, coverage is reported as `100%` and required
+capital and funding shortfall are both `0`, even when no reference rate is
+needed. Missing distribution inputs still leave after-tax usable cash
+unavailable.
 
 ## Total-return ledger
 
@@ -119,6 +123,22 @@ after-tax total gain or loss
 ```
 
 The calculator tests must reconcile these two identities for equivalent input.
+
+## Pure calculator behavior
+
+The first calculator service is deterministic and has no database, network or
+clock dependency. It accepts only validated contract models and returns a
+result model without mutating its input.
+
+- `calculate_cash_flow_target` calculates the fixed after-tax cash target.
+- `calculate_total_return` applies the canonical portfolio ledger identity.
+- `calculate_no_reinvestment_total_return` applies the equivalent distribution
+  breakdown and must reconcile with the canonical ledger for equivalent input.
+- A negative after-tax usable cash amount remains visible, while coverage,
+  required capital and funding shortfall remain unavailable.
+- Zero or negative reference cash rates never enter a division operation.
+- Missing values produce field-specific issues; formal zero values remain
+  calculable wherever the denominator rules allow them.
 
 ## Unavailable results
 

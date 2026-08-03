@@ -245,6 +245,65 @@ class TotalReturnCalculationInput(
     )
 
 
+class NoReinvestmentTotalReturnCalculationInput(
+    CalculationContractBaseModel
+):
+    """未再投入配息時的總報酬拆解輸入。"""
+
+    context: CalculationContext
+
+    initial_capital: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=24,
+        decimal_places=6,
+    )
+
+    ending_holding_value: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=24,
+        decimal_places=6,
+    )
+
+    gross_distributions: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=24,
+        decimal_places=6,
+    )
+
+    distribution_tax: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=24,
+        decimal_places=6,
+    )
+
+    supplementary_premium: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=24,
+        decimal_places=6,
+    )
+
+    transaction_costs: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=24,
+        decimal_places=6,
+    )
+
+    other_externally_paid_costs: (
+        Decimal | None
+    ) = Field(
+        default=None,
+        ge=0,
+        max_digits=24,
+        decimal_places=6,
+    )
+
+
 class CalculationIssue(
     CalculationContractBaseModel
 ):
