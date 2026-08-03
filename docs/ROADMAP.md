@@ -284,38 +284,29 @@ Completed:
 - M10-1C: expanded the ETF-detail dividend summary with a dual-axis trend and
   event detail table
 
-### M10-2 — Cash-flow and total-return calculation contract — Next
+### M10-2 — Cash-flow and total-return calculation contract — Completed
 
-Goal:
+Completed:
 
-- Establish one deterministic calculation contract before creating user tables
-  or recommendation scores
+- Defined deterministic domain models and a calculation contract for historical
+  replay and scenario estimates
+- Added fixed monthly after-tax cash-flow targets, target coverage, required
+  capital and funding shortfall calculations
+- Added gross distributions, after-tax usable cash, market-value results and
+  after-tax total-return calculations
+- Added non-reinvested distribution-ledger reconciliation to prevent cash
+  distributions from being double-counted as profit
+- Added explicit scenario assumptions for initial capital, cash yield, cash
+  deductions, price return and analysis horizon
+- Preserved missing values and formal zero values with machine-readable reasons
+  for unavailable results
+- Defined single-currency Decimal arithmetic, date-basis and public rounding
+  rules
+- Added 41 focused model, historical-calculation and scenario-estimation tests
+- Kept the calculation layer independent from the database, API, frontend, user
+  accounts and persisted profiles
 
-Planned:
-
-- Define a fixed monthly after-tax cash-flow target that does not rise when
-  available capital rises
-- Define gross distribution cash, after-tax usable cash, required capital,
-  target coverage and funding shortfall
-- Define market-value gain or loss, taxes, modeled premiums, transaction costs,
-  after-tax total gain or loss and after-tax total-return rate
-- Prevent reinvested distributions from being double-counted as profit
-- Prevent taxes, premiums and costs from being deducted twice when already
-  reflected in net cash or ending value
-- Separate historical replay from scenario estimates
-- Preserve missing values instead of assigning zero or a neutral score
-- Define currency, rounding, unit and date-basis rules
-- Add table-driven calculation tests, including positive distributions with a
-  negative market-value result
-
-Acceptance:
-
-- The same inputs always produce the same explainable result
-- Cash distributions cannot by themselves be labeled as profit
-- Every unavailable result contains a machine-readable reason
-- No database schema, user account or persisted profile is introduced
-
-### M10-3 — Single-ETF target analysis
+### M10-3 — Single-ETF target analysis — Next
 
 Goal:
 
