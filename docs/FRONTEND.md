@@ -5,13 +5,37 @@
 ```text
 Browser
 -> Streamlit page
--> frontend/api_client.py
+-> frontend/api_client.py compatibility facade
+-> frontend/api domain module
+-> frontend/api/transport.py
 -> FastAPI
 -> Repository
 -> SQLite
 ```
 
 The frontend never reads SQLite directly.
+
+`frontend/api_client.py` preserves the original public imports and test mock
+path. New implementation belongs in focused modules under `frontend/api/`:
+
+| Module | Responsibility |
+| --- | --- |
+| `errors.py` | Client exception types |
+| `validators.py` | Shared response-field validation |
+| `normalizers.py` | Query and filter normalization |
+| `transport.py` | HTTP GET, JSON decoding and transport errors |
+| `health.py` | FastAPI health check |
+| `etfs.py` | ETF list and detail |
+| `performance.py` | ETF performance and rankings |
+| `dividends.py` | Dividend events, components and monthly income |
+| `dividend_quality.py` | ACTUAL/76W coverage and review queue |
+| `system_overview.py` | Homepage system overview |
+| `data_profile.py` | ETF source coverage and freshness |
+| `comparison.py` | Multi-ETF comparison |
+
+API domain modules may depend on shared errors, validators, normalizers and
+transport, but must not import the compatibility facade. Existing callers may
+continue importing from `frontend.api_client` during migration.
 
 ## Local startup
 
@@ -324,6 +348,7 @@ python -m unittest `
     tests.test_frontend_performance_api_client `
     tests.test_frontend_dividend_api_client `
     tests.test_frontend_dividend_quality_api_client `
+    tests.test_frontend_api_architecture `
     tests.test_frontend_dividend_ui `
     tests.test_frontend_dividend_quality_ui `
     tests.test_frontend_formatters `

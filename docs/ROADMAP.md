@@ -401,7 +401,7 @@ Acceptance:
 - The base ETF remains visible as the anchor of every result
 - The combination remains a scenario, not an investment guarantee
 
-### M10-R0 — Pre-M11 architecture stabilization — In progress
+### M10-R0 — Pre-M11 architecture stabilization — Completed
 
 M10-R0 is placed after the planned M10 product features and before M11 because
 it records architecture work required before the decision platform expands the
@@ -416,29 +416,30 @@ Completed:
   contract and regression coverage
 - Kept production backend, frontend and data behavior unchanged
 
-#### M10-R0B — Frontend API client modularization — In progress
+#### M10-R0B — Frontend API client modularization — Completed
 
-Completed through `d6765ca`:
+Completed:
 
 - Extracted errors, response validators, date validators, datetime validators,
   normalizers and HTTP transport from `frontend/api_client.py`
 - Extracted ETF, performance, dividend, dividend-quality and system-overview
   API domains into `frontend/api/`
+- Extracted data-profile, comparison and health API domains, leaving
+  `frontend/api_client.py` as an import-only compatibility facade
 - Preserved all existing `frontend.api_client` imports and established mock
   paths for compatibility
-- Kept the full 401-test regression suite passing after each extraction
-
-Remaining:
-
-- Extract the remaining API domains in small, independently verified batches
-- Add final package-boundary and architecture-contract checks
-- Reconcile architecture documentation before closing M10-R0B
+- Added package-boundary tests that prevent implementation from returning to
+  the facade, prevent reverse imports and protect compatibility exports
+- Reconciled frontend architecture documentation with the modular Client
+- Kept the focused Client and full regression suites passing after each
+  extraction
 
 Acceptance:
 
 - No FastAPI schema, frontend response contract or database behavior changes
 - Existing callers remain compatible throughout the migration
 - Every extraction passes focused Client tests and the full regression suite
+- The compatibility facade contains no function or class implementation
 
 ## M11 — Decision platform
 

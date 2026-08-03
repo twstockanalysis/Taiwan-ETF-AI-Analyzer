@@ -224,18 +224,22 @@ Entries are ordered chronologically from oldest to newest.
   available after the UI cleanup
 - Production backend, frontend and data behavior remain unchanged
 
-## 2026-08-03 — M10-R0B frontend API modularization — In progress
+## 2026-08-03 — M10-R0B frontend API modularization
 
 ### Added
 
 - Focused frontend API modules for errors, validators, normalizers and transport
 - Domain modules for ETFs, performance, dividends, dividend quality and system
   overview
+- Domain modules for ETF data profile, comparison and health checks
+- Architecture-contract tests for module boundaries, compatibility exports and
+  the established `httpx` mock path
 
 ### Changed
 
 - `frontend/api_client.py` now acts as a compatibility facade for extracted
-  modules
+  modules and contains no function or class implementation
 - Existing import names and `httpx` mock paths remain compatible
-- Every completed extraction passes 58 focused Client tests and the full
-  401-test regression suite
+- Frontend architecture documentation now describes the facade, domain modules
+  and shared transport boundary
+- Every extraction passed the focused Client tests and full regression suite
