@@ -140,6 +140,42 @@ result model without mutating its input.
 - Missing values produce field-specific issues; formal zero values remain
   calculable wherever the denominator rules allow them.
 
+## Scenario estimate
+
+The scenario calculator is intentionally separate from historical replay. Its
+input context must use `SCENARIO_ESTIMATE`, and every result retains the
+`NO_REINVESTMENT` policy. It is an arithmetic projection, not a forecast or a
+claim that distributions will continue.
+
+```text
+ending holding value
+= initial capital * (1 + annual price return rate) ^ projection years
+
+cumulative gross cash
+= initial capital * annual gross cash rate * projection years
+
+cumulative cash deductions
+= cumulative gross cash * cash deduction rate
+
+cumulative after-tax cash
+= cumulative gross cash - cumulative cash deductions
+
+after-tax total gain or loss
+= ending holding value + cumulative after-tax cash - initial capital
+```
+
+The annual gross cash rate is applied to initial capital each year. Cash is not
+reinvested, so it does not compound. Price return compounds only the holding
+value. The first version accepts projection periods from 1 through 50 years,
+cash deduction rates from 0% through 100%, and price return assumptions no
+lower than -100%.
+
+All five numeric assumptions must be explicit. If any one is missing, scenario
+outputs remain unavailable with `MISSING_INPUT`; missing assumptions are never
+silently replaced by zero. A formal zero assumption remains calculable. Zero
+initial capital produces formal zero money results, but its percentage return
+is unavailable with `NON_POSITIVE_INITIAL_CAPITAL`.
+
 ## Unavailable results
 
 An unavailable numeric result is `None` and includes one or more stable reason

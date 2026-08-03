@@ -47,6 +47,12 @@ class CalculationUnavailableReason(StrEnum):
     )
 
 
+class DistributionReinvestmentPolicy(StrEnum):
+    """情境估算中的配息再投入假設。"""
+
+    NO_REINVESTMENT = "NO_REINVESTMENT"
+
+
 class CalculationContractBaseModel(BaseModel):
     """計算契約模型的共同設定。"""
 
@@ -304,6 +310,81 @@ class NoReinvestmentTotalReturnCalculationInput(
     )
 
 
+class ScenarioEstimateCalculationInput(
+    CalculationContractBaseModel
+):
+    """不再投入配息的明示情境假設。"""
+
+    context: CalculationContext
+
+    initial_capital: Decimal | None = Field(
+        default=None,
+        ge=0,
+        max_digits=24,
+        decimal_places=6,
+    )
+
+    annual_gross_cash_rate_pct: (
+        Decimal | None
+    ) = Field(
+        default=None,
+        ge=0,
+        max_digits=12,
+        decimal_places=6,
+        description=(
+            "每年依初始本金估算的稅前現金率，單位為百分點"
+        ),
+    )
+
+    cash_deduction_rate_pct: (
+        Decimal | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=100,
+        max_digits=9,
+        decimal_places=6,
+        description=(
+            "稅、補充保費及其他現金扣除占稅前現金的比例"
+        ),
+    )
+
+    annual_price_return_pct: Decimal | None = Field(
+        default=None,
+        ge=-100,
+        max_digits=12,
+        decimal_places=6,
+        description=(
+            "持有部位的假設年化價格報酬率，單位為百分點"
+        ),
+    )
+
+    projection_years: int | None = Field(
+        default=None,
+        ge=1,
+        le=50,
+    )
+
+    reinvestment_policy: (
+        DistributionReinvestmentPolicy
+    ) = Field(
+        default=(
+            DistributionReinvestmentPolicy.NO_REINVESTMENT
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_scenario_mode(self) -> Self:
+        """避免把情境假設標示成歷史回放。"""
+
+        if self.context.mode != AnalysisMode.SCENARIO_ESTIMATE:
+            raise ValueError(
+                "情境估算必須使用 SCENARIO_ESTIMATE 模式"
+            )
+
+        return self
+
+
 class CalculationIssue(
     CalculationContractBaseModel
 ):
@@ -356,6 +437,40 @@ class TotalReturnCalculationResult(
     )
 
     market_value_gain_loss: Decimal | None
+
+    after_tax_total_gain_loss: Decimal | None
+
+    after_tax_total_return_pct: Decimal | None
+
+    issues: list[CalculationIssue] = Field(
+        default_factory=list,
+    )
+
+
+class ScenarioEstimateCalculationResult(
+    CalculationContractBaseModel
+):
+    """不再投入配息的情境估算結果。"""
+
+    currency: str = Field(
+        min_length=3,
+        max_length=3,
+        pattern=r"^[A-Z]{3}$",
+    )
+
+    projection_years: int | None
+
+    reinvestment_policy: (
+        DistributionReinvestmentPolicy
+    )
+
+    ending_holding_value: Decimal | None
+
+    cumulative_gross_cash: Decimal | None
+
+    cumulative_cash_deductions: Decimal | None
+
+    cumulative_after_tax_cash: Decimal | None
 
     after_tax_total_gain_loss: Decimal | None
 
