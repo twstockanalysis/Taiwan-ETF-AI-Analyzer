@@ -22,9 +22,42 @@ are persisted only after the calculation contracts are stable in M11.
 
 ## Completed foundation
 
-The current Roadmap source begins at M5. M1–M4 names and acceptance records must
-be recovered from Git history or documented as an early-project foundation;
-they are not inferred here.
+M1–M4 were restored from the 2026-07-27 Git history. They record the early
+learning and project-structure foundation that preceded the production API.
+
+### M1 — Repository initialization
+
+Completed:
+
+- Created the Git repository and initial project identity
+- Established the Taiwan ETF analyzer as the project scope
+
+### M2 — Python development bootstrap
+
+Completed:
+
+- Added the first Python entry point
+- Added dependency and Git-ignore scaffolding
+- Established the local Python development workflow
+
+### M3 — Python foundations
+
+Completed:
+
+- Variables and data types
+- Lists and dictionaries
+- `for` loops and `if` conditions
+- Reusable functions
+- Preserved the learning exercises as milestone history until M10-R0A cleanup
+
+### M4 — Modular prototype and web project structure
+
+Completed:
+
+- Added configuration and reusable calculation-module scaffolding
+- Separated calculator, portfolio and scoring prototype responsibilities
+- Created the backend, frontend and documentation directory structure
+- Established the project skeleton used by M5 and later milestones
 
 ### M5 — FastAPI backend
 
@@ -367,6 +400,45 @@ Acceptance:
 - Every selected and rejected candidate has an explainable reason
 - The base ETF remains visible as the anchor of every result
 - The combination remains a scenario, not an investment guarantee
+
+### M10-R0 — Pre-M11 architecture stabilization — In progress
+
+M10-R0 is placed after the planned M10 product features and before M11 because
+it records architecture work required before the decision platform expands the
+current codebase. It does not change the M10 calculation sequence.
+
+#### M10-R0A — Legacy cleanup — Completed
+
+Completed:
+
+- Removed completed Python tutorial files and obsolete prototype entry points
+- Removed the unused ETF-detail monthly-income chart while retaining its API
+  contract and regression coverage
+- Kept production backend, frontend and data behavior unchanged
+
+#### M10-R0B — Frontend API client modularization — In progress
+
+Completed through `d6765ca`:
+
+- Extracted errors, response validators, date validators, datetime validators,
+  normalizers and HTTP transport from `frontend/api_client.py`
+- Extracted ETF, performance, dividend, dividend-quality and system-overview
+  API domains into `frontend/api/`
+- Preserved all existing `frontend.api_client` imports and established mock
+  paths for compatibility
+- Kept the full 401-test regression suite passing after each extraction
+
+Remaining:
+
+- Extract the remaining API domains in small, independently verified batches
+- Add final package-boundary and architecture-contract checks
+- Reconcile architecture documentation before closing M10-R0B
+
+Acceptance:
+
+- No FastAPI schema, frontend response contract or database behavior changes
+- Existing callers remain compatible throughout the migration
+- Every extraction passes focused Client tests and the full regression suite
 
 ## M11 — Decision platform
 
