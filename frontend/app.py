@@ -2,11 +2,8 @@
 
 import streamlit as st
 
-from frontend.pages.etf_search import (
-    render_etf_search,
-)
-from frontend.pages.home import (
-    render_home,
+from frontend.navigation import (
+    create_navigation,
 )
 
 
@@ -20,38 +17,7 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
-    home_page = st.Page(
-        render_home,
-        title="首頁",
-        icon="🏠",
-        default=True,
-    )
-
-    etf_search_page = st.Page(
-        render_etf_search,
-        title="ETF 查詢",
-        icon="🔍",
-        url_path="etf-search",
-    )
-
-    etf_detail_page = st.Page(
-        "page_scripts/etf_detail_page.py",
-        title="ETF 詳細資料",
-        icon="📄",
-        url_path="etf-detail",
-        visibility="hidden",
-    )
-
-    navigation = st.navigation(
-        {
-            "TW ETF AI Analyzer": [
-                home_page,
-                etf_search_page,
-                etf_detail_page,
-            ],
-        }
-    )
-
+    navigation = create_navigation()
     navigation.run()
 
 

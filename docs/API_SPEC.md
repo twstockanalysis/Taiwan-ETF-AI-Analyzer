@@ -2,89 +2,62 @@
 
 ## Overview
 
-The TW ETF AI Analyzer backend is built with FastAPI.
+Framework:
+
+```text
+FastAPI
+```
 
 Development base URL:
 
 ```text
 http://127.0.0.1:8000
-
-
-## ETF Endpoints
-
-### List ETFs
-
-```http
-GET /api/v1/etfs
 ```
 
-Purpose:
-
-Returns all ETF master records ordered by ETF code.
-
-Example response:
-
-```json
-[
-  {
-    "code": "DEV001",
-    "name": "開發測試被動式ETF",
-    "is_active": false,
-    "is_bond": false,
-    "listing_date": null,
-    "fund_size": null,
-    "expense_ratio": null
-  }
-]
-```
-
-### Get ETF by Code
-
-```http
-GET /api/v1/etfs/{code}
-```
-
-Purpose:
-
-Returns one ETF master record by security code.
-
-ETF codes are normalized to uppercase before querying.
-
-Successful response status:
+Interactive OpenAPI documentation:
 
 ```text
-200 OK
+http://127.0.0.1:8000/docs
 ```
 
-Missing ETF response status:
+## System
 
-```text
-404 Not Found
+```http
+GET /
+GET /health
 ```
 
-Example missing response:
+`GET /health` returns:
 
 ```json
 {
-  "detail": "找不到 ETF：UNKNOWN"
+  "status": "healthy"
 }
 ```
 
-## Development Data
+### System overview
 
-M5 uses non-production demonstration records:
-
-```text
-DEV001
-DEV002A
+```http
+GET /api/v1/system/overview
 ```
 
-These records are only used to verify the API workflow.
+The homepage uses this single read-only endpoint for:
 
-They will be replaced by the official ETF data import process in M6.
+```text
+ETF totals and classifications
+latest successful ETF-master import time
+PRICE_RETURN coverage for 1M, 3M, 6M and 1Y
+latest performance as-of date
+dividend-event and ETF counts
+ACTUAL, 76W and source-document coverage
+latest dividend and ACTUAL source-document dates
+five most recent import batches
+```
 
+Coverage percentages are `null` when the denominator is zero. Missing dates
+remain `null`; the API does not substitute the current date.
 
-## ETF Endpoints
+## ETF master data
 
 ### List ETFs
 
@@ -92,75 +65,219 @@ They will be replaced by the official ETF data import process in M6.
 GET /api/v1/etfs
 ```
 
-Returns a filtered and paginated ETF list.
-
-#### Query Parameters
+Query parameters:
 
 | Parameter | Type | Default | Description |
-|---|---|---:|---|
-| keyword | string | null | Search ETF code or name |
-| is_active | boolean | null | Filter actively managed ETFs |
-| is_bond | boolean | null | Filter bond ETFs |
-| limit | integer | 20 | Number of records, from 1 to 100 |
-| offset | integer | 0 | Number of records to skip |
+| --- | --- | --- | --- |
+| `keyword` | string or null | null | ETF code or name |
+| `is_active` | boolean or null | null | Active/passive filter |
+| `is_bond` | boolean or null | null | Bond/non-bond filter |
+| `limit` | integer | 20 | 1–100 |
+| `offset` | integer | 0 | Non-negative |
 
-Example:
-
-```http
-GET /api/v1/etfs?is_active=true&is_bond=false&limit=20&offset=0
-```
-
-Example response:
-
-```json
-{
-  "items": [
-    {
-      "code": "DEV002A",
-      "name": "開發測試主動式ETF",
-      "is_active": true,
-      "is_bond": false,
-      "listing_date": null,
-      "fund_size": null,
-      "expense_ratio": null
-    }
-  ],
-  "total": 1,
-  "limit": 20,
-  "offset": 0
-}
-```
-
-Validation errors return:
+Response fields:
 
 ```text
-422 Unprocessable Entity
+items
+total
+limit
+offset
 ```
 
-### Get ETF by Code
+### ETF detail
 
 ```http
 GET /api/v1/etfs/{code}
 ```
 
-ETF codes are normalized to uppercase before querying.
+ETF codes are normalized to uppercase. Missing ETFs return `404`.
 
-Successful response:
+### ETF comparison
+
+```http
+GET /api/v1/etfs/comparison?codes=0050,0056
+```
+
+The endpoint accepts 2–4 unique ETF codes and preserves request order. It returns:
 
 ```text
-200 OK
+ETF master identity and classifications
+latest available 1M, 3M, 6M and 1Y PRICE_RETURN records
+dividend-event count and latest event summary
+ACTUAL 76W record count and latest/average ratio
+per-ETF source and freshness profile
+five-section data-completeness explanation
 ```
 
-Missing ETF response:
+One code or more than four codes returns `422`. Missing ETF codes return `404`.
+Missing performance or ACTUAL 76W values remain `null` or absent; formal `76W = 0%` remains numerical zero.
+
+### ETF data profile
+
+```http
+GET /api/v1/etfs/{code}/data-profile
+```
+
+Returns the detail page's traceable data profile:
 
 ```text
-404 Not Found
+ETF-master source and latest successful dataset import
+PRICE_RETURN source, available periods and latest as-of date
+dividend-event sources, count and latest event date
+ACTUAL composition sources, 76W count and latest official-document date
 ```
 
-Example:
+Missing dates remain `null`. An ETF without performance, dividend or ACTUAL
+records returns zero counts and empty source lists rather than fabricated dates
+or percentages.
 
-```json
-{
-  "detail": "找不到 ETF：UNKNOWN"
-}
+## Performance
+
+### Ranking
+
+```http
+GET /api/v1/performance/ranking
 ```
+
+Query parameters:
+
+| Parameter | Type | Default |
+| --- | --- | --- |
+| `period` | `1M`, `3M`, `6M`, `1Y` | `6M` |
+| `metric` | `PRICE_RETURN`, `TOTAL_RETURN`, `NAV_RETURN` | `PRICE_RETURN` |
+| `is_active` | boolean or null | null |
+| `is_bond` | boolean or null | false |
+| `limit` | integer | 20 |
+| `offset` | integer | 0 |
+
+Ranking is calculated within one period and one metric. Global rank numbers
+include the pagination offset.
+
+### Multi-period ranking
+
+```http
+GET /api/v1/performance/multi-period-ranking
+```
+
+Query parameters match the existing ranking filters, with `sort_period`
+replacing `period`. The default `sort_period` is `6M`.
+
+The selected period controls ranking order only. Every item also returns the
+latest available `1M`, `3M`, `6M` and `1Y` records in `performance_items`.
+A missing period is absent and is never represented as `0%`.
+
+The original single-period ranking endpoint remains available for compatible
+clients.
+
+### Single ETF performance
+
+```http
+GET /api/v1/etfs/{code}/performance
+```
+
+Returns the latest available records per supported period for one metric.
+Missing periods are absent rather than represented as zero.
+
+## Dividends
+
+### ETF dividend history
+
+```http
+GET /api/v1/etfs/{code}/dividends
+```
+
+Supports `limit` and `offset`. Missing ETFs return `404`; an ETF without
+dividend events returns an empty list.
+
+Each event also returns nullable summary fields:
+
+```text
+distribution_period
+distribution_period_source_id
+yield_pct
+yield_basis
+yield_source_id
+reference_trade_date
+reference_close_price
+```
+
+`distribution_period` accepts only an official `YYYYQ1`–`YYYYQ4` value.
+`yield_basis` is `OFFICIAL` or `CALCULATED`. A calculated value includes the
+previous trading date and close; an official value never carries a calculated
+price reference.
+
+### Actual 76W history
+
+```http
+GET /api/v1/etfs/{code}/dividends/76w
+```
+
+Only `component_basis=ACTUAL` and `component_code=76W` are counted. Missing
+actual data produces `null` ratios, not zero.
+
+### Dividend event detail
+
+```http
+GET /api/v1/dividends/{dividend_id}
+```
+
+Returns one dividend event and all component records.
+
+### Filter dividend components
+
+```http
+GET /api/v1/dividends/{dividend_id}/components
+```
+
+Optional query filters:
+
+```text
+component_basis
+component_code
+source_id
+```
+
+## Dividend data quality
+
+### Coverage
+
+```http
+GET /api/v1/data-quality/dividends/actual-coverage
+```
+
+Optional `etf_code` limits the summary to one existing ETF.
+
+### Review queue
+
+```http
+GET /api/v1/data-quality/dividends/review-queue
+```
+
+Optional query filters:
+
+```text
+status
+etf_code
+issue_type
+limit
+offset
+```
+
+### Review queue item
+
+```http
+GET /api/v1/data-quality/dividends/review-queue/{queue_id}
+```
+
+The M8 data-quality API is read-only.
+
+## Status behavior
+
+```text
+200  successful response
+404  ETF, dividend event or queue item not found
+422  invalid path or query parameter
+```
+
+All API database access is injected through `get_database_path`, allowing tests
+to use isolated temporary SQLite databases.

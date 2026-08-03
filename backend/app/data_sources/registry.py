@@ -15,6 +15,7 @@ class SourceType(StrEnum):
     """資料來源型態。"""
 
     OPEN_API = "open_api"
+    OFFICIAL_JSON_API = "official_json_api"
     OFFICIAL_WEB_PAGE = "official_web_page"
 
 
@@ -104,6 +105,38 @@ DATA_SOURCES: dict[str, DataSource] = {
         ),
         priority=2,
         enabled=False,
+    ),
+    "twse_stock_day": DataSource(
+        source_id="twse_stock_day",
+        display_name="TWSE 個股日成交資訊",
+        market=Market.TWSE,
+        source_type=SourceType.OFFICIAL_JSON_API,
+        documentation_url=(
+            "https://www.twse.com.tw/zh/trading/"
+            "historical/stock-day.html"
+        ),
+        base_url=(
+            "https://www.twse.com.tw/rwd/zh/"
+            "afterTrading"
+        ),
+        priority=1,
+        allow_legacy_x509=True,
+    ),
+    "twse_etfortune_dividend": DataSource(
+        source_id="twse_etfortune_dividend",
+        display_name="TWSE ETF e添富配息清單",
+        market=Market.TWSE,
+        source_type=SourceType.OFFICIAL_WEB_PAGE,
+        documentation_url=(
+            "https://www.twse.com.tw/zh/"
+            "ETFortune/dividendList"
+        ),
+        base_url=(
+            "https://www.twse.com.tw/zh/"
+            "ETFortune/dividendList"
+        ),
+        priority=1,
+        allow_legacy_x509=True,
     ),
 }
 

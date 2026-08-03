@@ -18,6 +18,19 @@ from backend.app.models.etf import (
     ETFListResponse,
     ETFResponse,
 )
+from backend.app.models.etf_comparison_api import (
+    ETFComparisonResponse,
+)
+from backend.app.models.etf_data_profile_api import (
+    ETFDataProfileResponse,
+)
+from backend.app.repositories.etf_comparison_repository import (
+    build_etf_comparison,
+    parse_comparison_codes,
+)
+from backend.app.repositories.etf_data_profile_repository import (
+    build_etf_data_profile,
+)
 from backend.app.repositories.etf_repository import (
     count_etfs,
     get_etf_by_code,
@@ -122,6 +135,94 @@ def read_etfs(
         "limit": limit,
         "offset": offset,
     }
+
+
+@router.get(
+    "/comparison",
+    response_model=ETFComparisonResponse,
+    summary="比較 2 至 4 檔 ETF",
+)
+def read_etf_comparison(
+    database_path: DatabasePath,
+    codes: Annotated[
+        str,
+        Query(
+            min_length=1,
+            description=(
+                "逗號分隔的 2 至 4 個 ETF 代號"
+            ),
+            examples=["0050,0056"],
+        ),
+    ],
+) -> dict[str, Any]:
+    """回傳 ETF 基本資料、績效、配息、76W 與完整度。"""
+
+    try:
+        normalized_codes = (
+            parse_comparison_codes(
+                codes
+            )
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_422_UNPROCESSABLE_ENTITY
+            ),
+            detail=str(error),
+        ) from error
+
+    try:
+        return build_etf_comparison(
+            codes=normalized_codes,
+            database_path=database_path,
+        )
+
+    except KeyError as error:
+        detail = (
+            error.args[0]
+            if error.args
+            else str(error)
+        )
+
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+            detail=str(detail),
+        ) from error
+
+
+@router.get(
+    "/{code}/data-profile",
+    response_model=ETFDataProfileResponse,
+    summary="取得 ETF 資料來源與新鮮度",
+)
+def read_etf_data_profile(
+    code: str,
+    database_path: DatabasePath,
+) -> dict[str, Any]:
+    """回傳單一 ETF 的來源、覆蓋與最新日期。"""
+
+    normalized_code = (
+        code.strip().upper()
+    )
+
+    profile = build_etf_data_profile(
+        etf_code=normalized_code,
+        database_path=database_path,
+    )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"找不到 ETF："
+                f"{normalized_code}"
+            ),
+        )
+
+    return profile
 
 
 @router.get(

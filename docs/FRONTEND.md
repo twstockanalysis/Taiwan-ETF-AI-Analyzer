@@ -1,171 +1,359 @@
 # Streamlit Frontend
 
-## Purpose
-
-The Streamlit frontend provides the first public-facing user
-interface for the TW ETF AI Analyzer.
-
-The frontend does not connect directly to SQLite.
-
-All ETF data is requested through the FastAPI backend.
-
 ## Architecture
 
 ```text
-Web Browser
-    |
-    v
-Streamlit Frontend
-    |
-    v
-FastAPI Backend
-    |
-    v
-SQLite Database
+Browser
+-> Streamlit page
+-> frontend/api_client.py compatibility facade
+-> frontend/api domain module
+-> frontend/api/transport.py
+-> FastAPI
+-> Repository
+-> SQLite
 ```
 
-## Local URLs
+The frontend never reads SQLite directly.
 
-FastAPI:
+`frontend/api_client.py` preserves the original public imports and test mock
+path. New implementation belongs in focused modules under `frontend/api/`:
 
-```text
-http://127.0.0.1:8000
-```
+| Module | Responsibility |
+| --- | --- |
+| `errors.py` | Client exception types |
+| `validators.py` | Shared response-field validation |
+| `normalizers.py` | Query and filter normalization |
+| `transport.py` | HTTP GET, JSON decoding and transport errors |
+| `health.py` | FastAPI health check |
+| `etfs.py` | ETF list and detail |
+| `performance.py` | ETF performance and rankings |
+| `dividends.py` | Dividend events, components and monthly income |
+| `dividend_quality.py` | ACTUAL/76W coverage and review queue |
+| `system_overview.py` | Homepage system overview |
+| `data_profile.py` | ETF source coverage and freshness |
+| `comparison.py` | Multi-ETF comparison |
 
-Streamlit:
+API domain modules may depend on shared errors, validators, normalizers and
+transport, but must not import the compatibility facade. Existing callers may
+continue importing from `frontend.api_client` during migration.
 
-```text
-http://localhost:8501
-```
+## Local startup
 
-## Start FastAPI
-
-Open the first terminal:
+FastAPI terminal:
 
 ```powershell
 python -m uvicorn backend.app.main:app --reload
 ```
 
-## Start Streamlit
-
-Open the second terminal:
+Streamlit terminal:
 
 ```powershell
 python -m streamlit run frontend/app.py
 ```
 
-## Frontend Pages
-
-### Home
-
-Displays:
-
-- Project introduction
-- FastAPI connection status
-- Database type
-- Backend connection error messages
-
-### ETF Search
-
-Supports:
-
-- ETF code and name search
-- Active and passive ETF filtering
-- Bond and non-bond filtering
-- Page size selection
-- Previous and next page navigation
-- Single-row ETF selection
-
-### ETF Detail
-
-Displays:
-
-- ETF code
-- ETF name
-- Active or passive management
-- Bond or non-bond classification
-- Gregorian listing date
-- Fund size
-- Expense ratio
-
-The detail page is hidden from the sidebar and is opened from
-the ETF search page.
-
-Example route:
+Default URLs:
 
 ```text
-/etf-detail?code=0050
+FastAPI   http://127.0.0.1:8000
+Streamlit http://localhost:8501
 ```
 
-## API URL Configuration
-
-The default FastAPI URL is:
-
-```text
-http://127.0.0.1:8000
-```
-
-Production environments can override it with:
+Override the backend URL with:
 
 ```text
 TW_ETF_API_URL
 ```
 
-Example:
+## Navigation and URL state
 
-```powershell
-$env:TW_ETF_API_URL = "https://api.example.com"
-```
-
-## Date Standard
-
-All ETF listing dates shown by the frontend must use the
-Gregorian ISO 8601 format:
+Page metadata is centralized in:
 
 ```text
-YYYY-MM-DD
+frontend/navigation.py
 ```
 
-Example:
+Public pages:
 
 ```text
-2003-06-30
+/
+etf-search
+performance-ranking
+etf-comparison
+dividend-data-quality
 ```
 
-Republic of China calendar values must be converted during the
-data normalization stage before they are stored in SQLite.
+Hidden page:
 
-The frontend must not perform calendar conversion.
+```text
+etf-detail
+```
 
-## Missing Data
+ETF search URLs preserve:
 
-A value of `null` for fund size or expense ratio is displayed as:
+```text
+keyword
+active
+bond
+page
+page_size
+```
+
+Performance ranking URLs preserve:
+
+```text
+period
+active
+bond
+page
+page_size
+```
+
+ETF detail URLs include `code`, the source page in `from`, and the source
+page's canonical query state. Returning from detail therefore restores the
+search or ranking context.
+
+Invalid query values are normalized to safe defaults. Missing and zero values
+retain their existing domain semantics.
+
+Shared UI utilities are defined in:
+
+```text
+frontend/ui/formatters.py
+frontend/ui/components.py
+frontend/ui/states.py
+```
+
+They provide:
+
+- Percentage, number, amount, date and datetime formatting
+- Active/passive and bond/non-bond labels
+- Full-row ETF detail links and pagination controls
+- Loading, empty, not-found, warning and API-error presentation
+
+Page modules keep small domain-specific wrappers when their missing-value text
+must differ. All wrappers delegate numerical formatting to the shared layer, so
+formal zero remains numerical zero while missing data remains unavailable.
+
+Responsive typography is centralized in:
+
+```text
+frontend/ui/theme.py
+```
+
+It reduces oversized headings and metrics, allows metric values and page-link
+labels to wrap instead of using ellipsis, and uses smaller sidebar text when
+the navigation panel is open.
+
+## Pages
+
+### Home
+
+The homepage reads only:
+
+```text
+GET /api/v1/system/overview
+```
+
+It shows:
+
+- Primary links to ETF search, performance ranking and dividend data quality
+- FastAPI and SQLite status
+- ETF totals and active/passive, bond/non-bond classifications
+- ETFs with PRICE_RETURN data and ETFs with dividend history
+- ACTUAL and official 76W event coverage
+- Separate 1M, 3M, 6M and 1Y performance coverage
+- ETF-master, performance, dividend and ACTUAL-document freshness
+- Five most recent import batches, including failed-batch error summaries
+
+Missing dates display `尚未取得`. A zero-event coverage ratio displays
+`尚無資料`, while a formally calculated zero remains `0.00%`.
+
+### ETF Search
+
+Supports:
+
+- Code/name keyword search
+- Active/passive filter
+- Bond/non-bond filter
+- Page size and pagination
+- Fully clickable ETF rows
+
+### Performance Ranking
+
+Supports:
+
+- 1M, 3M, 6M and 1Y sort periods
+- Active/passive and bond filters
+- Pagination and fully clickable rows
+- One clearly displayed return value for the currently selected sort period
+
+The default and preferred sort period is `6M`. Changing the sort period changes
+both ranking order and the one period displayed in each row. Other periods
+remain available through the selector and remain simultaneously visible on ETF
+detail and comparison pages.
+
+Each row follows:
+
+```text
+rank and ETF code
+-> display name
+-> selected-period return
+-> selected-period as-of date
+-> active/passive
+-> bond/non-bond
+```
+
+Ranking display names remove a trailing `(原名：...)` or `（原名：...）`
+annotation. The original database and API names remain unchanged.
+
+Missing selected-period data displays `歷史資料不足`; it is not converted to
+zero.
+
+The page reads:
+
+```text
+GET /api/v1/performance/multi-period-ranking
+```
+
+The response keeps all four period records available without N+1 requests, while
+the ranking presentation shows only the selected period.
+
+### ETF Comparison
+
+The public comparison page uses:
+
+```text
+/etf-comparison?codes=0050,0056
+```
+
+It accepts 2–4 unique ETF codes and compares:
+
+- Management and asset classifications
+- Listing date, fund size and expense ratio
+- Independent 1M, 3M, 6M and 1Y `PRICE_RETURN` values
+- Dividend-event count and latest distribution summary
+- ACTUAL 76W availability, latest ratio and average ratio
+- Five-section data completeness
+
+The `codes` query parameter is canonical, ordered and deduplicated. Return-state parameters are namespaced with `return_`, allowing the page to return to ETF search, performance ranking or ETF detail without losing the source page state.
+
+Missing periods display `歷史資料不足`. Missing ACTUAL 76W displays `尚未取得`; an official `76W = 0%` displays `0.00%`. Data completeness describes available data sections only and is not an investment score.
+
+### ETF Detail
+
+The detail page is hidden from sidebar navigation and opened through:
+
+```text
+/etf-detail?code=0050
+```
+
+M9-4 uses one fixed decision-oriented section order:
+
+```text
+ETF identity and classifications
+-> core data overview
+-> market-price performance
+-> dividend summary
+-> actual 76W
+-> dividend events and components
+-> data sources and freshness
+-> ETF comparison entry
+```
+
+The page keeps each secondary API call isolated. A performance, dividend,
+ACTUAL 76W or data-profile failure does not remove the ETF
+identity and other successfully loaded sections.
+
+The expanded dividend summary shows:
+
+- Latest event metrics
+- A dual-axis trend of cash dividend and per-event yield
+- Official distribution period, cash dividend, yield, ex-dividend date and payment date
+- Yield provenance, including the reference trading date and close for calculated fallback values
+
+Distribution periods are never inferred from the ex-dividend date. Missing
+official periods display `—`. Official yield is preferred; a missing official
+value may be calculated as cash dividend divided by the previous trading-day
+close and is labeled as a fallback.
+
+The monthly-income API remains available at:
+
+```text
+GET /api/v1/etfs/{code}/monthly-income?lookback_years=3
+```
+
+It still returns January through December and uses only `payment_date` to assign
+a dividend event to a month. The ETF detail page does not currently request or
+render this distribution.
+
+Data sources and freshness come from:
+
+```text
+GET /api/v1/etfs/{code}/data-profile
+```
+
+The profile shows source IDs and display names, latest data dates, latest
+successful import times and record counts. ETF-master import time is explicitly
+labeled as dataset-level freshness. Missing dates display `尚未取得`; they are
+not replaced with the current date.
+
+The comparison entry is enabled and carries the current ETF plus the detail page return state into the public comparison page.
+
+### Dividend Data Quality
+
+Shows:
+
+- Global ACTUAL, 76W and source-document coverage
+- Single-ETF coverage
+- Review-queue filters and pagination
+- Read-only queue-item details
+
+## Data semantics
+
+Missing values are displayed as text such as:
 
 ```text
 尚無資料
+歷史資料不足
+尚未取得正式 76W 收益分配資料
 ```
 
-This indicates that the current official source has not yet
-provided or imported that metric.
+Missing values are not converted to numerical zero.
 
-## Automated Tests
+A formal `ACTUAL + 76W` record with a disclosed ratio of zero is displayed as
+`0.00%` and remains covered data.
 
-Run frontend API client tests:
+Estimated realized capital gains retain the label:
 
-```powershell
-python -m unittest tests.test_frontend_api_client -v
-python -m unittest tests.test_frontend_etf_api_client -v
-python -m unittest tests.test_frontend_etf_detail_client -v
+```text
+EST_REALIZED_CAPITAL_GAIN
 ```
 
-Run Streamlit AppTest:
+They are not displayed or counted as official `76W`.
+
+## Caching and refresh
+
+Pages use short `st.cache_data` TTLs. Refresh buttons clear relevant frontend
+cache entries. They do not run backend Pipelines; data Pipelines must be run
+separately.
+
+## Tests
+
+Frontend and AppTest coverage:
 
 ```powershell
-python -m unittest tests.test_streamlit_app -v
-```
-
-Run all project tests:
-
-```powershell
-python -m unittest discover -s tests -p "test_*.py" -v
+python -m unittest `
+    tests.test_frontend_api_client `
+    tests.test_frontend_etf_api_client `
+    tests.test_frontend_performance_api_client `
+    tests.test_frontend_dividend_api_client `
+    tests.test_frontend_dividend_quality_api_client `
+    tests.test_frontend_api_architecture `
+    tests.test_frontend_dividend_ui `
+    tests.test_frontend_dividend_quality_ui `
+    tests.test_frontend_formatters `
+    tests.test_frontend_components `
+    tests.test_frontend_states `
+    tests.test_streamlit_app `
+    -v
 ```

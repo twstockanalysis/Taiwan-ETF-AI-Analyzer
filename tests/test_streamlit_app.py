@@ -7,7 +7,7 @@ from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 
 from frontend.pages.home import (
-    load_api_health,
+    load_system_overview,
 )
 
 
@@ -20,7 +20,114 @@ STREAMLIT_APP_PATH = (
 )
 
 
+def build_system_overview_payload() -> dict:
+    """建立首頁 AppTest 使用的合法系統總覽。"""
+
+    return {
+        "api_status": "healthy",
+        "database_type": "SQLite",
+        "etfs": {
+            "total_count": 4,
+            "active_count": 1,
+            "passive_count": 3,
+            "bond_count": 1,
+            "non_bond_count": 3,
+            "latest_master_import_at": (
+                "2026-07-30T00:05:00+00:00"
+            ),
+        },
+        "performance": {
+            "metric_code": "PRICE_RETURN",
+            "source_id": "twse_stock_day",
+            "etf_count": 2,
+            "total_etf_count": 4,
+            "coverage_pct": 50.0,
+            "latest_as_of_date": "2026-07-30",
+            "periods": [
+                {
+                    "period_code": "1M",
+                    "etf_count": 2,
+                    "coverage_pct": 50.0,
+                    "latest_as_of_date": (
+                        "2026-07-30"
+                    ),
+                },
+                {
+                    "period_code": "3M",
+                    "etf_count": 1,
+                    "coverage_pct": 25.0,
+                    "latest_as_of_date": (
+                        "2026-07-29"
+                    ),
+                },
+                {
+                    "period_code": "6M",
+                    "etf_count": 2,
+                    "coverage_pct": 50.0,
+                    "latest_as_of_date": (
+                        "2026-07-30"
+                    ),
+                },
+                {
+                    "period_code": "1Y",
+                    "etf_count": 1,
+                    "coverage_pct": 25.0,
+                    "latest_as_of_date": (
+                        "2026-07-29"
+                    ),
+                },
+            ],
+        },
+        "dividends": {
+            "event_count": 2,
+            "etf_count": 2,
+            "latest_event_date": "2026-08-10",
+            "actual_component_event_count": 1,
+            "actual_76w_event_count": 1,
+            "source_document_event_count": 1,
+            "actual_component_coverage_pct": (
+                50.0
+            ),
+            "actual_76w_coverage_pct": 50.0,
+            "source_document_coverage_pct": (
+                50.0
+            ),
+            (
+                "latest_actual_"
+                "source_document_date"
+            ): "2026-07-31",
+        },
+        "recent_import_batches": [
+            {
+                "batch_id": 1,
+                "pipeline_name": (
+                    "etf_master_pipeline"
+                ),
+                "source_id": "twse_openapi",
+                "endpoint_id": (
+                    "twse_fund_master"
+                ),
+                "started_at": (
+                    "2026-07-30T00:00:00+00:00"
+                ),
+                "completed_at": (
+                    "2026-07-30T00:05:00+00:00"
+                ),
+                "status": "success",
+                "raw_record_count": 4,
+                "accepted_record_count": 4,
+                "rejected_record_count": 0,
+                "inserted_record_count": 4,
+                "updated_record_count": 0,
+                "error_message": None,
+            },
+        ],
+    }
+
+
 SEARCH_PAGE_SCRIPT = """
+from unittest.mock import patch
+
 import frontend.pages.etf_search as page
 
 
@@ -54,7 +161,14 @@ def fake_fetch_etfs(**kwargs):
 
 page.fetch_etfs = fake_fetch_etfs
 page.load_etf_page.clear()
-page.render_etf_search()
+
+# AppTest.from_string 沒有建立完整的多頁導航註冊表。
+# 整列 page_link 參數由獨立單元測試負責驗證；
+# 此處只測試 ETF 搜尋頁其他畫面元件是否正常呈現。
+with patch(
+    "frontend.pages.etf_search.st.page_link"
+):
+    page.render_etf_search()
 """
 
 
@@ -74,9 +188,113 @@ def fake_fetch_etf_by_code(**kwargs):
     }
 
 
+def fake_fetch_etf_performance(**kwargs):
+    return {
+        "etf_code": "0050",
+        "metric_code": "PRICE_RETURN",
+        "items": [
+            {
+                "as_of_date": "2026-07-29",
+                "period_code": "1M",
+                "metric_code": "PRICE_RETURN",
+                "return_pct": 5.0,
+                "source_id": "twse_stock_day",
+            },
+            {
+                "as_of_date": "2026-07-29",
+                "period_code": "6M",
+                "metric_code": "PRICE_RETURN",
+                "return_pct": 20.0,
+                "source_id": "twse_stock_day",
+            },
+        ],
+    }
+
+
 page.fetch_etf_by_code = fake_fetch_etf_by_code
+page.fetch_etf_performance = fake_fetch_etf_performance
 page.load_etf_detail.clear()
+page.load_etf_performance.clear()
 page.render_etf_detail()
+"""
+
+
+PERFORMANCE_PAGE_SCRIPT = """
+from unittest.mock import patch
+
+import frontend.pages.performance_ranking as page
+
+
+def fake_fetch_multi_period_performance_ranking(
+    **kwargs,
+):
+    return {
+        "sort_period": "6M",
+        "metric_code": "PRICE_RETURN",
+        "periods": [
+            "1M",
+            "3M",
+            "6M",
+            "1Y",
+        ],
+        "items": [
+            {
+                "rank": 1,
+                "etf_code": "0050",
+                "name": "元大台灣50",
+                "is_active": False,
+                "is_bond": False,
+                "sort_period": "6M",
+                "sort_as_of_date": "2026-07-29",
+                "sort_return_pct": 20.0,
+                "performance_items": [
+                    {
+                        "as_of_date": "2026-07-29",
+                        "period_code": "1M",
+                        "metric_code": "PRICE_RETURN",
+                        "return_pct": 5.0,
+                        "source_id": "twse_stock_day",
+                    },
+                    {
+                        "as_of_date": "2026-07-29",
+                        "period_code": "3M",
+                        "metric_code": "PRICE_RETURN",
+                        "return_pct": 10.0,
+                        "source_id": "twse_stock_day",
+                    },
+                    {
+                        "as_of_date": "2026-07-29",
+                        "period_code": "6M",
+                        "metric_code": "PRICE_RETURN",
+                        "return_pct": 20.0,
+                        "source_id": "twse_stock_day",
+                    },
+                    {
+                        "as_of_date": "2026-07-29",
+                        "period_code": "1Y",
+                        "metric_code": "PRICE_RETURN",
+                        "return_pct": 30.0,
+                        "source_id": "twse_stock_day",
+                    },
+                ],
+            },
+        ],
+        "total": 1,
+        "limit": 20,
+        "offset": 0,
+    }
+
+
+page.fetch_multi_period_performance_ranking = (
+    fake_fetch_multi_period_performance_ranking
+)
+page.load_performance_ranking.clear()
+
+with patch(
+    "frontend.pages.performance_ranking."
+    "st.page_link"
+):
+    page.render_performance_ranking()
 """
 
 
@@ -105,19 +323,19 @@ class TestStreamlitApp(unittest.TestCase):
     """測試 Streamlit 網站主要頁面。"""
 
     @patch(
-        "frontend.pages.home.fetch_api_health"
+        "frontend.pages.home.fetch_system_overview"
     )
     def test_application_renders_home_page(
         self,
-        mock_fetch_api_health,
+        mock_fetch_system_overview,
     ) -> None:
-        """確認網站入口可顯示首頁。"""
+        """確認網站入口顯示首頁系統總覽。"""
 
-        mock_fetch_api_health.return_value = {
-            "status": "healthy",
-        }
+        mock_fetch_system_overview.return_value = (
+            build_system_overview_payload()
+        )
 
-        load_api_health.clear()
+        load_system_overview.clear()
 
         app = AppTest.from_file(
             STREAMLIT_APP_PATH,
@@ -154,10 +372,25 @@ class TestStreamlitApp(unittest.TestCase):
             )
         )
 
-    def test_search_page_renders_etf_table(
+        metric_values = [
+            str(item.value)
+            for item in app.metric
+        ]
+
+        self.assertIn(
+            "4 檔",
+            metric_values,
+        )
+
+        self.assertIn(
+            "50.00%",
+            metric_values,
+        )
+
+    def test_search_page_renders_clickable_rows(
         self,
     ) -> None:
-        """確認 ETF 查詢頁顯示正式表格。"""
+        """確認 ETF 查詢頁顯示可點擊資料列。"""
 
         app = AppTest.from_string(
             SEARCH_PAGE_SCRIPT,
@@ -176,29 +409,76 @@ class TestStreamlitApp(unittest.TestCase):
             "ETF 查詢",
         )
 
-        self.assertEqual(
-            len(app.dataframe),
-            1,
+        caption_values = [
+            item.value
+            for item in app.caption
+        ]
+
+        self.assertTrue(
+            any(
+                "整列會顯示可點擊效果"
+                in caption
+                for caption in caption_values
+            )
         )
 
-        dataframe = app.dataframe[0].value
+    def test_performance_page_renders_ranking(
+        self,
+    ) -> None:
+        """確認績效排行榜頁可正常顯示。"""
+
+        app = AppTest.from_string(
+            PERFORMANCE_PAGE_SCRIPT,
+            default_timeout=10,
+        )
+
+        app.run()
 
         self.assertEqual(
-            len(dataframe),
-            2,
+            len(app.exception),
+            0,
         )
 
         self.assertEqual(
-            str(
-                dataframe.iloc[0]["代號"]
-            ),
-            "0050",
+            app.title[0].value,
+            "ETF 績效排行榜",
         )
 
-        self.assertEqual(
-            dataframe.iloc[0]["上市日期"],
-            "2003-06-30",
+        metric_values = [
+            str(item.value)
+            for item in app.metric
+        ]
+
+        self.assertIn(
+            "6M",
+            metric_values,
         )
+
+        caption_values = [
+            item.value
+            for item in app.caption
+        ]
+
+        caption_text = "\n".join(
+            str(item.value)
+            for item in app.caption
+        )
+
+        self.assertIn(
+            "依指定期間排序並只顯示該期間",
+            caption_text,
+        )
+
+        self.assertIn(
+            "名次與每列報酬率均依 6M",
+            caption_text,
+        )
+
+        self.assertIn(
+            "其他期間可從排序期間切換查看",
+            caption_text,
+        )
+
 
     def test_detail_page_uses_gregorian_date(
         self,
@@ -237,14 +517,23 @@ class TestStreamlitApp(unittest.TestCase):
             for item in app.metric
         ]
 
+        caption_values = [
+            str(item.value)
+            for item in app.caption
+        ]
+
+        classification_text = "\n".join(
+            caption_values
+        )
+
         self.assertIn(
             "被動式",
-            metric_values,
+            classification_text,
         )
 
         self.assertIn(
             "非債券",
-            metric_values,
+            classification_text,
         )
 
         self.assertIn(
@@ -254,6 +543,21 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertNotIn(
             "0920-06-30",
+            metric_values,
+        )
+
+        self.assertIn(
+            "+5.00%",
+            metric_values,
+        )
+
+        self.assertIn(
+            "+20.00%",
+            metric_values,
+        )
+
+        self.assertIn(
+            "歷史資料不足",
             metric_values,
         )
 

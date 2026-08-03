@@ -1,5 +1,6 @@
 """ETF 搜尋、篩選及分頁頁面。"""
 
+from dataclasses import replace
 import math
 from typing import Any
 
@@ -12,6 +13,33 @@ from frontend.api_client import (
 from frontend.config import (
     get_api_base_url,
 )
+from frontend.navigation import (
+    ETF_COMPARISON_ROUTE,
+    ETF_SEARCH_ROUTE,
+    build_comparison_query_params,
+    build_detail_query_params,
+    create_streamlit_page,
+)
+from frontend.query_state import (
+    ETFSearchQueryState,
+    PAGE_SIZE_OPTIONS,
+    parse_etf_search_query_state,
+    sync_query_params,
+)
+from frontend.ui.components import (
+    render_etf_detail_links,
+    render_pagination_controls,
+)
+from frontend.ui.formatters import (
+    asset_type_label,
+    format_number,
+    management_type_label,
+)
+from frontend.ui.states import (
+    loading_state,
+    render_api_error,
+    render_empty_state,
+)
 
 
 ACTIVE_FILTER_OPTIONS: dict[
@@ -23,7 +51,6 @@ ACTIVE_FILTER_OPTIONS: dict[
     "被動式": False,
 }
 
-
 BOND_FILTER_OPTIONS: dict[
     str,
     bool | None,
@@ -33,44 +60,221 @@ BOND_FILTER_OPTIONS: dict[
     "債券": True,
 }
 
-
-PAGE_SIZE_OPTIONS = (
-    10,
-    20,
-    50,
-    100,
+SEARCH_QUERY_SIGNATURE_KEY = (
+    "_etf_search_query_signature"
 )
 
 
-SEARCH_STATE_DEFAULTS: dict[
-    str,
-    object,
-] = {
-    "etf_search_keyword": "",
-    "etf_search_active_label": "全部",
-    "etf_search_bond_label": "全部",
-    "etf_search_page_size": 20,
-    "etf_search_page_number": 1,
-}
+def format_optional_number(
+    value: Any,
+    suffix: str,
+    decimal_places: int = 2,
+) -> str:
+    """格式化可能為空白的數值。"""
+
+    return format_number(
+        value,
+        decimal_places=decimal_places,
+        suffix=suffix,
+        missing_text="—",
+        invalid_text="格式異常",
+    )
+
+
+def format_clickable_etf_row(
+    item: dict[str, Any],
+) -> str:
+    """建立整列 ETF 顯示文字。"""
+
+    code = str(
+        item["code"]
+    ).strip().upper()
+
+    name = str(
+        item["name"]
+    ).strip()
+
+    management_type = (
+        management_type_label(
+            item["is_active"]
+        )
+    )
+
+    asset_type = asset_type_label(
+        item["is_bond"]
+    )
+
+    listing_date = (
+        str(item["listing_date"])
+        if item["listing_date"]
+        else "—"
+    )
+
+    fund_size = format_optional_number(
+        item["fund_size"],
+        " 億元",
+    )
+
+    expense_ratio = format_optional_number(
+        item["expense_ratio"],
+        "%",
+    )
+
+    return (
+        f"**{code}**　"
+        f"{name}"
+        f"　│　{management_type}"
+        f"　│　{asset_type}"
+        f"　│　{listing_date}"
+        f"　│　規模 {fund_size}"
+        f"　│　費用率 {expense_ratio}"
+    )
+
+
+def render_clickable_etf_rows(
+    items: list[dict[str, Any]],
+    query_state: ETFSearchQueryState | None = None,
+) -> None:
+    """顯示整列可點擊的 ETF 搜尋結果。"""
+
+    source_state = (
+        query_state
+        if query_state is not None
+        else ETFSearchQueryState()
+    )
+
+    render_etf_detail_links(
+        items,
+        caption=(
+            "代號與名稱｜管理方式｜資產類型｜"
+            "上市日期｜基金規模｜費用率"
+        ),
+        label_builder=(
+            format_clickable_etf_row
+        ),
+        code_field="code",
+        name_field="name",
+        source=str(
+            ETF_SEARCH_ROUTE.url_path
+        ),
+        source_query_params=(
+            source_state.to_query_params()
+        ),
+    )
+
+
+def apply_search_state(
+    state: ETFSearchQueryState,
+) -> None:
+    """將 URL 狀態套用至 Session State。"""
+
+    st.session_state[
+        "etf_search_keyword"
+    ] = state.keyword
+
+    st.session_state[
+        "etf_search_active_label"
+    ] = state.active_label
+
+    st.session_state[
+        "etf_search_bond_label"
+    ] = state.bond_label
+
+    st.session_state[
+        "etf_search_page_size"
+    ] = state.page_size
+
+    st.session_state[
+        "etf_search_page_number"
+    ] = state.page
+
+    st.session_state[
+        SEARCH_QUERY_SIGNATURE_KEY
+    ] = tuple(
+        sorted(
+            state.to_query_params().items()
+        )
+    )
+
+
+def get_search_state() -> ETFSearchQueryState:
+    """由 Session State 建立目前 ETF 查詢狀態。"""
+
+    return ETFSearchQueryState(
+        keyword=str(
+            st.session_state[
+                "etf_search_keyword"
+            ]
+        ),
+        active_label=str(
+            st.session_state[
+                "etf_search_active_label"
+            ]
+        ),
+        bond_label=str(
+            st.session_state[
+                "etf_search_bond_label"
+            ]
+        ),
+        page=int(
+            st.session_state[
+                "etf_search_page_number"
+            ]
+        ),
+        page_size=int(
+            st.session_state[
+                "etf_search_page_size"
+            ]
+        ),
+    )
 
 
 def initialize_search_state() -> None:
-    """初始化 ETF 搜尋頁 Session State。"""
+    """由 URL 初始化或更新 ETF 搜尋狀態。"""
 
-    for key, value in (
-        SEARCH_STATE_DEFAULTS.items()
+    state = parse_etf_search_query_state(
+        st.query_params
+    )
+
+    canonical = state.to_query_params()
+
+    sync_query_params(
+        st.query_params,
+        canonical,
+    )
+
+    signature = tuple(
+        sorted(canonical.items())
+    )
+
+    if (
+        st.session_state.get(
+            SEARCH_QUERY_SIGNATURE_KEY
+        )
+        != signature
     ):
-        if key not in st.session_state:
-            st.session_state[key] = value
+        apply_search_state(state)
+
+
+def update_search_state(
+    state: ETFSearchQueryState,
+) -> None:
+    """同步 ETF 查詢 Session State 與網址。"""
+
+    apply_search_state(state)
+
+    sync_query_params(
+        st.query_params,
+        state.to_query_params(),
+    )
 
 
 def reset_search_state() -> None:
     """清除所有 ETF 搜尋條件。"""
 
-    for key, value in (
-        SEARCH_STATE_DEFAULTS.items()
-    ):
-        st.session_state[key] = value
+    update_search_state(
+        ETFSearchQueryState()
+    )
 
 
 @st.cache_data(
@@ -95,81 +299,6 @@ def load_etf_page(
         limit=limit,
         offset=offset,
     )
-
-
-def open_etf_detail(
-    code: str,
-) -> None:
-    """前往 ETF 詳細資料頁。
-
-    Args:
-        code:
-            ETF 證券代號。
-    """
-
-    detail_page = st.Page(
-        "page_scripts/etf_detail_page.py",
-        title="ETF 詳細資料",
-        icon="📄",
-        url_path="etf-detail",
-        visibility="hidden",
-    )
-
-    st.switch_page(
-        detail_page,
-        query_params={
-            "code": code,
-        },
-    )
-
-
-def format_etf_rows(
-    items: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """將 ETF API 資料轉成畫面欄位。
-
-    Args:
-        items:
-            ETF API 資料。
-
-    Returns:
-        list[dict[str, Any]]:
-            適合表格顯示的 ETF 資料。
-    """
-
-    display_rows: list[
-        dict[str, Any]
-    ] = []
-
-    for item in items:
-        display_rows.append(
-            {
-                "代號": item["code"],
-                "ETF 名稱": item["name"],
-                "管理方式": (
-                    "主動式"
-                    if item["is_active"]
-                    else "被動式"
-                ),
-                "資產類型": (
-                    "債券"
-                    if item["is_bond"]
-                    else "非債券"
-                ),
-                "上市日期": (
-                    item["listing_date"]
-                    or "—"
-                ),
-                "基金規模（億元）": (
-                    item["fund_size"]
-                ),
-                "費用率（%）": (
-                    item["expense_ratio"]
-                ),
-            }
-        )
-
-    return display_rows
 
 
 def render_search_form() -> None:
@@ -263,28 +392,17 @@ def render_search_form() -> None:
         )
 
     if submitted:
-        st.session_state[
-            "etf_search_keyword"
-        ] = keyword.strip()
-
-        st.session_state[
-            "etf_search_active_label"
-        ] = active_label
-
-        st.session_state[
-            "etf_search_bond_label"
-        ] = bond_label
-
-        st.session_state[
-            "etf_search_page_size"
-        ] = page_size
-
-        st.session_state[
-            "etf_search_page_number"
-        ] = 1
+        update_search_state(
+            ETFSearchQueryState(
+                keyword=keyword.strip(),
+                active_label=active_label,
+                bond_label=bond_label,
+                page=1,
+                page_size=page_size,
+            )
+        )
 
         load_etf_page.clear()
-
         st.rerun()
 
 
@@ -324,58 +442,34 @@ def render_action_buttons() -> None:
 
 
 def render_pagination(
-    current_page: int,
+    state: ETFSearchQueryState,
     total_pages: int,
 ) -> None:
     """顯示上一頁與下一頁控制項。"""
 
-    previous_column, page_column, next_column = (
-        st.columns(
-            [
-                1,
-                2,
-                1,
-            ]
-        )
+    action = render_pagination_controls(
+        current_page=state.page,
+        total_pages=total_pages,
+        previous_key="previous_etf_page",
+        next_key="next_etf_page",
     )
 
-    with previous_column:
-        previous_clicked = st.button(
-            "← 上一頁",
-            disabled=(
-                current_page <= 1
-            ),
-            key="previous_etf_page",
+    if action == "previous":
+        update_search_state(
+            replace(
+                state,
+                page=state.page - 1,
+            )
         )
-
-    with page_column:
-        st.write(
-            f"第 {current_page} 頁，"
-            f"共 {total_pages} 頁"
-        )
-
-    with next_column:
-        next_clicked = st.button(
-            "下一頁 →",
-            disabled=(
-                current_page
-                >= total_pages
-            ),
-            key="next_etf_page",
-        )
-
-    if previous_clicked:
-        st.session_state[
-            "etf_search_page_number"
-        ] = current_page - 1
-
         st.rerun()
 
-    if next_clicked:
-        st.session_state[
-            "etf_search_page_number"
-        ] = current_page + 1
-
+    if action == "next":
+        update_search_state(
+            replace(
+                state,
+                page=state.page + 1,
+            )
+        )
         st.rerun()
 
 
@@ -397,83 +491,71 @@ def render_etf_search() -> None:
         api_base_url = get_api_base_url()
 
     except ValueError as error:
-        st.error(str(error))
+        render_api_error(
+            "前端 API 網址設定不正確。",
+            error,
+        )
         return
 
-    keyword = str(
-        st.session_state[
-            "etf_search_keyword"
-        ]
-    )
+    state = get_search_state()
 
-    active_label = str(
-        st.session_state[
-            "etf_search_active_label"
-        ]
-    )
-
-    bond_label = str(
-        st.session_state[
-            "etf_search_bond_label"
-        ]
-    )
-
-    page_size = int(
-        st.session_state[
-            "etf_search_page_size"
-        ]
-    )
-
-    current_page = int(
-        st.session_state[
-            "etf_search_page_number"
-        ]
+    st.page_link(
+        create_streamlit_page(
+            ETF_COMPARISON_ROUTE
+        ),
+        label="開啟 ETF 比較",
+        icon="⚖️",
+        query_params=(
+            build_comparison_query_params(
+                codes=(),
+                source=str(
+                    ETF_SEARCH_ROUTE.url_path
+                ),
+                source_query_params=(
+                    state.to_query_params()
+                ),
+            )
+        ),
     )
 
     is_active = ACTIVE_FILTER_OPTIONS[
-        active_label
+        state.active_label
     ]
 
     is_bond = BOND_FILTER_OPTIONS[
-        bond_label
+        state.bond_label
     ]
 
     offset = (
-        current_page - 1
-    ) * page_size
+        state.page - 1
+    ) * state.page_size
 
     try:
-        with st.spinner(
+        with loading_state(
             "正在讀取 ETF 資料..."
         ):
             result = load_etf_page(
                 api_base_url=api_base_url,
                 keyword=(
-                    keyword
-                    if keyword
+                    state.keyword
+                    if state.keyword
                     else None
                 ),
                 is_active=is_active,
                 is_bond=is_bond,
-                limit=page_size,
+                limit=state.page_size,
                 offset=offset,
             )
 
     except APIClientError as error:
-        st.error(
-            "無法取得 ETF 資料。"
+        render_api_error(
+            "無法取得 ETF 資料。",
+            error,
+            hint=(
+                "請確認 FastAPI 已在 "
+                "127.0.0.1:8000 啟動。"
+            ),
         )
-
-        st.code(
-            str(error),
-            language=None,
-        )
-
-        st.info(
-            "請確認 FastAPI 已在 "
-            "127.0.0.1:8000 啟動。"
-        )
-
         return
 
     total = int(result["total"])
@@ -482,15 +564,17 @@ def render_etf_search() -> None:
     total_pages = max(
         1,
         math.ceil(
-            total / page_size
+            total / state.page_size
         ),
     )
 
-    if current_page > total_pages:
-        st.session_state[
-            "etf_search_page_number"
-        ] = total_pages
-
+    if state.page > total_pages:
+        update_search_state(
+            replace(
+                state,
+                page=total_pages,
+            )
+        )
         st.rerun()
 
     total_column, page_column, count_column = (
@@ -507,7 +591,7 @@ def render_etf_search() -> None:
         st.metric(
             "目前頁次",
             (
-                f"{current_page}"
+                f"{state.page}"
                 f" / {total_pages}"
             ),
         )
@@ -521,31 +605,18 @@ def render_etf_search() -> None:
     st.divider()
 
     if not items:
-        st.info(
-            "目前沒有符合條件的 ETF。"
+        render_empty_state(
+            "目前沒有符合條件的 ETF。",
+            hint=(
+                "可清除條件或調整關鍵字、"
+                "管理方式與資產類型。"
+            ),
         )
         return
 
-    display_rows = format_etf_rows(
-        items
-    )
-
-    table_key = (
-        "etf_search_results::"
-        f"{keyword}::"
-        f"{active_label}::"
-        f"{bond_label}::"
-        f"{page_size}::"
-        f"{current_page}"
-    )
-
-    selection_event = st.dataframe(
-        display_rows,
-        hide_index=True,
-        width="stretch",
-        key=table_key,
-        on_select="rerun",
-        selection_mode="single-row",
+    render_clickable_etf_rows(
+        items,
+        query_state=state,
     )
 
     st.caption(
@@ -555,53 +626,13 @@ def render_etf_search() -> None:
         f"共 {total:,} 筆"
     )
 
-    selected_rows = list(
-        selection_event.selection.rows
+    st.caption(
+        "滑鼠移到 ETF 資料列時，"
+        "整列會顯示可點擊效果；"
+        "單擊即可進入詳細資料頁。"
     )
 
-    if selected_rows:
-        selected_index = (
-            selected_rows[0]
-        )
-
-        if selected_index < len(items):
-            selected_item = items[
-                selected_index
-            ]
-
-            selected_code = str(
-                selected_item["code"]
-            )
-
-            selected_name = str(
-                selected_item["name"]
-            )
-
-            st.info(
-                f"已選擇："
-                f"{selected_code} "
-                f"{selected_name}"
-            )
-
-            if st.button(
-                "查看 ETF 詳細資料",
-                type="primary",
-                key=(
-                    "open_etf_detail_"
-                    f"{selected_code}"
-                ),
-            ):
-                open_etf_detail(
-                    selected_code
-                )
-
-    else:
-        st.caption(
-            "選取表格中的一列，"
-            "即可查看 ETF 詳細資料。"
-        )
-
     render_pagination(
-        current_page=current_page,
+        state=state,
         total_pages=total_pages,
     )

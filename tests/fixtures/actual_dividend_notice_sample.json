@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "notices": [
+    {
+      "source_id": "official_distribution_notice",
+      "source_document_id": "sample-00878-2023-08",
+      "source_document_url": "https://example.com/official/00878-2023-08",
+      "source_document_date": "2023-08-15",
+      "information_basis": "ACTUAL",
+      "etf_code": "00878",
+      "announcement_date": "2023-08-15",
+      "ex_dividend_date": "2023-08-16",
+      "record_date": "2023-08-22",
+      "payment_date": "2023-09-11",
+      "amount_per_unit": "0.35",
+      "distribution_period": "2023Q2",
+      "official_yield_pct": "1.75",
+      "currency": "TWD",
+      "components": [
+        {
+          "component_code": "76W",
+          "component_name": "財產交易所得",
+          "amount_per_unit": "0.34",
+          "ratio_pct": "97.142857"
+        },
+        {
+          "component_code": "54C",
+          "component_name": "股利所得",
+          "amount_per_unit": "0.01",
+          "ratio_pct": "2.857143"
+        }
+      ]
+    }
+  ]
+}

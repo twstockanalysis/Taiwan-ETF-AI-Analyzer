@@ -1,26 +1,14 @@
-# ETF Data Sources
+# Data Sources
 
-## Purpose
+## Policy
 
-This document records the approved data sources for the
-TW ETF AI Analyzer.
+The project prioritizes official or explicitly permitted sources. Every source
+has a stable identifier, provenance metadata and a defined use.
 
-The project prefers official and publicly documented sources.
+An available page is not automatically an acceptable ACTUAL source. The
+information basis and retrieval policy must be verified first.
 
-Third-party finance websites must not be used as the canonical
-source for ETF master data.
-
-## Source Priority
-
-1. Official OpenAPI
-2. Official downloadable files
-3. Official product web pages
-4. ETF issuer disclosures
-5. Manual review
-
-## Approved Sources
-
-### Taiwan Stock Exchange OpenAPI
+## ETF master
 
 Source ID:
 
@@ -28,244 +16,140 @@ Source ID:
 twse_openapi
 ```
 
-Purpose:
-
-- TWSE ETF master data
-- TWSE market information
-- Official public datasets
-
-Documentation:
+Endpoint:
 
 ```text
-https://openapi.twse.com.tw/
+/opendata/t187ap47_L
 ```
 
-Base URL:
+Use:
 
-```text
-https://openapi.twse.com.tw/v1
-```
+- ETF code and name
+- Active/passive classification
+- Bond/non-bond classification
+- Listing date
 
-### Taipei Exchange OpenAPI
+The Pipeline stores raw snapshots, normalized records, rejected records,
+checksums and import-batch results.
+
+## Historical market price
 
 Source ID:
 
 ```text
-tpex_openapi
+twse_stock_day
 ```
 
-Purpose:
+Use:
 
-- TPEx ETF master data
-- TPEx market information
-- Official public datasets
+- Daily closing prices
+- 1M, 3M, 6M and 1Y market-price returns
 
-Documentation:
+Current performance records are `PRICE_RETURN` and exclude distributions.
+
+## Estimated dividend information
+
+Source ID:
 
 ```text
-https://www.tpex.org.tw/openapi/
+twse_etfortune_dividend
 ```
 
-## Secondary Official Sources
+Use:
 
-### TWSE ETF Product List
+- Dividend events
+- Estimated composition percentages
 
-Used only when required information is not available from the
-official API.
-
-### TWSE ETF Dividend List
-
-Planned for the dividend history module.
-
-It is not part of the M6 ETF master import.
-
-## Data Storage Policy
-
-Downloaded source files are stored under:
+Estimated component codes:
 
 ```text
-data/raw/
+EST_DIVIDEND
+EST_INTEREST
+EST_EQUALIZATION
+EST_REALIZED_CAPITAL_GAIN
+EST_OTHER
 ```
 
-Normalized files are stored under:
+This source must not create ACTUAL `76W`.
+
+## Actual dividend composition
+
+### Human-reviewed notice input
+
+Source ID:
 
 ```text
-data/processed/
+manual_actual_dividend_notice
 ```
 
-Rejected records are stored under:
+Retrieval policy:
 
 ```text
-data/rejected/
+MANUAL_ONLY
 ```
 
-Downloaded and generated data files are excluded from Git.
+The structured JSON must identify an official document and explicitly use
+`information_basis=ACTUAL`.
 
-Small fixed test fixtures may be committed under:
+### Verified Cathay announcement Adapter
+
+Source ID:
 
 ```text
-tests/fixtures/
+cathay_actual_dividend_announcement
 ```
 
-## Data Governance Rules
-
-Every import must record:
-
-- Source ID
-- Download time
-- Source update time, when available
-- Number of received records
-- Number of accepted records
-- Number of rejected records
-- Error details
-- Raw file location
-- File checksum
-
-## Licensing
-
-Before a source is used in a public production website, its
-license, attribution requirements and redistribution conditions
-must be reviewed and recorded.
-
-Public accessibility must not automatically be treated as
-permission for unrestricted redistribution.
-
-## OpenAPI Specification Snapshots
-
-The project downloads and stores the official OpenAPI
-specifications before implementing an endpoint adapter.
-
-Snapshot location:
+Allowed official domains:
 
 ```text
-data/raw/openapi/{source_id}/
+cathaysite.com.tw
+www.cathaysite.com.tw
 ```
 
-Each snapshot includes:
+Retrieval policy:
 
-- Original OpenAPI JSON
+```text
+EXPLICIT_NETWORK
+```
+
+The Adapter requires explicit actual-composition wording and rejects estimated
+wording. Network access must be enabled explicitly or replaced by a reviewed
+local HTML file.
+
+## Official source-document retention
+
+Official HTML is stored by content checksum. Metadata includes:
+
+- Source and stable document IDs
+- Official URL
 - Download timestamp
-- SHA-256 checksum
-- Number of documented paths
-- Source specification URL
+- Content type
+- SHA-256
+- Snapshot and metadata paths
+- Parse status and error
+- Linked import batch
 
-The project does not assume that an endpoint is suitable for
-ETF master data merely because its name contains "fund".
+## Detail-page source display
 
-Every candidate endpoint must be reviewed for:
-
-- Whether it represents an exchange-traded ETF
-- Whether it includes delisted products
-- Whether it includes dual-currency listings
-- Whether it contains active ETFs
-- Whether it distinguishes stock and bond ETFs
-- Available identifiers and listing dates
-
-## TWSE ETF Master Dataset
-
-Endpoint ID:
+M9-4 exposes traceable source references through:
 
 ```text
-twse_fund_master
+GET /api/v1/etfs/{code}/data-profile
 ```
 
-Official API URL:
+Display names are resolved from the official-source registries while stable
+`source_id` values remain visible. The endpoint does not infer a missing source
+or substitute the current date for unavailable freshness metadata.
 
-```text
-https://openapi.twse.com.tw/v1/opendata/t187ap47_L
-```
+ETF-master freshness uses the latest successful `etf_master_pipeline` batch for
+the whole dataset. Performance, dividend and ACTUAL counts and dates are scoped
+to the requested ETF.
 
-Dataset purpose:
+## Current limitations
 
-- ETF and fund security codes
-- Fund names
-- Fund types
-- Establishment dates
-- Listing dates
-- Other official fund master attributes
-
-The source dataset is a fund master dataset and is not assumed
-to contain only ETFs.
-
-Records must pass the ETF normalization and validation process
-before being imported into `etf_master`.
-
-## Raw ETF Master Snapshots
-
-Raw snapshots are stored under:
-
-```text
-data/raw/etf_master/twse_fund_master/
-```
-
-Each download creates:
-
-- Timestamped JSON data
-- Timestamped metadata
-- `latest.json`
-- `latest.meta.json`
-- SHA-256 checksum
-- Record count
-- Source field list
-
-These generated files are excluded from Git.
-
-## HTTPS Compatibility
-
-Python 3.13 enables strict X.509 certificate checks by default.
-
-The current TWSE and TPEx certificate chains require the project
-to disable only the strict X.509 formatting flag.
-
-The downloader still retains:
-
-- Certificate authority verification
-- Hostname verification
-- HTTPS encryption
-
-The project must not use:
-
-```python
-verify=False
-```
-
-## ETF Master Import
-
-Normalized ETF records are loaded from:
-
-```text
-data/processed/etf_master/twse_fund_master/latest.json
-```
-
-Before importing, every record is validated again with
-`ETFImportRecord`.
-
-The import is executed inside a SQLite transaction.
-
-Import behavior:
-
-- New ETF codes are inserted
-- Existing ETF codes are updated
-- ETF names and classification fields are refreshed
-- Existing fund size values are preserved
-- Existing expense ratio values are preserved
-- M5 development records are removed
-- Duplicate ETF codes abort the import
-
-Development records removed by the importer:
-
-```text
-DEV001
-DEV002A
-```
-
-The `is_active` column means actively managed ETF.
-
-It must not be used as a listing-status or record-enabled flag.
-
-## End-to-End ETF Master Pipeline
-
-Run the full ETF master pipeline:
-
-```powershell
-python -m backend.app.data_sources.etf_master_pipeline
+- TWSE ETF e添富 composition is estimated, not ACTUAL.
+- Only verified issuer formats receive an automated Adapter.
+- No OCR or tax-code inference is performed.
+- Actual coverage depends on publicly available or manually reviewed official
+  documents.
+- Vendor and broker APIs are deferred until after the core website roadmap.
