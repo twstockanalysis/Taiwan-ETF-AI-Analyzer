@@ -163,10 +163,10 @@ class TestScenarioEstimateCalculator(unittest.TestCase):
             Decimal("0.00"),
         )
 
-    def test_missing_assumption_keeps_results_unavailable(
+    def test_missing_price_return_preserves_cash_results(
         self,
     ) -> None:
-        """確認缺少假設時不自動補零。"""
+        """確認缺少價格報酬時仍保留可計算的現金結果。"""
 
         result = calculate_scenario_estimate(
             self.build_input(
@@ -175,20 +175,103 @@ class TestScenarioEstimateCalculator(unittest.TestCase):
         )
 
         self.assertIsNone(result.ending_holding_value)
-        self.assertIsNone(
+        self.assertIsNotNone(
+            result.cumulative_gross_cash
+        )
+        self.assertIsNotNone(
+            result.cumulative_cash_deductions
+        )
+        self.assertIsNotNone(
             result.cumulative_after_tax_cash
+        )
+        self.assertIsNone(
+            result.after_tax_total_gain_loss
         )
         self.assertIsNone(
             result.after_tax_total_return_pct
         )
-        self.assertTrue(
-            all(
-                issue.reason
-                == CalculationUnavailableReason.MISSING_INPUT
-                for issue in result.issues
+
+        issues_by_field = {
+            issue.field: issue.reason
+            for issue in result.issues
+        }
+        self.assertEqual(
+            issues_by_field,
+            {
+                "ending_holding_value": (
+                    CalculationUnavailableReason
+                    .MISSING_INPUT
+                ),
+                "after_tax_total_gain_loss": (
+                    CalculationUnavailableReason
+                    .MISSING_INPUT
+                ),
+                "after_tax_total_return_pct": (
+                    CalculationUnavailableReason
+                    .MISSING_INPUT
+                ),
+            },
+        )
+
+    def test_missing_cash_rate_preserves_holding_value(
+        self,
+    ) -> None:
+        """確認缺少配息率時仍保留可計算的持有價值。"""
+
+        result = calculate_scenario_estimate(
+            self.build_input(
+                annual_gross_cash_rate_pct=None,
             )
         )
 
+        self.assertIsNotNone(
+            result.ending_holding_value
+        )
+        self.assertIsNone(
+            result.cumulative_gross_cash
+        )
+        self.assertIsNone(
+            result.cumulative_cash_deductions
+        )
+        self.assertIsNone(
+            result.cumulative_after_tax_cash
+        )
+        self.assertIsNone(
+            result.after_tax_total_gain_loss
+        )
+        self.assertIsNone(
+            result.after_tax_total_return_pct
+        )
+
+        issues_by_field = {
+            issue.field: issue.reason
+            for issue in result.issues
+        }
+        self.assertEqual(
+            issues_by_field,
+            {
+                "cumulative_gross_cash": (
+                    CalculationUnavailableReason
+                    .MISSING_INPUT
+                ),
+                "cumulative_cash_deductions": (
+                    CalculationUnavailableReason
+                    .MISSING_INPUT
+                ),
+                "cumulative_after_tax_cash": (
+                    CalculationUnavailableReason
+                    .MISSING_INPUT
+                ),
+                "after_tax_total_gain_loss": (
+                    CalculationUnavailableReason
+                    .MISSING_INPUT
+                ),
+                "after_tax_total_return_pct": (
+                    CalculationUnavailableReason
+                    .MISSING_INPUT
+                ),
+            },
+        )
     def test_zero_initial_capital_has_no_rate(self) -> None:
         """確認零本金保留零金額但沒有報酬率。"""
 

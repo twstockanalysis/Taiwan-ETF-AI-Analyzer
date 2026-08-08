@@ -420,24 +420,6 @@ def calculate_scenario_estimate(
 ) -> ScenarioEstimateCalculationResult:
     """依明示假設估算不再投入配息的總報酬。"""
 
-    required = {
-        "initial_capital": value.initial_capital,
-        "annual_gross_cash_rate_pct": (
-            value.annual_gross_cash_rate_pct
-        ),
-        "cash_deduction_rate_pct": (
-            value.cash_deduction_rate_pct
-        ),
-        "annual_price_return_pct": (
-            value.annual_price_return_pct
-        ),
-        "projection_years": value.projection_years,
-    }
-    missing_fields = [
-        field
-        for field, item in required.items()
-        if item is None
-    ]
     result_fields = (
         "ending_holding_value",
         "cumulative_gross_cash",
@@ -447,7 +429,10 @@ def calculate_scenario_estimate(
         "after_tax_total_return_pct",
     )
 
-    if missing_fields:
+    if (
+        value.initial_capital is None
+        or value.projection_years is None
+    ):
         return ScenarioEstimateCalculationResult(
             currency=value.context.currency,
             projection_years=value.projection_years,
@@ -467,86 +452,161 @@ def calculate_scenario_estimate(
             ],
         )
 
-    assert value.initial_capital is not None
-    assert value.annual_gross_cash_rate_pct is not None
-    assert value.cash_deduction_rate_pct is not None
-    assert value.annual_price_return_pct is not None
-    assert value.projection_years is not None
-
-    years = Decimal(value.projection_years)
-    gross_cash_rate = (
-        value.annual_gross_cash_rate_pct
-        / HUNDRED
-    )
-    deduction_rate = (
-        value.cash_deduction_rate_pct
-        / HUNDRED
-    )
-    price_growth_factor = (
-        Decimal("1")
-        + value.annual_price_return_pct
-        / HUNDRED
-    )
-    ending_holding_value_raw = (
-        value.initial_capital
-        * price_growth_factor
-        ** value.projection_years
-    )
-    cumulative_gross_cash_raw = (
-        value.initial_capital
-        * gross_cash_rate
-        * years
-    )
-    cumulative_deductions_raw = (
-        cumulative_gross_cash_raw
-        * deduction_rate
-    )
-    cumulative_after_tax_cash_raw = (
-        cumulative_gross_cash_raw
-        - cumulative_deductions_raw
-    )
-    total_gain_loss_raw = (
-        ending_holding_value_raw
-        + cumulative_after_tax_cash_raw
-        - value.initial_capital
-    )
+    initial_capital = value.initial_capital
+    projection_years = value.projection_years
+    years = Decimal(projection_years)
     issues: list[CalculationIssue] = []
 
-    if value.initial_capital <= 0:
-        total_return_pct = None
+    if value.annual_price_return_pct is None:
+        ending_holding_value_raw = None
+        ending_holding_value = None
         issues.append(
             _issue(
-                "after_tax_total_return_pct",
-                CalculationUnavailableReason
-                .NON_POSITIVE_INITIAL_CAPITAL,
+                "ending_holding_value",
+                CalculationUnavailableReason.MISSING_INPUT,
             )
         )
     else:
-        total_return_pct = _round_percentage(
-            total_gain_loss_raw
-            / value.initial_capital
-            * HUNDRED
+        price_growth_factor = (
+            Decimal("1")
+            + value.annual_price_return_pct / HUNDRED
         )
+        ending_holding_value_raw = (
+            initial_capital
+            * price_growth_factor
+            ** projection_years
+        )
+        ending_holding_value = _round_money(
+            ending_holding_value_raw
+        )
+
+    if value.annual_gross_cash_rate_pct is None:
+        cumulative_gross_cash_raw = None
+        cumulative_gross_cash = None
+        issues.append(
+            _issue(
+                "cumulative_gross_cash",
+                CalculationUnavailableReason.MISSING_INPUT,
+            )
+        )
+    else:
+        gross_cash_rate = (
+            value.annual_gross_cash_rate_pct / HUNDRED
+        )
+        cumulative_gross_cash_raw = (
+            initial_capital
+            * gross_cash_rate
+            * years
+        )
+        cumulative_gross_cash = _round_money(
+            cumulative_gross_cash_raw
+        )
+
+    if (
+        cumulative_gross_cash_raw is None
+        or value.cash_deduction_rate_pct is None
+    ):
+        cumulative_deductions_raw = None
+        cumulative_after_tax_cash_raw = None
+        cumulative_cash_deductions = None
+        cumulative_after_tax_cash = None
+
+        issues.append(
+            _issue(
+                "cumulative_cash_deductions",
+                CalculationUnavailableReason.MISSING_INPUT,
+            )
+        )
+        issues.append(
+            _issue(
+                "cumulative_after_tax_cash",
+                CalculationUnavailableReason.MISSING_INPUT,
+            )
+        )
+    else:
+        deduction_rate = (
+            value.cash_deduction_rate_pct / HUNDRED
+        )
+        cumulative_deductions_raw = (
+            cumulative_gross_cash_raw
+            * deduction_rate
+        )
+        cumulative_after_tax_cash_raw = (
+            cumulative_gross_cash_raw
+            - cumulative_deductions_raw
+        )
+        cumulative_cash_deductions = _round_money(
+            cumulative_deductions_raw
+        )
+        cumulative_after_tax_cash = _round_money(
+            cumulative_after_tax_cash_raw
+        )
+
+    if (
+        ending_holding_value_raw is None
+        or cumulative_after_tax_cash_raw is None
+    ):
+        total_gain_loss_raw = None
+        after_tax_total_gain_loss = None
+        after_tax_total_return_pct = None
+
+        issues.append(
+            _issue(
+                "after_tax_total_gain_loss",
+                CalculationUnavailableReason.MISSING_INPUT,
+            )
+        )
+        issues.append(
+            _issue(
+                "after_tax_total_return_pct",
+                CalculationUnavailableReason.MISSING_INPUT,
+            )
+        )
+    else:
+        total_gain_loss_raw = (
+            ending_holding_value_raw
+            + cumulative_after_tax_cash_raw
+            - initial_capital
+        )
+        after_tax_total_gain_loss = _round_money(
+            total_gain_loss_raw
+        )
+
+        if initial_capital <= 0:
+            after_tax_total_return_pct = None
+            issues.append(
+                _issue(
+                    "after_tax_total_return_pct",
+                    CalculationUnavailableReason
+                    .NON_POSITIVE_INITIAL_CAPITAL,
+                )
+            )
+        else:
+            after_tax_total_return_pct = (
+                _round_percentage(
+                    total_gain_loss_raw
+                    / initial_capital
+                    * HUNDRED
+                )
+            )
 
     return ScenarioEstimateCalculationResult(
         currency=value.context.currency,
-        projection_years=value.projection_years,
+        projection_years=projection_years,
         reinvestment_policy=value.reinvestment_policy,
-        ending_holding_value=_round_money(
-            ending_holding_value_raw
+        ending_holding_value=ending_holding_value,
+        cumulative_gross_cash=cumulative_gross_cash,
+        cumulative_cash_deductions=(
+            cumulative_cash_deductions
         ),
-        cumulative_gross_cash=_round_money(
-            cumulative_gross_cash_raw
+        cumulative_after_tax_cash=(
+            cumulative_after_tax_cash
         ),
-        cumulative_cash_deductions=_round_money(
-            cumulative_deductions_raw
+        after_tax_total_gain_loss=(
+            after_tax_total_gain_loss
         ),
-        cumulative_after_tax_cash=_round_money(
-            cumulative_after_tax_cash_raw
+        after_tax_total_return_pct=(
+            after_tax_total_return_pct
         ),
-        after_tax_total_gain_loss=_round_money(
-            total_gain_loss_raw
-        ),
-        after_tax_total_return_pct=total_return_pct,
         issues=issues,
     )
