@@ -4,6 +4,11 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
 
+from backend.app.models.cash_flow_analysis import (
+    CashFlowCalculationResult,
+    ScenarioEstimateCalculationResult,
+)
+
 class TargetAnalysisStatus(str, Enum):
     AVAILABLE = "AVAILABLE"
     PARTIAL = "PARTIAL"
@@ -33,12 +38,13 @@ class TargetAnalysisWarningCode(str, Enum):
 class TargetAnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    available_capital: Decimal = Field(gt=0)
+    held_units: int = Field(ge=0)
+    unit_price: Decimal = Field(gt=0)
     monthly_after_tax_target: Decimal = Field(ge=0)
     analysis_years: int = Field(ge=1, le=50)
     history_years: int = Field(default=3, ge=1, le=10)
-    cash_deduction_rate_pct: Decimal = Field(
-        default=Decimal("0"),
+    cash_deduction_rate_pct: Decimal | None = Field(
+        default=None,
         ge=0,
         le=100,
     )
@@ -57,3 +63,22 @@ class TargetAnalysisUnavailableField(BaseModel):
 
     field: str = Field(min_length=1)
     reason: str = Field(min_length=1)
+
+class TargetAnalysisResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: TargetAnalysisStatus
+
+    cash_flow: CashFlowCalculationResult
+
+    scenario_estimate: ScenarioEstimateCalculationResult
+
+    warnings: list[TargetAnalysisWarning] = Field(
+        default_factory=list,
+    )
+
+    unavailable_fields: list[
+        TargetAnalysisUnavailableField
+    ] = Field(
+        default_factory=list,
+    )

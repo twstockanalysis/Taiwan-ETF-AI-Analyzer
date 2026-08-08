@@ -15,32 +15,49 @@ from backend.app.models.target_analysis import (
 class TestTargetAnalysisRequest(unittest.TestCase):
     def test_valid_request_uses_documented_defaults(self):
         request = TargetAnalysisRequest(
-            available_capital="1000000",
+            held_units=1000,
+            unit_price="35.50",
             monthly_after_tax_target="10000",
             analysis_years=10,
         )
 
-        self.assertEqual(request.available_capital, Decimal("1000000"))
+        self.assertEqual(request.held_units, 1000)
+        self.assertEqual(request.unit_price, Decimal("35.50"))
         self.assertEqual(
             request.monthly_after_tax_target,
             Decimal("10000"),
         )
         self.assertEqual(request.analysis_years, 10)
         self.assertEqual(request.history_years, 3)
+        self.assertIsNone(
+            request.cash_deduction_rate_pct
+        )
+
+    def test_explicit_zero_cash_deduction_rate_is_preserved(self):
+        request = TargetAnalysisRequest(
+            held_units=1000,
+            unit_price="35.50",
+            monthly_after_tax_target="10000",
+            analysis_years=10,
+            cash_deduction_rate_pct="0",
+        )
+
         self.assertEqual(
             request.cash_deduction_rate_pct,
             Decimal("0"),
         )
-
     def test_boundary_values_are_accepted(self):
         request = TargetAnalysisRequest(
-            available_capital="0.01",
+            held_units=0,
+            unit_price="0.01",
             monthly_after_tax_target="0",
             analysis_years=50,
             history_years=10,
             cash_deduction_rate_pct="100",
         )
 
+        self.assertEqual(request.held_units, 0)
+        self.assertEqual(request.unit_price, Decimal("0.01"))
         self.assertEqual(request.analysis_years, 50)
         self.assertEqual(request.history_years, 10)
         self.assertEqual(
@@ -50,8 +67,9 @@ class TestTargetAnalysisRequest(unittest.TestCase):
 
     def test_invalid_request_values_are_rejected(self):
         invalid_cases = (
-            {"available_capital": "0"},
-            {"available_capital": "-1"},
+            {"held_units": -1},
+            {"unit_price": "0"},
+            {"unit_price": "-0.01"},
             {"monthly_after_tax_target": "-1"},
             {"analysis_years": 0},
             {"analysis_years": 51},
@@ -62,7 +80,8 @@ class TestTargetAnalysisRequest(unittest.TestCase):
         )
 
         base_values = {
-            "available_capital": "1000000",
+            "held_units": 1000,
+            "unit_price": "35.50",
             "monthly_after_tax_target": "10000",
             "analysis_years": 10,
         }
@@ -77,12 +96,12 @@ class TestTargetAnalysisRequest(unittest.TestCase):
     def test_unknown_request_fields_are_rejected(self):
         with self.assertRaises(ValidationError):
             TargetAnalysisRequest(
-                available_capital="1000000",
+                held_units=1000,
+                unit_price="35.50",
                 monthly_after_tax_target="10000",
                 analysis_years=10,
                 unsupported_option=True,
             )
-
 
 class TestTargetAnalysisContractEnums(unittest.TestCase):
     def test_status_values_are_stable(self):
