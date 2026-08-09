@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from backend.app.api.routers import (
     data_quality,
+    decision_profile,
     dividends,
     etfs,
     monthly_combination,
@@ -18,6 +19,10 @@ api_router = APIRouter()
 
 api_router.include_router(
     system.router
+)
+
+api_router.include_router(
+    decision_profile.router
 )
 
 api_router.include_router(

@@ -465,10 +465,26 @@ Acceptance:
 
 ## M11 — Decision platform
 
+### M11-1 — Single-user conditions and manual holdings — Completed
+
+Status: implementation completed on 2026-08-09; full-suite verification is
+recorded in the changelog.
+
+Delivered:
+
+- Added one explicit `SINGLE_USER` decision profile without user accounts
+- Persisted a fixed monthly after-tax target, analysis horizon, history window
+  and an optional generic cash-deduction assumption
+- Added manual Taiwan ETF holdings with positive whole units, a user-supplied
+  TWD reference price and an optional price date
+- Added FastAPI read/upsert/delete contracts and a Streamlit management page
+- Kept broker connectivity and automatic trading explicitly disabled
+- Preserved missing cash-deduction assumptions separately from formal zero
+
+### M11-2+ — Decision analysis, records and export
+
 Planned:
 
-- Persist user conditions only after M10 calculation contracts are stable
-- Add manual holdings with no broker connection
 - Reuse M10 calculations for current-holding and candidate analysis
 - Preserve recommendation rationale, exclusions, alternatives and risk notes
 - Add decision records and Excel export
@@ -483,6 +499,7 @@ Planned:
 - Administration status
 - Backup and recovery
 - Public deployment, domain and HTTPS
+- Protect decision-profile writes before exposing the site to anonymous users
 
 ## Optional external integrations — after the core website
 

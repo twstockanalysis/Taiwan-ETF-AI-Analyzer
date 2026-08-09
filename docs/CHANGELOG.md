@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-09 — M11-1 single-user conditions and manual holdings
+
+- Added SQLite persistence for one fixed decision profile and manual ETF
+  holdings without adding accounts or broker connectivity
+- Added conditions for monthly after-tax target, analysis/history years and an
+  optional generic cash-deduction rate
+- Added idempotent holding upserts and explicit deletes using positive whole
+  units, user-entered TWD reference prices and optional price dates
+- Added `GET/PUT/DELETE` decision-profile FastAPI contracts
+- Added a Streamlit management page using native forms, a static holdings table
+  and a delete-confirmation dialog
+- Added Schema, Repository, API, frontend client, navigation and AppTest
+  coverage
+
 ## 2026-08-09 — M10-5 monthly-payment combination
 
 - Added a base-anchored, Decimal-based candidate eligibility and month-gap

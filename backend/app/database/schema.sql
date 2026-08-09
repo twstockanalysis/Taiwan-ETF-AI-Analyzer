@@ -674,3 +674,73 @@ ON dividend_source_review_queue (
     dividend_id,
     issue_type
 );
+
+-- ============================================================
+-- M11 單一使用者決策條件
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS decision_profile (
+    id INTEGER PRIMARY KEY
+        CHECK (id = 1),
+
+    monthly_after_tax_target REAL NOT NULL
+        CHECK (monthly_after_tax_target >= 0),
+
+    analysis_years INTEGER NOT NULL
+        CHECK (analysis_years >= 1 AND analysis_years <= 50),
+
+    history_years INTEGER NOT NULL
+        CHECK (history_years >= 1 AND history_years <= 10),
+
+    cash_deduction_rate_pct REAL
+        CHECK (
+            cash_deduction_rate_pct IS NULL
+            OR (
+                cash_deduction_rate_pct >= 0
+                AND cash_deduction_rate_pct <= 100
+            )
+        ),
+
+    currency TEXT NOT NULL DEFAULT 'TWD'
+        CHECK (currency = 'TWD'),
+
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================
+-- M11 手動持有部位（無券商連線）
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS manual_holding (
+    etf_code TEXT PRIMARY KEY,
+
+    held_units INTEGER NOT NULL
+        CHECK (held_units > 0),
+
+    unit_price REAL NOT NULL
+        CHECK (unit_price > 0),
+
+    price_as_of_date TEXT,
+
+    currency TEXT NOT NULL DEFAULT 'TWD'
+        CHECK (currency = 'TWD'),
+
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (etf_code)
+        REFERENCES etf_master (code)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_manual_holding_updated
+ON manual_holding (
+    updated_at DESC,
+    etf_code
+);

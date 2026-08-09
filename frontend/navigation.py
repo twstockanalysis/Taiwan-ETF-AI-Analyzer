@@ -59,6 +59,13 @@ ETF_COMPARISON_ROUTE = PageRoute(
     url_path="etf-comparison",
 )
 
+DECISION_PROFILE_ROUTE = PageRoute(
+    key="decision-profile",
+    title="我的條件與持有部位",
+    icon=":material/account_balance_wallet:",
+    url_path="decision-profile",
+)
+
 DIVIDEND_DATA_QUALITY_ROUTE = PageRoute(
     key="dividend-data-quality",
     title="配息資料品質",
@@ -79,6 +86,7 @@ PUBLIC_ROUTES = (
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
     ETF_COMPARISON_ROUTE,
+    DECISION_PROFILE_ROUTE,
     DIVIDEND_DATA_QUALITY_ROUTE,
 )
 
@@ -129,6 +137,13 @@ def create_streamlit_page(
         )
 
         source = render_etf_comparison
+
+    elif route == DECISION_PROFILE_ROUTE:
+        from frontend.pages.decision_profile import (
+            render_decision_profile,
+        )
+
+        source = render_decision_profile
 
     elif route == DIVIDEND_DATA_QUALITY_ROUTE:
         from frontend.pages.dividend_data_quality import (

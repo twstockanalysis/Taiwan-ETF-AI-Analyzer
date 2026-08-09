@@ -1,5 +1,16 @@
 # Database Schema
 
+## M11 decision profile
+
+`decision_profile` is a singleton table whose primary key is constrained to
+`id = 1`. It stores the public site's fixed monthly after-tax target, analysis
+and history windows, nullable cash-deduction assumption and TWD currency.
+
+`manual_holding` uses `etf_code` as its primary key and foreign key to
+`etf_master`. Units must be a positive integer and the user-entered TWD
+reference price must be positive. A missing `price_as_of_date` remains `NULL`.
+Deleting an ETF master row cascades only its local manual holding.
+
 ## Database
 
 Development database:
