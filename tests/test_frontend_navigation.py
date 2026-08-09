@@ -4,6 +4,7 @@ import unittest
 
 from frontend.navigation import (
     ALL_ROUTES,
+    DECISION_PROFILE_ROUTE,
     ETF_DETAIL_ROUTE,
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
@@ -51,6 +52,14 @@ class TestFrontendNavigation(
 
         self.assertTrue(
             ETF_DETAIL_ROUTE.hidden
+        )
+
+    def test_decision_profile_is_public_single_user_route(self) -> None:
+        self.assertIn(DECISION_PROFILE_ROUTE, ALL_ROUTES)
+        self.assertFalse(DECISION_PROFILE_ROUTE.hidden)
+        self.assertEqual(
+            DECISION_PROFILE_ROUTE.url_path,
+            "decision-profile",
         )
 
     def test_detail_query_preserves_search_state(

@@ -57,6 +57,26 @@ five most recent import batches
 Coverage percentages are `null` when the denominator is zero. Missing dates
 remain `null`; the API does not substitute the current date.
 
+## Single-user decision profile
+
+```http
+GET /api/v1/decision-profile
+PUT /api/v1/decision-profile/conditions
+PUT /api/v1/decision-profile/holdings/{etf_code}
+DELETE /api/v1/decision-profile/holdings/{etf_code}
+```
+
+M11-1 exposes one `SINGLE_USER` profile and always returns
+`broker_connected=false`. It does not create accounts, authenticate brokerage
+connections or send orders.
+
+Conditions persist the monthly after-tax cash target, analysis years, history
+years and a nullable generic cash-deduction percentage. Manual holdings persist
+positive whole units, a user-supplied positive TWD reference price and an
+optional price date. Repeating a holding `PUT` updates that ETF; `DELETE`
+removes only the website's manual record. Missing deductions remain `null`,
+while a formal `0%` deduction remains numerical zero.
+
 ## ETF master data
 
 ### List ETFs

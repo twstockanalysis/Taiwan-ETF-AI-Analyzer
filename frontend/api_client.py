@@ -41,6 +41,15 @@ from frontend.api.data_profile import (
     validate_etf_data_profile,
     validate_etf_data_profile_sources,
 )
+from frontend.api.decision_profile import (
+    delete_manual_holding,
+    fetch_decision_profile,
+    save_manual_holding,
+    save_user_conditions,
+    validate_decision_profile,
+    validate_manual_holding,
+    validate_user_conditions,
+)
 from frontend.api.dividend_quality import (
     fetch_actual_dividend_coverage,
     fetch_dividend_review_queue,
@@ -82,9 +91,11 @@ from frontend.api.system_overview import (
     validate_system_overview_performance,
 )
 from frontend.api.transport import (
+    delete_json,
     extract_response_detail,
     get_json,
     post_json,
+    put_json,
 )
 from frontend.api.tax_reinvestment import (
     fetch_tax_reinvestment_scenarios,

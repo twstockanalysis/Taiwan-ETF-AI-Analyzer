@@ -16,6 +16,7 @@ API_CLIENT_PATH = PROJECT_ROOT / "frontend" / "api_client.py"
 EXPECTED_API_MODULES = {
     "comparison.py",
     "data_profile.py",
+    "decision_profile.py",
     "dividend_quality.py",
     "dividends.py",
     "errors.py",

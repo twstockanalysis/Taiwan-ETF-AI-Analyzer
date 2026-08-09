@@ -1,5 +1,13 @@
 # Streamlit Frontend
 
+## M11-1 decision profile page
+
+The public navigation includes `我的條件與持有部位`. The page reads and writes
+only through FastAPI and states that it is a single-user, manual-entry flow
+with no broker connection. Separate native forms save fixed analysis conditions
+and one ETF holding at a time. A small static table shows user-entered reference
+values, and every delete requires a confirmation dialog.
+
 ## Architecture
 
 ```text

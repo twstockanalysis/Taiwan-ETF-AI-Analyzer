@@ -1,5 +1,28 @@
 # System Architecture
 
+## M11-1 decision-profile flow
+
+```text
+Streamlit decision-profile page
+    |
+    v
+FastAPI /api/v1/decision-profile
+    |
+    v
+Decision-profile Repository
+    |
+    +--> decision_profile (singleton conditions)
+    +--> manual_holding (ETF-code keyed holdings)
+    |
+    v
+SQLite
+```
+
+The flow remains single-user and has no broker or order boundary. Reference
+prices are user-entered assumptions, not live quotes. The mutable singleton is
+not an anonymous-public boundary; M12 must restrict decision-profile writes
+before public deployment.
+
 ## Current website request flow
 
 ```text
