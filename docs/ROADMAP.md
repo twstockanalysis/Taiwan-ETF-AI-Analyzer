@@ -376,7 +376,10 @@ Delivered:
   separated from forward-looking assumptions
 - Kept reinvested cash inside ending value and exposed a total-return gate
 
-### M10-5 — Monthly-payment combination and candidate exclusions
+### M10-5 — Monthly-payment combination and candidate exclusions — Completed
+
+Status: implementation completed on 2026-08-09; full-suite verification is
+recorded in the changelog.
 
 Goal:
 
@@ -404,6 +407,21 @@ Acceptance:
 - Every selected and rejected candidate has an explainable reason
 - The base ETF remains visible as the anchor of every result
 - The combination remains a scenario, not an investment guarantee
+
+Delivered:
+
+- Added a pure candidate-gating and month-gap calculation with deterministic,
+  explainable ordering and a one-to-three ETF limit
+- Derived payment stability and after-tax cash contribution from historical
+  payment-date data while retaining explicit unit-price assumptions
+- Applied total-return, downside, completeness, freshness, overlap and
+  concentration rules before month coverage
+- Kept missing overlap distinct from formal zero and exposed remaining
+  limitations as trade-offs
+- Added a FastAPI endpoint and comparison-page Streamlit flow with the base ETF
+  visibly retained as the result anchor
+- Displayed active/passive and bond/non-bond classifications as transparent
+  facts instead of automatic quality labels
 
 ### M10-R0 — Pre-M11 architecture stabilization — Completed
 

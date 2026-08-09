@@ -223,6 +223,30 @@ ACTUAL components or tax assumptions are not converted to zero.
 previous trading date and close; an official value never carries a calculated
 price reference.
 
+### Monthly-payment combination
+
+```text
+POST /api/v1/etfs/{code}/monthly-payment-combination
+```
+
+The path ETF is the visible base anchor. The request supplies one to three
+candidate codes, each candidate's explicit unit-price and allocation
+assumptions, an optional holding-overlap estimate, lookback years, cash
+deduction rate and eligibility rules. A candidate cannot repeat the base ETF.
+
+The server derives payment-month recurrence and cash distributions from actual
+`payment_date` records and uses the latest `1M`, `3M`, `6M` and `1Y`
+`PRICE_RETURN` records. It applies data completeness, freshness, distribution
+stability, after-tax cash, total-return, downside, overlap and concentration
+gates before considering payment-month coverage. Active/passive and bond/non-
+bond fields are returned as attributes, not quality scores.
+
+Every selected or rejected candidate contains machine-readable and plain-
+language reasons. Missing holding overlap remains `null` and produces a
+trade-off (or exclusion when explicitly required); formal zero remains zero.
+The response keeps historical facts separate from cash-deduction assumptions
+and labels the combination as a scenario rather than a guarantee.
+
 ### Actual 76W history
 
 ```http
