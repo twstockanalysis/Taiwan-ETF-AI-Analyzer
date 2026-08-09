@@ -1605,3 +1605,57 @@ def build_actual_76w_summary(
         ),
         "items": items,
     }
+
+
+def list_etf_actual_component_history(
+    etf_code: str,
+    database_path: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    """列出 ETF 的正式 ACTUAL 組成與父配息事件。"""
+
+    normalized_code = _normalize_text(
+        etf_code,
+        "etf_code",
+        uppercase=True,
+    )
+    connection = get_connection(database_path)
+
+    try:
+        rows = connection.execute(
+            """
+            SELECT
+                d.id AS dividend_id,
+                d.source_event_id,
+                d.announcement_date,
+                d.ex_dividend_date,
+                d.record_date,
+                d.payment_date,
+                d.amount_per_unit AS distribution_amount_per_unit,
+                d.currency,
+                c.component_code,
+                c.component_name,
+                c.amount_per_unit AS component_amount_per_unit,
+                c.ratio_pct,
+                c.source_id,
+                c.source_updated_at
+            FROM etf_dividend_component AS c
+            INNER JOIN etf_dividend AS d
+                ON d.id = c.dividend_id
+            WHERE d.etf_code = ?
+              AND c.component_basis = 'ACTUAL'
+            ORDER BY
+                COALESCE(
+                    d.payment_date,
+                    d.ex_dividend_date,
+                    d.record_date,
+                    d.announcement_date
+                ) DESC,
+                d.id DESC,
+                c.component_code,
+                c.id;
+            """,
+            (normalized_code,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        connection.close()
