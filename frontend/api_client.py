@@ -18,6 +18,10 @@ from frontend.api.etfs import (
     validate_etf_item,
 )
 from frontend.api.health import fetch_api_health
+from frontend.api.monthly_combination import (
+    fetch_monthly_payment_combination,
+    validate_monthly_combination_result,
+)
 from frontend.api.normalizers import (
     COMPARISON_PERIODS,
     SUPPORTED_DIVIDEND_COMPONENT_BASES,

@@ -9,6 +9,7 @@ import streamlit as st
 from frontend.api_client import (
     APIClientError,
     fetch_etf_comparison,
+    fetch_monthly_payment_combination,
 )
 from frontend.config import (
     get_api_base_url,
@@ -44,6 +45,235 @@ COMPARISON_PERIODS = (
     "6M",
     "1Y",
 )
+
+
+def build_monthly_coverage_rows(
+    calculation: dict[str, Any],
+) -> list[dict[str, str]]:
+    """建立基準與組合付款月份覆蓋表。"""
+
+    base_months = calculation.get("base_payment_months")
+    combined_months = calculation.get("combined_payment_months")
+    return [
+        {
+            "月份": f"{month} 月",
+            "基準 ETF": (
+                "有歷史付款" if base_months is not None and month in base_months
+                else "未覆蓋" if base_months is not None else "資料不足"
+            ),
+            "組合情境": (
+                "有歷史付款"
+                if combined_months is not None and month in combined_months
+                else "未覆蓋"
+                if combined_months is not None
+                else "無法估算"
+            ),
+        }
+        for month in range(1, 13)
+    ]
+
+
+def build_candidate_result_rows(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    """建立含理由、月份與透明分類的候選結果列。"""
+
+    return [
+        {
+            "ETF": f"{item['etf_code']} {item['name']}",
+            "管理方式": management_type_label(item["is_active"]),
+            "資產類型": asset_type_label(item["is_bond"]),
+            "補足月份": (
+                "、".join(f"{month}月" for month in item["supported_gap_months"])
+                or "無"
+            ),
+            "資料完整度": format_percentage(item.get("completeness_pct")),
+            "付款穩定度": format_percentage(
+                item.get("distribution_stability_pct")
+            ),
+            "資料新鮮": (
+                "是" if item.get("data_is_fresh") is True else "否／不足"
+            ),
+            "估算稅後現金率": format_percentage(
+                item.get("annual_after_tax_cash_rate_pct")
+            ),
+            "估算稅後總報酬": format_return(
+                item.get("estimated_after_tax_total_return_pct")
+            ),
+            "下行觀察值": format_return(item.get("downside_return_pct")),
+            "持股重疊": format_percentage(item.get("holding_overlap_pct")),
+            "理由": "；".join(
+                reason["message"] for reason in item.get("reasons", [])
+            ),
+        }
+        for item in candidates
+    ]
+
+
+def render_monthly_combination_result(result: dict[str, Any]) -> None:
+    """顯示基準錨點、覆蓋、納入與排除理由。"""
+
+    facts = result["historical_facts"]
+    calculation = result["calculation"]
+    with st.container(border=True):
+        st.markdown(
+            f"**基準 ETF：{calculation['base_etf_code']} "
+            f"{calculation['base_etf_name']}**"
+        )
+        st.caption(
+            f"付款日基礎；回看 {facts['lookback_years']} 年；"
+            f"分析日 {facts['as_of_date']}。基準 ETF 始終保留為錨點。"
+        )
+    if calculation["status"] == "UNAVAILABLE":
+        st.error("基準 ETF 的付款月份資料不足，無法建立組合情境。")
+    elif calculation["status"] == "PARTIAL":
+        st.warning("結果含資料限制；請閱讀每檔候選的取捨理由。")
+
+    st.markdown("**付款月份覆蓋**")
+    st.table(build_monthly_coverage_rows(calculation))
+    selected = calculation["selected_candidates"]
+    rejected = calculation["rejected_candidates"]
+    st.markdown("**納入候選**")
+    if selected:
+        st.table(build_candidate_result_rows(selected))
+    else:
+        st.info("沒有候選通過全部門檻並補足付款缺口。")
+    st.markdown("**排除候選**")
+    if rejected:
+        st.table(build_candidate_result_rows(rejected))
+    else:
+        st.caption("沒有被排除的候選。")
+    st.caption(
+        f"稅後現金扣除率假設：{format_percentage(result.get('cash_deduction_rate_pct'))}。"
+        "主動／被動與債券／非債券只作透明屬性，不是品質評分。"
+        f"{calculation['estimate_label']}。"
+    )
+
+
+def render_monthly_combination_analysis(
+    *,
+    api_base_url: str,
+    comparison: dict[str, Any],
+) -> None:
+    """以比較清單建立 M10-5 月配缺口情境。"""
+
+    items = comparison["items"]
+    labels = {
+        item["etf"]["code"]: (
+            f"{item['etf']['code']} {item['etf']['name']}"
+        )
+        for item in items
+    }
+    st.divider()
+    st.subheader("月配缺口組合")
+    st.caption(
+        "先檢查資料完整度、新鮮度、付款穩定性、總報酬與下行風險，"
+        "再從比較清單選擇最多 1 至 3 檔互補 ETF。"
+    )
+    base_code = st.selectbox(
+        "基準 ETF",
+        options=list(labels),
+        format_func=labels.__getitem__,
+        help="基準 ETF 是分析錨點，不會被候選取代。",
+    )
+    candidate_items = [
+        item for item in items if item["etf"]["code"] != base_code
+    ]
+    with st.form(f"monthly_combination_{'_'.join(labels)}"):
+        goal = st.segmented_control(
+            "分析目標",
+            options=["補足月配缺口", "只檢查候選資格"],
+            default="補足月配缺口",
+        )
+        settings = st.columns(4)
+        with settings[0]:
+            lookback_years = st.number_input(
+                "歷史資料年數", min_value=1, max_value=10, value=3
+            )
+        with settings[1]:
+            max_additions = st.number_input(
+                "最多互補檔數",
+                min_value=1,
+                max_value=len(candidate_items),
+                value=min(3, len(candidate_items)),
+            )
+        with settings[2]:
+            deduction_rate = st.number_input(
+                "現金扣除率（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=0.0,
+            )
+        with settings[3]:
+            allocation = st.number_input(
+                "每檔情境配置（%）",
+                min_value=0.1,
+                max_value=20.0,
+                value=10.0,
+            )
+
+        assumptions = []
+        candidate_columns = st.columns(len(candidate_items))
+        for column, item in zip(candidate_columns, candidate_items, strict=True):
+            code = item["etf"]["code"]
+            with column:
+                st.markdown(f"**{labels[code]}**")
+                unit_price = st.number_input(
+                    "每單位價格（TWD）",
+                    min_value=0.01,
+                    value=30.0,
+                    step=0.1,
+                    key=f"monthly_price_{base_code}_{code}",
+                )
+                has_overlap = st.checkbox(
+                    "提供持股重疊估計",
+                    value=False,
+                    key=f"monthly_overlap_known_{base_code}_{code}",
+                )
+                overlap = st.number_input(
+                    "與基準持股重疊（%）",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=0.0,
+                    disabled=not has_overlap,
+                    key=f"monthly_overlap_{base_code}_{code}",
+                )
+                assumptions.append(
+                    {
+                        "etf_code": code,
+                        "unit_price": unit_price,
+                        "proposed_allocation_pct": allocation,
+                        "holding_overlap_pct": overlap if has_overlap else None,
+                    }
+                )
+        submitted = st.form_submit_button(
+            "分析候選與付款缺口",
+            type="primary",
+            icon=":material/account_tree:",
+        )
+
+    state_key = (
+        f"monthly_combination_result_{base_code}_{'_'.join(labels)}"
+    )
+    if submitted:
+        payload = {
+            "candidates": assumptions,
+            "lookback_years": int(lookback_years),
+            "cash_deduction_rate_pct": deduction_rate,
+            "max_complementary_etfs": int(max_additions),
+            "monthly_coverage_enabled": goal == "補足月配缺口",
+        }
+        try:
+            with loading_state("正在分析候選 ETF 與付款缺口..."):
+                st.session_state[state_key] = fetch_monthly_payment_combination(
+                    api_base_url=api_base_url,
+                    code=base_code,
+                    payload=payload,
+                )
+        except APIClientError as error:
+            render_api_error("無法完成月配組合分析。", error)
+    if state_key in st.session_state:
+        render_monthly_combination_result(st.session_state[state_key])
 
 
 def format_optional_date(
@@ -615,4 +845,9 @@ def render_etf_comparison() -> None:
         build_completeness_rows(
             comparison
         )
+    )
+
+    render_monthly_combination_analysis(
+        api_base_url=api_base_url,
+        comparison=comparison,
     )

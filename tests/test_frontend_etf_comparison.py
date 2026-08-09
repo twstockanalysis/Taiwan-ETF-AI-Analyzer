@@ -3,8 +3,10 @@
 import unittest
 
 from frontend.pages.etf_comparison import (
+    build_candidate_result_rows,
     build_completeness_rows,
     build_dividend_rows,
+    build_monthly_coverage_rows,
     build_performance_rows,
     format_percentage,
 )
@@ -155,6 +157,45 @@ class TestFrontendETFComparison(
                 "缺少區塊"
             ],
         )
+
+    def test_monthly_coverage_preserves_missing_and_formal_months(self):
+        rows = build_monthly_coverage_rows(
+            {
+                "base_payment_months": [1],
+                "combined_payment_months": [1, 2],
+            }
+        )
+        self.assertEqual(rows[0]["基準 ETF"], "有歷史付款")
+        self.assertEqual(rows[1]["基準 ETF"], "未覆蓋")
+        self.assertEqual(rows[1]["組合情境"], "有歷史付款")
+        missing = build_monthly_coverage_rows(
+            {"base_payment_months": None, "combined_payment_months": None}
+        )
+        self.assertEqual(missing[0]["基準 ETF"], "資料不足")
+
+    def test_candidate_rows_show_classification_and_reasons(self):
+        rows = build_candidate_result_rows(
+            [
+                {
+                    "etf_code": "00878",
+                    "name": "國泰永續高股息",
+                    "is_active": False,
+                    "is_bond": False,
+                    "supported_gap_months": [2, 5],
+                    "completeness_pct": 100,
+                    "distribution_stability_pct": 75,
+                    "data_is_fresh": True,
+                    "annual_after_tax_cash_rate_pct": 0,
+                    "estimated_after_tax_total_return_pct": -1,
+                    "downside_return_pct": -5,
+                    "holding_overlap_pct": None,
+                    "reasons": [{"message": "總報酬未達門檻。"}],
+                }
+            ]
+        )
+        self.assertEqual(rows[0]["估算稅後現金率"], "0.00%")
+        self.assertEqual(rows[0]["持股重疊"], "尚未取得")
+        self.assertIn("總報酬", rows[0]["理由"])
 
 
 if __name__ == "__main__":

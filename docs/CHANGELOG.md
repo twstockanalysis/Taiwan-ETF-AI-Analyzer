@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-09 — M10-5 monthly-payment combination
+
+- Added a base-anchored, Decimal-based candidate eligibility and month-gap
+  calculation that selects at most one to three complementary ETFs
+- Added explicit completeness, freshness, distribution-stability, after-tax
+  cash, total-return, downside, holding-overlap and concentration gates
+- Preserved missing overlap as an explicit limitation and formal zero as data
+- Added `POST /api/v1/etfs/{code}/monthly-payment-combination`
+- Added a comparison-page Streamlit form with separate selected and rejected
+  candidates, supported months, classifications and plain-language reasons
+- Added focused calculation, data conversion, API, frontend client and display
+  tests
+
 ## 2026-08-09 — M10-4 tax and reinvestment scenarios
 
 - Added a versioned Taiwan-individual tax assumption contract for official
