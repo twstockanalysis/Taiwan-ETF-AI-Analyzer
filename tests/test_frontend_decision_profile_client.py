@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from frontend.api.decision_profile import (
     delete_manual_holding,
+    fetch_current_holding_analysis,
     fetch_decision_profile,
     save_manual_holding,
     save_user_conditions,
@@ -52,6 +53,35 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         result = fetch_decision_profile("http://127.0.0.1:8000")
         self.assertFalse(result["broker_connected"])
         self.assertEqual(result["holdings"][0]["etf_code"], "0056")
+
+    @patch("frontend.api.transport.httpx.get")
+    def test_fetches_current_holding_analysis(self, mock_get):
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "profile_scope": "SINGLE_USER",
+            "broker_connected": False,
+            "status": "UNAVAILABLE",
+            "analysis_date": "2026-08-09",
+            "currency": "TWD",
+            "conditions": None,
+            "total_current_value": None,
+            "holdings": [],
+            "portfolio_analysis": None,
+            "unavailable_fields": [
+                {"field": "conditions", "reason": "尚未儲存固定分析條件"}
+            ],
+        }
+        mock_get.return_value = response
+
+        result = fetch_current_holding_analysis("http://127.0.0.1:8000")
+
+        self.assertEqual(result["status"], "UNAVAILABLE")
+        self.assertTrue(
+            mock_get.call_args.args[0].endswith(
+                "/api/v1/decision-profile/current-holding-analysis"
+            )
+        )
 
     @patch("frontend.api.transport.httpx.put")
     def test_saves_conditions_and_holding_with_put(self, mock_put):

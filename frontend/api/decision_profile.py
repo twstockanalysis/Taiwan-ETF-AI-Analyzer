@@ -64,6 +64,35 @@ def validate_decision_profile(payload: object) -> dict[str, Any]:
     return payload
 
 
+def validate_current_holding_analysis(payload: object) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise APIResponseError("目前持倉分析回應必須是 JSON 物件")
+    if payload.get("profile_scope") != "SINGLE_USER":
+        raise APIResponseError("目前持倉分析 scope 格式不正確")
+    if payload.get("broker_connected") is not False:
+        raise APIResponseError("目前持倉分析不可宣稱已連接券商")
+    if payload.get("status") not in {"AVAILABLE", "PARTIAL", "UNAVAILABLE"}:
+        raise APIResponseError("目前持倉分析 status 格式不正確")
+    required = {
+        "analysis_date",
+        "currency",
+        "conditions",
+        "total_current_value",
+        "holdings",
+        "portfolio_analysis",
+        "unavailable_fields",
+    }
+    if required - payload.keys():
+        raise APIResponseError("目前持倉分析回應缺少必要欄位")
+    if payload["currency"] != "TWD":
+        raise APIResponseError("目前持倉分析幣別必須為 TWD")
+    if not isinstance(payload["holdings"], list):
+        raise APIResponseError("目前持倉分析 holdings 格式不正確")
+    if not isinstance(payload["unavailable_fields"], list):
+        raise APIResponseError("目前持倉分析 unavailable_fields 格式不正確")
+    return payload
+
+
 def fetch_decision_profile(
     api_base_url: str,
     timeout_seconds: float = 10.0,
@@ -75,6 +104,19 @@ def fetch_decision_profile(
         timeout_seconds=timeout_seconds,
     )
     return validate_decision_profile(result)
+
+
+def fetch_current_holding_analysis(
+    api_base_url: str,
+    timeout_seconds: float = 30.0,
+) -> dict[str, Any]:
+    result = get_json(
+        api_base_url=api_base_url,
+        endpoint_path="/api/v1/decision-profile/current-holding-analysis",
+        operation_name="目前持倉分析",
+        timeout_seconds=timeout_seconds,
+    )
+    return validate_current_holding_analysis(result)
 
 
 def save_user_conditions(

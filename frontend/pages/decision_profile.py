@@ -8,6 +8,7 @@ import streamlit as st
 from frontend.api_client import (
     APIClientError,
     delete_manual_holding,
+    fetch_current_holding_analysis,
     fetch_decision_profile,
     save_manual_holding,
     save_user_conditions,
@@ -66,9 +67,110 @@ def build_holding_rows(profile: dict[str, Any]) -> list[dict[str, str]]:
     return rows
 
 
+def build_analysis_holding_rows(
+    analysis: dict[str, Any],
+) -> list[dict[str, str]]:
+    """建立目前持倉分析的可閱讀歷史事實表格。"""
+
+    rows = []
+    for item in analysis["holdings"]:
+        annual_cash = _decimal(item.get("annual_gross_distribution_cash"))
+        annual_return = _decimal(item.get("annualized_price_return_pct"))
+        rows.append(
+            {
+                "ETF": f"{item['etf_code']} {item['name']}",
+                "目前部位價值": (
+                    f"{format_number(item['current_value'], decimal_places=2)} TWD"
+                ),
+                "年均稅前配息現金": (
+                    f"{format_number(annual_cash, decimal_places=2)} TWD"
+                    if annual_cash is not None
+                    else "無法計算"
+                ),
+                "價格報酬期間": item.get("price_return_period_code") or "無資料",
+                "年化價格報酬": (
+                    f"{format_number(annual_return, decimal_places=2)}%"
+                    if annual_return is not None
+                    else "無法計算"
+                ),
+            }
+        )
+    return rows
+
+
 @st.cache_data(ttl=30, max_entries=5, show_spinner=False)
 def load_decision_profile(api_base_url: str) -> dict[str, Any]:
     return fetch_decision_profile(api_base_url)
+
+
+@st.cache_data(ttl=30, max_entries=5, show_spinner=False)
+def load_current_holding_analysis(api_base_url: str) -> dict[str, Any]:
+    return fetch_current_holding_analysis(api_base_url)
+
+
+def _metric_value(value: Any, *, suffix: str = "") -> str:
+    parsed = _decimal(value)
+    if parsed is None:
+        return "無法計算"
+    return f"{format_number(parsed, decimal_places=2)}{suffix}"
+
+
+def render_current_holding_analysis_result(
+    analysis: dict[str, Any],
+) -> None:
+    """以原生 Streamlit 元件呈現整體持倉情境結果。"""
+
+    if analysis["status"] == "UNAVAILABLE":
+        reasons = "、".join(
+            item["reason"] for item in analysis["unavailable_fields"]
+        )
+        st.info(f"目前無法分析：{reasons}")
+        return
+
+    portfolio = analysis["portfolio_analysis"]
+    cash_flow = portfolio["cash_flow"]
+    scenario = portfolio["scenario_estimate"]
+    with st.container(horizontal=True):
+        st.metric(
+            "目前部位總值",
+            _metric_value(analysis.get("total_current_value"), suffix=" TWD"),
+            border=True,
+        )
+        st.metric(
+            "年均稅前配息現金",
+            _metric_value(cash_flow.get("gross_distribution_cash"), suffix=" TWD"),
+            border=True,
+        )
+        st.metric(
+            "年均稅後可用現金",
+            _metric_value(cash_flow.get("after_tax_usable_cash"), suffix=" TWD"),
+            border=True,
+        )
+        st.metric(
+            "年度目標覆蓋率",
+            _metric_value(cash_flow.get("target_coverage_pct"), suffix="%"),
+            border=True,
+        )
+
+    st.table(build_analysis_holding_rows(analysis))
+    st.caption(
+        f"分析日期 {analysis['analysis_date']}；情境期間 "
+        f"{scenario.get('projection_years') or '無法計算'} 年。"
+        "價格報酬會先年化後依目前部位價值加權；配息不再投入。"
+    )
+    data_warnings = [
+        f"{item['etf_code']}：{warning['message']}"
+        for item in analysis["holdings"]
+        for warning in item.get("warnings", [])
+    ]
+    if data_warnings:
+        st.warning("資料提醒：" + "、".join(data_warnings))
+    if analysis["status"] == "PARTIAL":
+        reasons = "、".join(
+            f"{item['field']}：{item['reason']}"
+            for item in analysis["unavailable_fields"]
+        )
+        st.warning(f"部分結果無法計算：{reasons}")
 
 
 @st.dialog("確認刪除持有部位")
@@ -88,6 +190,7 @@ def confirm_holding_delete(api_base_url: str, etf_code: str) -> None:
                 render_api_error("無法刪除手動持有部位。", error)
                 return
             load_decision_profile.clear()
+            load_current_holding_analysis.clear()
             st.rerun()
 
 
@@ -172,6 +275,7 @@ def render_decision_profile() -> None:
             render_api_error("無法儲存固定分析條件。", error)
         else:
             load_decision_profile.clear()
+            load_current_holding_analysis.clear()
             st.rerun()
 
     st.divider()
@@ -232,6 +336,7 @@ def render_decision_profile() -> None:
                 render_api_error("無法儲存手動持有部位。", error)
             else:
                 load_decision_profile.clear()
+                load_current_holding_analysis.clear()
                 st.rerun()
 
     if not profile["holdings"]:
@@ -248,3 +353,24 @@ def render_decision_profile() -> None:
                 key=f"delete_holding_{code}",
             ):
                 confirm_holding_delete(api_base_url, code)
+
+    st.divider()
+    st.subheader("目前持倉分析")
+    st.caption(
+        "使用上方已儲存條件與所有手動持倉，重用 M10 公式進行整體情境估算；"
+        "結果不是個別 ETF 推薦，也不保證未來收益。"
+    )
+    if st.button(
+        "分析目前持倉",
+        type="primary",
+        icon=":material/analytics:",
+    ):
+        st.session_state["show_current_holding_analysis"] = True
+    if st.session_state.get("show_current_holding_analysis", False):
+        try:
+            with loading_state("正在彙總目前持倉分析..."):
+                analysis = load_current_holding_analysis(api_base_url)
+        except APIClientError as error:
+            render_api_error("無法取得目前持倉分析。", error)
+        else:
+            render_current_holding_analysis_result(analysis)

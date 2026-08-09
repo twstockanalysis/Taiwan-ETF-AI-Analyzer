@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-09 — M11-2 current-holding analysis
+
+- Added a read-only analysis that aggregates every saved manual holding and
+  applies the fixed monthly target once at portfolio level
+- Annualized selected period PRICE_RETURN values before current-value weighting
+- Reused the existing M10 target calculator for cash-flow coverage and the
+  no-reinvestment scenario instead of duplicating formulas
+- Preserved missing deductions, distributions and performance as explicit
+  partial results rather than zero
+- Added FastAPI, frontend client, native Streamlit metrics/table and focused
+  service, integration and AppTest coverage
+
 ## 2026-08-09 — M11-1 single-user conditions and manual holdings
 
 - Added SQLite persistence for one fixed decision profile and manual ETF

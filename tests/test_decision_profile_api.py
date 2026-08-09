@@ -42,6 +42,50 @@ class TestDecisionProfileAPI(unittest.TestCase):
         self.assertIn("/api/v1/decision-profile", paths)
         self.assertIn("/api/v1/decision-profile/conditions", paths)
         self.assertIn("/api/v1/decision-profile/holdings/{etf_code}", paths)
+        self.assertIn(
+            "/api/v1/decision-profile/current-holding-analysis",
+            paths,
+        )
+
+    def test_current_holding_analysis_requires_saved_conditions(self):
+        response = self.client.get(
+            "/api/v1/decision-profile/current-holding-analysis"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "UNAVAILABLE")
+        self.assertEqual(
+            response.json()["unavailable_fields"],
+            [{"field": "conditions", "reason": "尚未儲存固定分析條件"}],
+        )
+
+    def test_current_holding_analysis_preserves_missing_market_data(self):
+        self.client.put(
+            "/api/v1/decision-profile/conditions",
+            json={
+                "monthly_after_tax_target": 3000,
+                "analysis_years": 10,
+                "history_years": 3,
+                "cash_deduction_rate_pct": None,
+            },
+        )
+        self.client.put(
+            "/api/v1/decision-profile/holdings/0056",
+            json={"held_units": 1000, "unit_price": 35.5},
+        )
+
+        response = self.client.get(
+            "/api/v1/decision-profile/current-holding-analysis"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"], "PARTIAL")
+        self.assertEqual(body["total_current_value"], "35500.0")
+        self.assertIsNone(
+            body["portfolio_analysis"]["scenario_estimate"][
+                "ending_holding_value"
+            ]
+        )
 
     def test_empty_profile_is_explicit_single_user_without_broker(self):
         response = self.client.get("/api/v1/decision-profile")

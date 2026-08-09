@@ -1,6 +1,6 @@
 # System Architecture
 
-## M11-1 decision-profile flow
+## M11 decision-profile and current-holding flow
 
 ```text
 Streamlit decision-profile page
@@ -8,11 +8,16 @@ Streamlit decision-profile page
     v
 FastAPI /api/v1/decision-profile
     |
-    v
-Decision-profile Repository
+    +--> Decision-profile Repository
     |
     +--> decision_profile (singleton conditions)
     +--> manual_holding (ETF-code keyed holdings)
+    |
+    +--> Current-holding analysis Service
+             |
+             +--> M10 target-analysis data loaders
+             +--> portfolio aggregation
+             +--> M10 pure target calculator (once per portfolio)
     |
     v
 SQLite
@@ -22,6 +27,9 @@ The flow remains single-user and has no broker or order boundary. Reference
 prices are user-entered assumptions, not live quotes. The mutable singleton is
 not an anonymous-public boundary; M12 must restrict decision-profile writes
 before public deployment.
+
+The analysis route is read-only. It does not call its own HTTP API, duplicate
+the monthly target per ETF or persist calculated results.
 
 ## Current website request flow
 
