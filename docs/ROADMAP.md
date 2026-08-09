@@ -335,6 +335,9 @@ Acceptance:
 
 ### M10-4 — Tax and reinvestment scenarios
 
+Status: implementation completed on 2026-08-09; full-suite verification is
+recorded in the changelog.
+
 Goal:
 
 - Compare usable cash and ending wealth under explicit Taiwan individual-tax
@@ -362,6 +365,16 @@ Acceptance:
 - Reinvested cash is not double-counted
 - Historical facts and forward-looking assumptions are visibly separate
 - Results are labeled as estimates rather than tax advice
+
+Delivered:
+
+- Added a pure, Decimal-based four-policy reinvestment ledger
+- Added versioned per-component tax, credit and supplementary-premium inputs
+- Selected only traceable, complete ACTUAL component events while preserving
+  formal zero ratios and excluding estimated capital gains
+- Added a FastAPI endpoint and a Streamlit form with historical facts visibly
+  separated from forward-looking assumptions
+- Kept reinvested cash inside ending value and exposed a total-return gate
 
 ### M10-5 — Monthly-payment combination and candidate exclusions
 

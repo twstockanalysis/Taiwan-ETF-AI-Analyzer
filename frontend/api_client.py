@@ -80,6 +80,11 @@ from frontend.api.system_overview import (
 from frontend.api.transport import (
     extract_response_detail,
     get_json,
+    post_json,
+)
+from frontend.api.tax_reinvestment import (
+    fetch_tax_reinvestment_scenarios,
+    validate_tax_reinvestment_result,
 )
 
 from frontend.api.validators import (

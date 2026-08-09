@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-09 — M10-4 tax and reinvestment scenarios
+
+- Added a versioned Taiwan-individual tax assumption contract for official
+  ACTUAL component codes, income-tax credits and supplementary premiums
+- Added no-reinvestment, excess-only, custom-percentage and full-reinvestment
+  projections with usable cash, ending units/value and after-tax total return
+- Preserved formal ACTUAL zero ratios and kept missing composition or tax rules
+  unavailable instead of treating them as zero
+- Added `POST /api/v1/etfs/{code}/tax-reinvestment-scenarios`
+- Added the ETF-detail Streamlit estimator with an explicit estimate/not-tax-
+  advice label and total-return failure warning
+- Added focused calculation, ACTUAL selection, API and frontend client tests
+
 Entries are ordered chronologically from oldest to newest.
 
 ## 2026-07-27 — M1–M4 early project foundation

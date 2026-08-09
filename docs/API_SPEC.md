@@ -202,6 +202,23 @@ reference_close_price
 ```
 
 `distribution_period` accepts only an official `YYYYQ1`–`YYYYQ4` value.
+
+### Tax and reinvestment scenarios
+
+```text
+POST /api/v1/etfs/{code}/tax-reinvestment-scenarios
+```
+
+The request supplies holdings, cash target, projection horizon, payment-count
+assumption, custom reinvestment percentage and a versioned Taiwan-individual
+tax rule. The server supplies historical distribution and price-return inputs
+and selects the newest complete ACTUAL component event.
+
+The response keeps `historical_facts` separate from `calculation`, returns all
+four reinvestment policies, and includes usable cash, reinvested cash, ending
+units, ending value, modeled income tax, supplementary premium and after-tax
+total return. `PARTIAL` means one or more outputs remain unavailable; missing
+ACTUAL components or tax assumptions are not converted to zero.
 `yield_basis` is `OFFICIAL` or `CALCULATED`. A calculated value includes the
 previous trading date and close; an official value never carries a calculated
 price reference.

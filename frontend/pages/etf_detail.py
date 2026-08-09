@@ -14,6 +14,7 @@ from frontend.api_client import (
     fetch_etf_data_profile,
     fetch_etf_dividends,
     fetch_etf_performance,
+    fetch_tax_reinvestment_scenarios,
 )
 from frontend.config import (
     get_api_base_url,
@@ -933,7 +934,7 @@ def render_dividend_summary(
                     }
                 },
             },
-            use_container_width=True,
+            width="stretch",
         )
 
     else:
@@ -1400,6 +1401,286 @@ def render_detail_section_error(
     )
 
 
+_REINVESTMENT_POLICY_LABELS = {
+    "NO_REINVESTMENT": "不再投入",
+    "EXCESS_ONLY": "僅投入超過目標的現金",
+    "CUSTOM_PERCENTAGE": "自訂比例再投入",
+    "FULL_REINVESTMENT": "全部再投入",
+}
+
+
+def _build_tax_rule_payload(
+    *,
+    income_tax_rate_54c: float,
+    tax_credit_rate_54c: float,
+    other_income_tax_rate: float,
+    allow_credit_offset: bool,
+) -> dict[str, Any]:
+    """建立畫面明示的版本化稅務假設。"""
+
+    common_other_codes = (
+        "5A",
+        "5B",
+        "61D",
+        "71",
+        "76",
+        "OTHER",
+    )
+    assumptions = [
+        {
+            "component_code": "54C",
+            "income_tax_rate_pct": income_tax_rate_54c,
+            "tax_credit_rate_pct": tax_credit_rate_54c,
+            "supplementary_premium_applicable": True,
+        },
+        {
+            "component_code": "76W",
+            "income_tax_rate_pct": 0,
+            "tax_credit_rate_pct": 0,
+            "supplementary_premium_applicable": False,
+        },
+    ]
+    assumptions.extend(
+        {
+            "component_code": code,
+            "income_tax_rate_pct": other_income_tax_rate,
+            "tax_credit_rate_pct": 0,
+            "supplementary_premium_applicable": code in {"5A", "5B"},
+        }
+        for code in common_other_codes
+    )
+    return {
+        "rule_version": "TW-INDIVIDUAL-2026.1",
+        "effective_date": "2021-01-01",
+        "supplementary_premium_rate_pct": 2.11,
+        "supplementary_premium_payment_threshold": 20000,
+        "supplementary_premium_payment_cap": 10000000,
+        "annual_tax_credit_cap": 80000,
+        "allow_credit_offset_other_tax": allow_credit_offset,
+        "component_assumptions": assumptions,
+    }
+
+
+def _render_tax_reinvestment_result(result: dict[str, Any]) -> None:
+    """顯示歷史事實與四種前瞻假設，不產生推薦。"""
+
+    facts = result["historical_facts"]
+    calculation = result["calculation"]
+    if result["status"] == "PARTIAL":
+        issue_text = "、".join(
+            (
+                f"{item['field']} ({item['reason']})"
+                + (
+                    f"：{item['component_code']}"
+                    if item.get("component_code")
+                    else ""
+                )
+            )
+            for item in calculation.get("issues", [])
+        )
+        st.warning(
+            "部分結果無法計算；缺少的資料不會被當成 0。"
+            + (f" {issue_text}" if issue_text else "")
+        )
+
+    with st.container(border=True):
+        st.markdown("**歷史資料事實**")
+        st.caption(
+            "正式組成與歷史報酬只用來建立情境起點，"
+            "不代表未來仍會持續。"
+        )
+        st.table(
+            [
+                {
+                    "正式組成事件": facts.get("component_source_event_id")
+                    or "尚未取得",
+                    "正式組成日期": facts.get("component_source_date")
+                    or "尚未取得",
+                    "歷史年化配息率": format_shared_percentage(
+                        facts.get("annual_gross_distribution_rate_pct")
+                    ),
+                    "價格報酬期間": facts.get("price_return_period_code")
+                    or "尚未取得",
+                    "年化價格報酬假設": format_shared_percentage(
+                        facts.get("annual_price_return_pct")
+                    ),
+                }
+            ]
+        )
+        component_mix = facts.get("actual_component_mix")
+        if component_mix:
+            st.table(
+                [
+                    {
+                        "正式所得代碼": item["component_code"],
+                        "名稱": item.get("component_name") or "—",
+                        "ACTUAL 比例": format_shared_percentage(
+                            item.get("ratio_pct")
+                        ),
+                    }
+                    for item in component_mix
+                ]
+            )
+
+    st.markdown("**情境估算結果**")
+    st.caption(
+        f"規則版本 {calculation['rule_version']}；"
+        f"生效日 {calculation['rule_effective_date']}。"
+        "以下為估算，不是稅務建議，也不標示最佳方案。"
+    )
+    rows = []
+    failed_total_return = False
+    for item in calculation["scenarios"]:
+        failed_total_return = failed_total_return or (
+            item.get("total_return_check_passed") is False
+        )
+        rows.append(
+            {
+                "配息使用方式": _REINVESTMENT_POLICY_LABELS.get(
+                    item["policy"], item["policy"]
+                ),
+                "可使用現金": format_shared_amount(
+                    item.get("usable_cash"), calculation["currency"],
+                    decimal_places=2,
+                ),
+                "再投入現金": format_shared_amount(
+                    item.get("reinvested_cash"), calculation["currency"],
+                    decimal_places=2,
+                ),
+                "期末單位數": format_number(
+                    item.get("ending_units"), decimal_places=4
+                ),
+                "期末價值": format_shared_amount(
+                    item.get("ending_value"), calculation["currency"],
+                    decimal_places=2,
+                ),
+                "估算稅與補充保費": format_shared_amount(
+                    item.get("modeled_tax_cost"), calculation["currency"],
+                    decimal_places=2,
+                ),
+                "稅後總報酬": format_shared_percentage(
+                    item.get("after_tax_total_return_pct"), signed=True
+                ),
+            }
+        )
+    st.table(rows)
+    if failed_total_return:
+        st.error(
+            "至少一個情境未通過總報酬檢查；"
+            "稅務差異不能覆蓋資產價值惡化。"
+        )
+
+
+def render_tax_reinvestment_analysis(
+    *,
+    api_base_url: str,
+    etf: dict[str, Any],
+) -> None:
+    """顯示 M10-4 稅務與再投資估算表單。"""
+
+    st.divider()
+    st.subheader("稅務與再投入情境")
+    st.caption(
+        "適用範圍：持有台灣上市 ETF 的台灣稅務居民個人。"
+        "請依自身申報情況調整有效稅率；結果僅供估算。"
+    )
+
+    with st.form(f"tax_reinvestment_{etf['code']}"):
+        input_columns = st.columns(3)
+        with input_columns[0]:
+            held_units = st.number_input(
+                "持有單位數", min_value=0.0, value=1000.0, step=100.0
+            )
+            unit_price = st.number_input(
+                "目前每單位價格（TWD）",
+                min_value=0.01,
+                value=30.0,
+                step=0.1,
+            )
+            monthly_target = st.number_input(
+                "每月希望保留的現金（TWD）",
+                min_value=0.0,
+                value=3000.0,
+                step=500.0,
+            )
+        with input_columns[1]:
+            analysis_years = st.number_input(
+                "估算年數", min_value=1, max_value=50, value=10
+            )
+            history_years = st.number_input(
+                "歷史資料年數", min_value=1, max_value=10, value=3
+            )
+            payments_per_year = st.number_input(
+                "假設每年配息次數", min_value=1, max_value=365, value=4
+            )
+            custom_pct = st.number_input(
+                "自訂再投入比例（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=50.0,
+            )
+        with input_columns[2]:
+            rate_54c = st.number_input(
+                "54C 有效所得稅率（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=12.0,
+            )
+            credit_54c = st.number_input(
+                "54C 可用抵減率（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=8.5,
+            )
+            other_rate = st.number_input(
+                "其他所得有效稅率（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=12.0,
+            )
+            allow_credit_offset = st.checkbox(
+                "允許股利抵減影響其他所得稅額",
+                value=False,
+            )
+        submitted = st.form_submit_button(
+            "比較四種情境",
+            type="primary",
+            icon=":material/calculate:",
+        )
+
+    state_key = f"tax_reinvestment_result_{etf['code']}"
+    if submitted:
+        request_payload = {
+            "held_units": held_units,
+            "unit_price": unit_price,
+            "monthly_cash_target": monthly_target,
+            "analysis_years": int(analysis_years),
+            "history_years": int(history_years),
+            "payments_per_year": int(payments_per_year),
+            "custom_reinvestment_pct": custom_pct,
+            "tax_rule": _build_tax_rule_payload(
+                income_tax_rate_54c=rate_54c,
+                tax_credit_rate_54c=credit_54c,
+                other_income_tax_rate=other_rate,
+                allow_credit_offset=allow_credit_offset,
+            ),
+        }
+        try:
+            with loading_state("正在計算稅務與再投入情境..."):
+                st.session_state[state_key] = (
+                    fetch_tax_reinvestment_scenarios(
+                        api_base_url=api_base_url,
+                        code=str(etf["code"]),
+                        payload=request_payload,
+                    )
+                )
+        except APIClientError as error:
+            render_warning_state("無法完成稅務情境估算。", detail=error)
+
+    if state_key in st.session_state:
+        _render_tax_reinvestment_result(st.session_state[state_key])
+
+
 def render_etf_detail() -> None:
     """顯示 ETF 詳細資料頁。"""
 
@@ -1588,6 +1869,11 @@ def render_etf_detail() -> None:
         render_actual_76w_summary(
             actual_76w
         )
+
+    render_tax_reinvestment_analysis(
+        api_base_url=api_base_url,
+        etf=etf,
+    )
 
     if dividend_history is not None:
         render_dividend_history(
