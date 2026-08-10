@@ -30,6 +30,9 @@ from backend.app.repositories.performance_repository import (
     list_performance_candidates,
     upsert_performance_records,
 )
+from backend.app.repositories.daily_close_repository import (
+    upsert_daily_close_records,
+)
 from backend.app.services.performance_calculator import (
     InsufficientPriceHistoryError,
     calculate_price_return,
@@ -322,6 +325,8 @@ def run_multi_period_performance_pipeline(
         ETFPerformanceImportRecord
     ] = []
 
+    daily_close_records = []
+
     failures: list[
         PerformanceFailure
     ] = []
@@ -365,6 +370,8 @@ def run_multi_period_performance_pipeline(
                     etf_code=candidate.code,
                     records=price_records,
                 )
+
+            daily_close_records.extend(price_records)
 
         except Exception as error:
             reason = (
@@ -523,6 +530,11 @@ def run_multi_period_performance_pipeline(
             time.sleep(
                 inter_etf_interval_seconds
             )
+
+    upsert_daily_close_records(
+        records=daily_close_records,
+        database_path=database_path,
+    )
 
     if performance_records:
         upsert_summary = (

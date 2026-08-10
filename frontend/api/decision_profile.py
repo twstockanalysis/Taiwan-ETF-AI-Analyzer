@@ -338,6 +338,25 @@ def save_manual_holding(
     return validate_manual_holding(result)
 
 
+def save_manual_holdings(
+    api_base_url: str,
+    holdings: list[dict[str, Any]],
+    timeout_seconds: float = 10.0,
+) -> list[dict[str, Any]]:
+    """以兩欄輸入批次取代持股；價格由後端官方資料解析。"""
+
+    result = put_json(
+        api_base_url=api_base_url,
+        endpoint_path="/api/v1/decision-profile/holdings",
+        operation_name="全部持有部位儲存",
+        payload={"holdings": holdings},
+        timeout_seconds=timeout_seconds,
+    )
+    if not isinstance(result, list):
+        raise APIResponseError("持有部位批次回應必須是 JSON 陣列")
+    return [validate_manual_holding(item) for item in result]
+
+
 def delete_manual_holding(
     api_base_url: str,
     etf_code: str,

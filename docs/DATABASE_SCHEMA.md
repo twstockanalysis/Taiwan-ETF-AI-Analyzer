@@ -6,10 +6,15 @@
 `id = 1`. It stores the public site's fixed monthly after-tax target, analysis
 and history windows, nullable cash-deduction assumption and TWD currency.
 
+`etf_daily_close` stores official positive close prices by ETF, trade date and
+source. The existing performance Pipeline upserts every downloaded TWSE daily
+record before portfolio use.
+
 `manual_holding` uses `etf_code` as its primary key and foreign key to
-`etf_master`. Units must be a positive integer and the user-entered TWD
-reference price must be positive. A missing `price_as_of_date` remains `NULL`.
-Deleting an ETF master row cascades only its local manual holding.
+`etf_master`. Units must be a positive integer. `unit_price`,
+`price_as_of_date` and `price_source_id` are copied from the latest stored
+official close by the batch API and remain `NULL` together when unavailable.
+Deleting an ETF master row cascades only its local price and holding rows.
 
 `decision_record` is an append-only M11-4 snapshot table. It stores candidate
 identity, analysis status, stable outcome and canonical JSON for the original
@@ -47,6 +52,7 @@ idempotent upgrade sequence:
 3. `migrate_dividend_source_document`
 4. `migrate_dividend_review_queue`
 5. `migrate_dividend_summary_metric`
+6. `migrate_manual_holding_market_price`
 
 This order supports both a fresh database and databases created by earlier
 milestones. Initialization does not delete user data.
@@ -100,6 +106,16 @@ PRICE_RETURN
 TOTAL_RETURN
 NAV_RETURN
 ```
+
+### `etf_daily_close`
+
+Uniqueness:
+
+```text
+etf_code + trade_date + source_id
+```
+
+Close prices are positive and retain the official source identifier.
 
 ### `etf_dividend`
 

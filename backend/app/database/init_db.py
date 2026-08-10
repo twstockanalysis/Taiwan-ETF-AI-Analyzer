@@ -154,6 +154,14 @@ def initialize_database(
         target_path
     )
 
+    from backend.app.database.migrate_manual_holding_market_price import (
+        migrate_manual_holding_market_price,
+    )
+
+    migrate_manual_holding_market_price(
+        target_path
+    )
+
     return target_path
 
 

@@ -28,14 +28,19 @@ It is distinct from a formal `0%` deduction.
 
 ## Manual holdings
 
-Each ETF code can have at most one manual holding. A holding requires positive
-whole units and a positive user-entered TWD reference price. The reference-price
-date is optional and cannot be in the future. Saving the same ETF again
-replaces its values; deletion removes only the local website record.
+The M11-5 batch editor accepts zero to any number of Taiwan ETF holdings and
+starts with zero rows for a new profile. Each row has exactly two editable
+values: ETF code and positive whole units. ETF codes must be unique. One batch
+request atomically replaces the saved set, so an empty batch is a valid
+zero-holding state.
 
-The reference price is an analysis assumption and must not be labeled as an
-official or real-time market quote. ETF identity and classifications continue
-to come from `etf_master`.
+The backend resolves reference price, trade date and source from the latest
+stored `etf_daily_close`. These fields are read-only and must not be labeled as
+real-time quotes. When no trustworthy stored close exists, all three remain
+null; dependent holding-value and portfolio-comparison outputs become partial
+instead of treating the price as zero. The original single-item, user-price API
+remains only for M11-1 compatibility and labels those values `manual_legacy`.
+ETF identity and classifications continue to come from `etf_master`.
 
 ## Current-holding analysis
 
@@ -51,7 +56,8 @@ aggregate deduction amount. It does not invent an income-tax, supplementary-
 premium or other-cost breakdown. A missing deduction rate remains missing and
 makes dependent outputs partial. If any holding lacks required distribution or
 performance data, the portfolio input remains unavailable instead of treating
-that holding as zero. A non-TWD distribution currency is also incompatible
+that holding as zero. A missing official close similarly makes the aggregate
+holding value and every dependent scenario unavailable. A non-TWD distribution currency is also incompatible
 with the saved TWD reference value and is never added without conversion.
 
 The response separates per-holding historical facts from the portfolio

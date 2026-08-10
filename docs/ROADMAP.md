@@ -527,18 +527,23 @@ Delivered:
 ### M11-5 — Confirmed public cash-flow flow closure — Next
 
 Status: scope explicitly confirmed by the user on 2026-08-10; implementation
-may begin after the confirmed M12 entry-audit change is merged.
+began after the confirmed M12 entry-audit change was merged. M11-5A1 implements
+the dynamic holding and official-close boundary; visible base-target output and
+M11-5B warnings remain before M12.
 
-Planned:
+Delivered in M11-5A1:
 
-- Add a dynamic current-holdings editor before cash-flow calculation, initially
-  empty and accepting `0-N` Taiwan ETFs
-- Use `+` and `-` controls to add or remove rows with exactly two editable
-  fields: `[ETF code] [held units]`
-- Reject duplicate codes and invalid units with row-specific messages
-- Derive the reference price, as-of date and source from the latest stored
-  official close, display them read-only, and never substitute zero when price
-  data is missing or claim that it is real-time
+- Added the initially empty dynamic `0-N` holding editor with exactly
+  `[ETF code] [held units]` as editable fields
+- Added atomic batch replacement, unique-code and positive-whole-unit validation
+- Persisted the performance Pipeline's downloaded TWSE daily closes with source
+  and trade date, without another network request
+- Derived read-only holding prices from the latest stored official close and
+  preserved missing price as unavailable rather than zero
+- Added a lossless upgrade for existing user-entered manual prices
+
+Remaining:
+
 - Expose the existing base-ETF target analysis in Streamlit with required
   capital, shortfall, annual coverage and January-December gross/after-tax cash
 - Complete or explicitly reconcile persistent-decline, weak-recovery and

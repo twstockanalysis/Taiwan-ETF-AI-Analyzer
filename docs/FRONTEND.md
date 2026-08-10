@@ -4,9 +4,11 @@
 
 The public navigation includes `我的條件與持有部位`. The page reads and writes
 only through FastAPI and states that it is a single-user, manual-entry flow
-with no broker connection. Separate native forms save fixed analysis conditions
-and one ETF holding at a time. A small static table shows user-entered reference
-values, and every delete requires a confirmation dialog.
+with no broker connection. A native form saves fixed analysis conditions. The
+holding section starts with zero rows and uses a dynamic two-column editor for
+`股票代號` and `股數`; native controls add or remove rows before one batch save.
+A static table shows the system-derived latest stored official close, date and
+source as read-only context. Missing prices display as unavailable, never zero.
 
 M11-2 adds an explicit `分析目前持倉` action on the same page. Native metric
 cards show total saved value, historical annual gross cash, modeled after-tax

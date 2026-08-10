@@ -139,6 +139,75 @@ class TestDecisionProfileAPI(unittest.TestCase):
         profile = self.client.get("/api/v1/decision-profile").json()
         self.assertEqual(profile["holdings"][0]["held_units"], 1000)
 
+    def test_holding_batch_uses_latest_stored_official_close(self):
+        connection = get_connection(self.database_path)
+        connection.executemany(
+            """
+            INSERT INTO etf_daily_close (
+                etf_code, trade_date, close_price, source_id
+            ) VALUES ('0056', ?, ?, 'twse_stock_day');
+            """,
+            [("2026-08-07", 35), ("2026-08-08", 36.5)],
+        )
+        connection.commit()
+        connection.close()
+
+        response = self.client.put(
+            "/api/v1/decision-profile/holdings",
+            json={"holdings": [{"etf_code": "0056", "held_units": 1200}]},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        holding = response.json()[0]
+        self.assertEqual(holding["held_units"], 1200)
+        self.assertEqual(holding["unit_price"], "36.5")
+        self.assertEqual(holding["price_as_of_date"], "2026-08-08")
+        self.assertEqual(holding["price_source_id"], "twse_stock_day")
+
+    def test_holding_batch_preserves_missing_price_and_can_clear_all(self):
+        saved = self.client.put(
+            "/api/v1/decision-profile/holdings",
+            json={"holdings": [{"etf_code": "0056", "held_units": 1000}]},
+        )
+        self.assertEqual(saved.status_code, 200)
+        self.assertIsNone(saved.json()[0]["unit_price"])
+        self.assertIsNone(saved.json()[0]["price_as_of_date"])
+        self.assertIsNone(saved.json()[0]["price_source_id"])
+
+        analysis = self.client.get(
+            "/api/v1/decision-profile/current-holding-analysis"
+        ).json()
+        self.assertEqual(analysis["status"], "UNAVAILABLE")
+
+        cleared = self.client.put(
+            "/api/v1/decision-profile/holdings",
+            json={"holdings": []},
+        )
+        self.assertEqual(cleared.status_code, 200)
+        self.assertEqual(cleared.json(), [])
+        self.assertEqual(
+            self.client.get("/api/v1/decision-profile").json()["holdings"],
+            [],
+        )
+
+    def test_holding_batch_rejects_duplicates_without_replacing(self):
+        self.client.put(
+            "/api/v1/decision-profile/holdings/0056",
+            json={"held_units": 1, "unit_price": 30},
+        )
+        response = self.client.put(
+            "/api/v1/decision-profile/holdings",
+            json={
+                "holdings": [
+                    {"etf_code": "0056", "held_units": 1},
+                    {"etf_code": "0056", "held_units": 2},
+                ]
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+        profile = self.client.get("/api/v1/decision-profile").json()
+        self.assertEqual(profile["holdings"][0]["held_units"], 1)
+
     def test_unknown_etf_returns_404(self):
         response = self.client.put(
             "/api/v1/decision-profile/holdings/9999",

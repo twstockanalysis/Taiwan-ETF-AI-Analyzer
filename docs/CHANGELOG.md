@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-10 — M11-5A1 dynamic holdings and official close boundary
+
+- Added an idempotent `etf_daily_close` store populated from the existing TWSE
+  performance download without an additional market-data request.
+- Added an atomic batch holding API accepting zero to any number of rows with
+  only ETF code and positive whole units.
+- Changed the Streamlit holding editor to an initially empty, dynamic two-column
+  grid with native row addition and deletion controls.
+- Derived saved holding prices, dates and sources from the latest stored
+  official close; missing prices remain null and block value-dependent results.
+- Added a lossless legacy manual-price migration and Repository, Pipeline, API,
+  analysis, client and AppTest regression coverage.
+
 ## 2026-08-10 — M11-4 decision records and Excel export
 
 - Added append-only candidate assessment snapshots containing the original

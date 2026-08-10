@@ -68,6 +68,7 @@ GET /api/v1/decision-profile/decision-records
 GET /api/v1/decision-profile/decision-records/{record_id}
 GET /api/v1/decision-profile/decision-records/{record_id}/export.xlsx
 PUT /api/v1/decision-profile/conditions
+PUT /api/v1/decision-profile/holdings
 PUT /api/v1/decision-profile/holdings/{etf_code}
 DELETE /api/v1/decision-profile/holdings/{etf_code}
 ```
@@ -77,11 +78,12 @@ M11-1 exposes one `SINGLE_USER` profile and always returns
 connections or send orders.
 
 Conditions persist the monthly after-tax cash target, analysis years, history
-years and a nullable generic cash-deduction percentage. Manual holdings persist
-positive whole units, a user-supplied positive TWD reference price and an
-optional price date. Repeating a holding `PUT` updates that ETF; `DELETE`
-removes only the website's manual record. Missing deductions remain `null`,
-while a formal `0%` deduction remains numerical zero.
+years and a nullable generic cash-deduction percentage. The batch holdings
+`PUT` accepts `0-N` unique `{etf_code, held_units}` rows and atomically replaces
+the saved set. It derives price, trade date and source from the latest stored
+official close. Missing close data remains `null` and blocks dependent output.
+The item `PUT` and `DELETE` remain compatibility operations. Missing deductions
+remain `null`, while a formal `0%` deduction remains numerical zero.
 
 The M11-2 current-holding endpoint is read-only. It returns per-ETF historical
 facts, total saved holding value and one portfolio-level M10 target-analysis

@@ -179,6 +179,41 @@ ON etf_performance (
     as_of_date DESC
 );
 
+-- ============================================================
+-- ETF 官方每日收盤價（估值與本金風險分析共用）
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS etf_daily_close (
+    etf_code TEXT NOT NULL,
+
+    trade_date TEXT NOT NULL,
+
+    close_price REAL NOT NULL
+        CHECK (close_price > 0),
+
+    source_id TEXT NOT NULL
+        CHECK (length(trim(source_id)) > 0),
+
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (etf_code, trade_date, source_id),
+
+    FOREIGN KEY (etf_code)
+        REFERENCES etf_master (code)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS
+idx_etf_daily_close_latest
+ON etf_daily_close (
+    etf_code,
+    trade_date DESC,
+    source_id
+);
+
 
 -- ============================================================
 -- ETF 配息事件
@@ -719,10 +754,12 @@ CREATE TABLE IF NOT EXISTS manual_holding (
     held_units INTEGER NOT NULL
         CHECK (held_units > 0),
 
-    unit_price REAL NOT NULL
-        CHECK (unit_price > 0),
+    unit_price REAL
+        CHECK (unit_price IS NULL OR unit_price > 0),
 
     price_as_of_date TEXT,
+
+    price_source_id TEXT,
 
     currency TEXT NOT NULL DEFAULT 'TWD'
         CHECK (currency = 'TWD'),
@@ -730,6 +767,14 @@ CREATE TABLE IF NOT EXISTS manual_holding (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK (
+        (unit_price IS NULL
+            AND price_as_of_date IS NULL
+            AND price_source_id IS NULL)
+        OR
+        unit_price IS NOT NULL
+    ),
 
     FOREIGN KEY (etf_code)
         REFERENCES etf_master (code)

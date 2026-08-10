@@ -42,7 +42,7 @@ class TestM12EntryAudit(unittest.TestCase):
         )
         self.assertIn("docs/M12_ENTRY_AUDIT.md", roadmap)
         self.assertIn("M11-5 — Confirmed public cash-flow flow closure", roadmap)
-        self.assertIn("initially\n  empty and accepting `0-N`", roadmap)
+        self.assertIn("dynamic `0-N` holding editor", roadmap)
         self.assertIn("Do not begin M12 until M11-5 is completed", roadmap)
         self.assertIn("self-service account aliases", roadmap)
         self.assertIn("03a9635", roadmap)

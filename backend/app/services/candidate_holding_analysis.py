@@ -225,6 +225,20 @@ def analyze_candidate_holding(
         holding_rows=holdings,
         as_of_date=analysis_date,
     )
+    if current.total_current_value is None:
+        return CandidateHoldingAnalysisResponse(
+            status=TargetAnalysisStatus.PARTIAL,
+            analysis_date=analysis_date,
+            candidate_etf_code=normalized_code,
+            candidate_name=candidate_etf["name"],
+            current_portfolio=current,
+            unavailable_fields=[
+                _unavailable(
+                    "current.total_current_value",
+                    "目前持股缺少可信的已保存官方收盤價",
+                )
+            ],
+        )
     proposed_holdings = _merge_candidate_holding(
         holdings,
         candidate_etf=candidate_etf,
