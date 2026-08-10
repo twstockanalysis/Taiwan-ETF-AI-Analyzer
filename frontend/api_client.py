@@ -50,6 +50,7 @@ from frontend.api.decision_profile import (
     fetch_decision_records,
     save_candidate_decision_record,
     save_manual_holding,
+    save_manual_holdings,
     save_user_conditions,
     validate_decision_profile,
     validate_current_holding_analysis,

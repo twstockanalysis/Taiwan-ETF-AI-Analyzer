@@ -12,6 +12,7 @@ from frontend.api.decision_profile import (
     fetch_decision_records,
     save_candidate_decision_record,
     save_manual_holding,
+    save_manual_holdings,
     save_user_conditions,
 )
 from frontend.api.errors import APIResponseError
@@ -80,6 +81,7 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
             "held_units": 1000,
             "unit_price": "35.5",
             "price_as_of_date": "2026-08-09",
+            "price_source_id": "twse_stock_day",
             "currency": "TWD",
             "updated_at": "2026-08-09T12:00:00",
         }
@@ -218,6 +220,29 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         self.assertTrue(
             mock_put.call_args.args[0].endswith(
                 "/api/v1/decision-profile/holdings/0056"
+            )
+        )
+
+    @patch("frontend.api.transport.httpx.put")
+    def test_saves_two_field_holding_batch(self, mock_put):
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = [self.holding()]
+        mock_put.return_value = response
+
+        result = save_manual_holdings(
+            "http://127.0.0.1:8000",
+            [{"etf_code": "0056", "held_units": 1000}],
+        )
+
+        self.assertEqual(result[0]["price_source_id"], "twse_stock_day")
+        self.assertEqual(
+            mock_put.call_args.kwargs["json"],
+            {"holdings": [{"etf_code": "0056", "held_units": 1000}]},
+        )
+        self.assertTrue(
+            mock_put.call_args.args[0].endswith(
+                "/api/v1/decision-profile/holdings"
             )
         )
 

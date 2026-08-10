@@ -34,10 +34,11 @@ FastAPI /api/v1/decision-profile
 SQLite
 ```
 
-The flow remains single-user and has no broker or order boundary. Reference
-prices are user-entered assumptions, not live quotes. The mutable singleton is
-not an anonymous-public boundary; M12 must restrict decision-profile writes
-before public deployment.
+The flow remains single-user and has no broker or order boundary. Current
+holding prices come from the latest stored official daily close and are not
+live quotes; candidate-scenario prices remain explicit user assumptions. The
+mutable singleton is not an anonymous-public boundary; M12 must restrict every
+decision-profile read, write, record and export before public deployment.
 
 The analysis route is read-only. It does not call its own HTTP API, duplicate
 the monthly target per ETF or persist calculated results.

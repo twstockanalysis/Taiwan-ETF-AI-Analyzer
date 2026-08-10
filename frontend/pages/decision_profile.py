@@ -3,18 +3,18 @@
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+import pandas as pd
 import streamlit as st
 
 from frontend.api_client import (
     APIClientError,
-    delete_manual_holding,
     fetch_candidate_holding_analysis,
     fetch_current_holding_analysis,
     fetch_decision_profile,
     fetch_decision_record_export,
     fetch_decision_records,
     save_candidate_decision_record,
-    save_manual_holding,
+    save_manual_holdings,
     save_user_conditions,
 )
 from frontend.config import get_api_base_url
@@ -66,6 +66,7 @@ def build_holding_rows(profile: dict[str, Any]) -> list[dict[str, str]]:
                     item.get("price_as_of_date"),
                     missing_text="未提供",
                 ),
+                "價格來源": item.get("price_source_id") or "尚未取得",
             }
         )
     return rows
@@ -80,11 +81,14 @@ def build_analysis_holding_rows(
     for item in analysis["holdings"]:
         annual_cash = _decimal(item.get("annual_gross_distribution_cash"))
         annual_return = _decimal(item.get("annualized_price_return_pct"))
+        current_value = _decimal(item.get("current_value"))
         rows.append(
             {
                 "ETF": f"{item['etf_code']} {item['name']}",
                 "目前部位價值": (
-                    f"{format_number(item['current_value'], decimal_places=2)} TWD"
+                    f"{format_number(current_value, decimal_places=2)} TWD"
+                    if current_value is not None
+                    else "無法計算"
                 ),
                 "年均稅前配息現金": (
                     f"{format_number(annual_cash, decimal_places=2)} TWD"
@@ -321,28 +325,6 @@ def render_candidate_holding_analysis_result(
     st.caption(analysis["estimate_label"] + "；分析不會寫入手動持倉。")
 
 
-@st.dialog("確認刪除持有部位")
-def confirm_holding_delete(api_base_url: str, etf_code: str) -> None:
-    st.write(f"確定刪除 **{etf_code}** 的手動持有部位嗎？")
-    st.caption("這只會刪除本網站的手動紀錄，不會連接券商或送出交易。")
-    with st.container(horizontal=True, horizontal_alignment="right"):
-        if st.button(
-            "確認刪除",
-            type="primary",
-            icon=":material/delete:",
-            key=f"confirm_delete_{etf_code}",
-        ):
-            try:
-                delete_manual_holding(api_base_url, etf_code)
-            except APIClientError as error:
-                render_api_error("無法刪除手動持有部位。", error)
-                return
-            load_decision_profile.clear()
-            load_current_holding_analysis.clear()
-            _clear_candidate_analysis_state()
-            st.rerun()
-
-
 def render_decision_profile() -> None:
     """顯示單一使用者條件與無券商連線的手動持有部位。"""
 
@@ -431,59 +413,80 @@ def render_decision_profile() -> None:
     st.divider()
     st.subheader("手動持有部位")
     st.caption(
-        "參考價格是使用者輸入的情境值，不是即時報價；"
-        "相同 ETF 代號再次儲存會更新既有紀錄。"
+        "初始可為 0 檔；使用表格下方的新增／刪除列控制管理任意檔數。"
+        "只需輸入 ETF 代號與股數，參考價格、日期及來源由系統使用最新"
+        "已保存的官方收盤價提供，不是即時報價。"
     )
-    with st.form("manual_holding_upsert"):
-        holding_columns = st.columns(3)
-        with holding_columns[0]:
-            etf_code = st.text_input(
-                "ETF 代號",
-                placeholder="例如 0056",
-                max_chars=10,
-            )
-            held_units = st.number_input(
-                "持有單位數",
-                min_value=1,
-                value=1000,
-                step=1,
-            )
-        with holding_columns[1]:
-            unit_price = st.number_input(
-                "參考單價（TWD）",
-                min_value=0.01,
-                value=30.0,
-                step=0.1,
-            )
-        with holding_columns[2]:
-            has_price_date = st.checkbox("提供參考價格日期", value=False)
-            price_date = st.date_input("參考價格日期")
+    editor_rows = pd.DataFrame(
+        {
+            "股票代號": pd.Series(
+                [item["etf_code"] for item in profile["holdings"]],
+                dtype="string",
+            ),
+            "股數": pd.Series(
+                [item["held_units"] for item in profile["holdings"]],
+                dtype="Int64",
+            ),
+        }
+    )
+    with st.form("manual_holding_batch"):
+        edited_holdings = st.data_editor(
+            editor_rows,
+            num_rows="dynamic",
+            hide_index=True,
+            key="manual_holding_editor",
+            column_config={
+                "股票代號": st.column_config.TextColumn(
+                    "股票代號",
+                    help="限本網站收錄的台灣 ETF 代號",
+                    max_chars=10,
+                ),
+                "股數": st.column_config.NumberColumn(
+                    "股數",
+                    min_value=1,
+                    step=1,
+                    format="%d",
+                ),
+            },
+        )
         holding_submitted = st.form_submit_button(
-            "新增或更新持有部位",
+            "儲存全部持股",
             type="primary",
-            icon=":material/add_chart:",
+            icon=":material/save:",
         )
 
     if holding_submitted:
-        normalized_code = etf_code.strip().upper()
-        if not normalized_code:
-            st.warning("請輸入 ETF 代號。")
+        holding_payload = []
+        row_errors = []
+        for row_number, row in enumerate(
+            edited_holdings.to_dict(orient="records"),
+            start=1,
+        ):
+            code = str(row.get("股票代號") or "").strip().upper()
+            units = row.get("股數")
+            if not code:
+                row_errors.append(f"第 {row_number} 列缺少 ETF 代號。")
+                continue
+            if pd.isna(units) or int(units) <= 0 or float(units) != int(units):
+                row_errors.append(f"第 {row_number} 列股數必須是正整數。")
+                continue
+            holding_payload.append({"etf_code": code, "held_units": int(units)})
+        codes = [item["etf_code"] for item in holding_payload]
+        duplicates = sorted({code for code in codes if codes.count(code) > 1})
+        if duplicates:
+            row_errors.append("ETF 代號不可重複：" + "、".join(duplicates))
+
+        if row_errors:
+            for message in row_errors:
+                st.warning(message)
         else:
             try:
-                save_manual_holding(
+                save_manual_holdings(
                     api_base_url,
-                    normalized_code,
-                    {
-                        "held_units": int(held_units),
-                        "unit_price": unit_price,
-                        "price_as_of_date": (
-                            price_date.isoformat() if has_price_date else None
-                        ),
-                        "currency": "TWD",
-                    },
+                    holding_payload,
                 )
             except APIClientError as error:
-                render_api_error("無法儲存手動持有部位。", error)
+                render_api_error("無法儲存全部持有部位。", error)
             else:
                 load_decision_profile.clear()
                 load_current_holding_analysis.clear()
@@ -492,18 +495,13 @@ def render_decision_profile() -> None:
 
     if not profile["holdings"]:
         st.info("目前尚未建立手動持有部位。")
-        return
-
-    st.table(build_holding_rows(profile))
-    with st.container(horizontal=True):
-        for item in profile["holdings"]:
-            code = item["etf_code"]
-            if st.button(
-                f"刪除 {code}",
-                icon=":material/delete:",
-                key=f"delete_holding_{code}",
-            ):
-                confirm_holding_delete(api_base_url, code)
+    else:
+        st.table(build_holding_rows(profile))
+        if any(item.get("unit_price") is None for item in profile["holdings"]):
+            st.warning(
+                "部分 ETF 尚無可信的已保存官方收盤價；部位價值與依賴估值的"
+                "現金流結果會標示為無法計算，不會以 0 代替。"
+            )
 
     st.divider()
     st.subheader("目前持倉分析")

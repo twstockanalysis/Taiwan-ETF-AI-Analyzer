@@ -213,6 +213,37 @@ class TestCandidateHoldingAnalysis(unittest.TestCase):
             body["comparison"]["annual_after_tax_cash_delta"]
         )
 
+    def test_missing_current_close_blocks_candidate_value_comparison(self):
+        self.client.put(
+            "/api/v1/decision-profile/conditions",
+            json={
+                "monthly_after_tax_target": 3000,
+                "analysis_years": 10,
+                "history_years": 3,
+                "cash_deduction_rate_pct": 10,
+            },
+        )
+        self.client.put(
+            "/api/v1/decision-profile/holdings",
+            json={"holdings": [{"etf_code": "0056", "held_units": 1000}]},
+        )
+        self._insert_market_history()
+
+        response = self.client.post(
+            "/api/v1/decision-profile/candidate-analysis/00878",
+            json=self.request_payload(),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"], "PARTIAL")
+        self.assertIsNone(body["comparison"])
+        self.assertIsNone(body["eligibility"])
+        self.assertEqual(
+            body["unavailable_fields"][0]["field"],
+            "current.total_current_value",
+        )
+
     def test_invalid_proposed_units_are_rejected(self):
         response = self.client.post(
             "/api/v1/decision-profile/candidate-analysis/00878",

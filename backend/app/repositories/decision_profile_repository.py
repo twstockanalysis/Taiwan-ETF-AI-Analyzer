@@ -114,6 +114,7 @@ def list_manual_holdings(
                 h.held_units,
                 h.unit_price,
                 h.price_as_of_date,
+                h.price_source_id,
                 h.currency,
                 h.updated_at
             FROM manual_holding AS h
@@ -150,13 +151,15 @@ def upsert_manual_holding(
                 held_units,
                 unit_price,
                 price_as_of_date,
+                price_source_id,
                 currency
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(etf_code) DO UPDATE SET
                 held_units = excluded.held_units,
                 unit_price = excluded.unit_price,
                 price_as_of_date = excluded.price_as_of_date,
+                price_source_id = excluded.price_source_id,
                 currency = excluded.currency,
                 updated_at = CURRENT_TIMESTAMP;
             """,
@@ -169,6 +172,7 @@ def upsert_manual_holding(
                     if value.price_as_of_date is not None
                     else None
                 ),
+                "manual_legacy",
                 value.currency,
             ),
         )
@@ -183,6 +187,51 @@ def upsert_manual_holding(
         for item in list_manual_holdings(database_path)
         if item["etf_code"] == normalized_code
     )
+
+
+def replace_manual_holdings(
+    holdings: list[dict[str, Any]],
+    database_path: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    """以單一交易取代所有持股，支援有效的零持股狀態。"""
+
+    connection = get_connection(database_path)
+    try:
+        connection.execute("DELETE FROM manual_holding;")
+        connection.executemany(
+            """
+            INSERT INTO manual_holding (
+                etf_code,
+                held_units,
+                unit_price,
+                price_as_of_date,
+                price_source_id,
+                currency
+            )
+            VALUES (?, ?, ?, ?, ?, 'TWD');
+            """,
+            [
+                (
+                    item["etf_code"],
+                    item["held_units"],
+                    (
+                        str(item["unit_price"])
+                        if item.get("unit_price") is not None
+                        else None
+                    ),
+                    item.get("price_as_of_date"),
+                    item.get("price_source_id"),
+                )
+                for item in holdings
+            ],
+        )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+    return list_manual_holdings(database_path)
 
 
 def delete_manual_holding(

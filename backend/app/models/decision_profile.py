@@ -42,6 +42,8 @@ class UserConditionsResponse(UserConditionsUpsert):
 
 
 class ManualHoldingUpsert(DecisionProfileBaseModel):
+    """保留 M11-1 單筆 API 的相容輸入；新 UI 使用批次契約。"""
+
     held_units: int = Field(gt=0)
     unit_price: Decimal = Field(gt=0)
     price_as_of_date: date | None = None
@@ -55,11 +57,43 @@ class ManualHoldingUpsert(DecisionProfileBaseModel):
         return value
 
 
-class ManualHoldingResponse(ManualHoldingUpsert):
+class ManualHoldingBatchItem(DecisionProfileBaseModel):
+    etf_code: str = Field(min_length=1, max_length=10)
+    held_units: int = Field(gt=0)
+
+    @field_validator("etf_code", mode="before")
+    @classmethod
+    def normalize_etf_code(cls, value: object) -> str:
+        if not isinstance(value, str):
+            raise TypeError("ETF 代號必須是文字")
+        return value.strip().upper()
+
+
+class ManualHoldingBatchUpsert(DecisionProfileBaseModel):
+    holdings: list[ManualHoldingBatchItem] = Field(default_factory=list)
+
+    @field_validator("holdings")
+    @classmethod
+    def reject_duplicate_codes(
+        cls,
+        value: list[ManualHoldingBatchItem],
+    ) -> list[ManualHoldingBatchItem]:
+        codes = [item.etf_code for item in value]
+        if len(codes) != len(set(codes)):
+            raise ValueError("持有部位不可包含重複 ETF 代號")
+        return value
+
+
+class ManualHoldingResponse(DecisionProfileBaseModel):
     etf_code: str
     name: str
     is_active: bool
     is_bond: bool
+    held_units: int = Field(gt=0)
+    unit_price: Decimal | None = Field(default=None, gt=0)
+    price_as_of_date: date | None = None
+    price_source_id: str | None = None
+    currency: Literal["TWD"] = "TWD"
     updated_at: datetime
 
 
@@ -76,8 +110,8 @@ class CurrentHoldingFact(DecisionProfileBaseModel):
     etf_code: str
     name: str
     held_units: int = Field(gt=0)
-    unit_price: Decimal = Field(gt=0)
-    current_value: Decimal = Field(gt=0)
+    unit_price: Decimal | None = Field(default=None, gt=0)
+    current_value: Decimal | None = Field(default=None, gt=0)
     annual_gross_distribution_cash: Decimal | None = Field(
         default=None,
         ge=0,

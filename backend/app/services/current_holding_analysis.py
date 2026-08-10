@@ -109,6 +109,7 @@ def analyze_holding_snapshot(
 
     facts: list[CurrentHoldingFact] = []
     total_current_value = Decimal("0")
+    current_value_complete = True
     total_gross_cash = Decimal("0")
     gross_cash_complete = True
     weighted_price_return = Decimal("0")
@@ -119,9 +120,12 @@ def analyze_holding_snapshot(
 
     for holding in holding_rows:
         units = int(holding["held_units"])
-        unit_price = Decimal(str(holding["unit_price"]))
-        current_value = unit_price * units
-        total_current_value += current_value
+        unit_price = _decimal(holding.get("unit_price"))
+        current_value = unit_price * units if unit_price is not None else None
+        if current_value is None:
+            current_value_complete = False
+        else:
+            total_current_value += current_value
         loaded = load_target_analysis_data(
             etf_code=holding["etf_code"],
             database_path=database_path,
@@ -134,6 +138,12 @@ def analyze_holding_snapshot(
 
         fact_warnings = list(loaded.warnings)
         fact_unavailable = list(loaded.unavailable_fields)
+        if current_value is None:
+            _append_unavailable(
+                fact_unavailable,
+                field="current_value",
+                reason="尚無可信的已保存官方收盤價",
+            )
         total_per_unit = _decimal(monthly.get("total_amount_per_unit"))
         analysis_currency = monthly.get("analysis_currency")
         currency_compatible = analysis_currency == conditions.currency
@@ -176,7 +186,7 @@ def analyze_holding_snapshot(
                 field="annualized_price_return_pct",
                 reason="沒有可用的期間價格報酬資料",
             )
-        else:
+        elif current_value is not None:
             weighted_price_return += current_value * annualized_return
 
         prefixed_unavailable = [
@@ -201,6 +211,22 @@ def analyze_holding_snapshot(
                 warnings=fact_warnings,
                 unavailable_fields=fact_unavailable,
             )
+        )
+
+    if not current_value_complete:
+        _append_unavailable(
+            top_level_unavailable,
+            field="total_current_value",
+            reason="部分持股尚無可信的已保存官方收盤價",
+        )
+        return CurrentHoldingAnalysisResponse(
+            status=TargetAnalysisStatus.PARTIAL,
+            analysis_date=analysis_date,
+            conditions=conditions,
+            total_current_value=None,
+            holdings=facts,
+            portfolio_analysis=None,
+            unavailable_fields=top_level_unavailable,
         )
 
     portfolio_gross_cash = total_gross_cash if gross_cash_complete else None

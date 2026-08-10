@@ -215,6 +215,40 @@ class TestCurrentHoldingAnalysis(TestCase):
         )
 
     @patch(
+        "backend.app.services.current_holding_analysis.load_target_analysis_data"
+    )
+    @patch(
+        "backend.app.services.current_holding_analysis.list_manual_holdings"
+    )
+    @patch(
+        "backend.app.services.current_holding_analysis.get_user_conditions"
+    )
+    def test_missing_official_close_blocks_value_dependent_result(
+        self,
+        get_conditions,
+        list_holdings,
+        load_data,
+    ):
+        get_conditions.return_value = _conditions()
+        holding = _holding("0056", "10")
+        holding["unit_price"] = None
+        holding["price_as_of_date"] = None
+        holding["price_source_id"] = None
+        list_holdings.return_value = [holding]
+        load_data.return_value = _data("6", "1Y", "5")
+
+        result = analyze_current_holdings("ignored.db")
+
+        self.assertEqual(result.status, TargetAnalysisStatus.PARTIAL)
+        self.assertIsNone(result.total_current_value)
+        self.assertIsNone(result.holdings[0].current_value)
+        self.assertIsNone(result.portfolio_analysis)
+        self.assertIn(
+            "total_current_value",
+            {item.field for item in result.unavailable_fields},
+        )
+
+    @patch(
         "backend.app.services.current_holding_analysis.list_manual_holdings",
         return_value=[],
     )

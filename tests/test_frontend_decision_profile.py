@@ -129,7 +129,12 @@ page.render_decision_profile()
         self.assertIn("公開部署前必須限制寫入存取", warnings)
         button_labels = [item.label for item in app.button]
         self.assertIn("儲存固定條件", button_labels)
-        self.assertIn("新增或更新持有部位", button_labels)
+        self.assertIn("儲存全部持股", button_labels)
+        self.assertNotIn(
+            "參考單價（TWD）",
+            [item.label for item in app.number_input],
+        )
+        self.assertIn("只需輸入 ETF 代號與股數", captions)
         self.assertIn("分析目前持倉", button_labels)
         self.assertIn("比較候選加入前後", button_labels)
 

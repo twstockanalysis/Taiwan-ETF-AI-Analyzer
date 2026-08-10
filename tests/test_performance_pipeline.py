@@ -225,6 +225,19 @@ class TestPerformancePipeline(
                 20.0,
             )
 
+            latest_close = connection.execute(
+                """
+                SELECT trade_date, close_price, source_id
+                FROM etf_daily_close
+                WHERE etf_code = '0050'
+                ORDER BY trade_date DESC
+                LIMIT 1;
+                """
+            ).fetchone()
+            self.assertEqual(latest_close["trade_date"], "2026-07-29")
+            self.assertEqual(latest_close["close_price"], 120.0)
+            self.assertEqual(latest_close["source_id"], "twse_stock_day")
+
         finally:
             connection.close()
 

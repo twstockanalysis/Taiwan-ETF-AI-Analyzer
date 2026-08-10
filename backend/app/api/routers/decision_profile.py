@@ -13,6 +13,7 @@ from backend.app.models.decision_profile import (
     DecisionProfileResponse,
     DecisionRecordResponse,
     DecisionRecordSummary,
+    ManualHoldingBatchUpsert,
     ManualHoldingResponse,
     ManualHoldingUpsert,
     UserConditionsResponse,
@@ -22,10 +23,14 @@ from backend.app.repositories.decision_profile_repository import (
     delete_manual_holding,
     get_user_conditions,
     list_manual_holdings,
+    replace_manual_holdings,
     upsert_manual_holding,
     upsert_user_conditions,
 )
 from backend.app.repositories.etf_repository import get_etf_by_code
+from backend.app.repositories.daily_close_repository import (
+    get_latest_daily_close,
+)
 from backend.app.repositories.decision_record_repository import (
     get_decision_record,
     list_decision_records,
@@ -193,6 +198,45 @@ def save_user_conditions(
     return UserConditionsResponse(
         **upsert_user_conditions(value, database_path)
     )
+
+
+@router.put(
+    "/holdings",
+    response_model=list[ManualHoldingResponse],
+    summary="以官方最新收盤價取代目前全部手動持股",
+)
+def save_manual_holding_batch(
+    value: ManualHoldingBatchUpsert,
+    database_path: DatabasePath,
+) -> list[ManualHoldingResponse]:
+    resolved: list[dict] = []
+    for item in value.holdings:
+        if get_etf_by_code(item.etf_code, database_path) is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"找不到 ETF：{item.etf_code}",
+            )
+        latest_close = get_latest_daily_close(item.etf_code, database_path)
+        resolved.append(
+            {
+                "etf_code": item.etf_code,
+                "held_units": item.held_units,
+                "unit_price": (
+                    latest_close["close_price"] if latest_close else None
+                ),
+                "price_as_of_date": (
+                    latest_close["trade_date"] if latest_close else None
+                ),
+                "price_source_id": (
+                    latest_close["source_id"] if latest_close else None
+                ),
+            }
+        )
+
+    return [
+        ManualHoldingResponse(**item)
+        for item in replace_manual_holdings(resolved, database_path)
+    ]
 
 
 @router.put(

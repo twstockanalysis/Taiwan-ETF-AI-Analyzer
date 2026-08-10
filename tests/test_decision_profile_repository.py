@@ -140,6 +140,46 @@ class TestDecisionProfileRepository(unittest.TestCase):
         self.assertEqual(etf["code"], "0056")
         self.assertEqual(len(tables), 2)
 
+    def test_initialize_migrates_legacy_manual_price_without_data_loss(self):
+        connection = get_connection(self.database_path)
+        connection.execute("DROP TABLE manual_holding;")
+        connection.executescript(
+            """
+            CREATE TABLE manual_holding (
+                etf_code TEXT PRIMARY KEY,
+                held_units INTEGER NOT NULL CHECK (held_units > 0),
+                unit_price REAL NOT NULL CHECK (unit_price > 0),
+                price_as_of_date TEXT,
+                currency TEXT NOT NULL DEFAULT 'TWD',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (etf_code) REFERENCES etf_master (code)
+            );
+            INSERT INTO manual_holding (
+                etf_code, held_units, unit_price, price_as_of_date
+            ) VALUES ('0056', 1000, 35.5, '2026-08-09');
+            """
+        )
+        connection.commit()
+        connection.close()
+
+        initialize_database(self.database_path)
+
+        holding = list_manual_holdings(self.database_path)[0]
+        self.assertEqual(holding["held_units"], 1000)
+        self.assertEqual(holding["unit_price"], Decimal("35.5"))
+        self.assertEqual(holding["price_source_id"], "manual_legacy")
+        connection = get_connection(self.database_path)
+        columns = {
+            row["name"]: row
+            for row in connection.execute(
+                "PRAGMA table_info(manual_holding);"
+            ).fetchall()
+        }
+        connection.close()
+        self.assertIn("price_source_id", columns)
+        self.assertFalse(bool(columns["unit_price"]["notnull"]))
+
 
 if __name__ == "__main__":
     unittest.main()
