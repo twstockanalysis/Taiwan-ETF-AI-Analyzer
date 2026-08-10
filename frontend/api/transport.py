@@ -135,6 +135,48 @@ def get_json(
         ) from error
 
 
+def get_binary(
+    api_base_url: str,
+    endpoint_path: str,
+    operation_name: str,
+    timeout_seconds: float = 30.0,
+) -> bytes:
+    """呼叫 FastAPI 並回傳二進位檔案內容。"""
+
+    endpoint_url = f"{api_base_url.rstrip('/')}/{endpoint_path.lstrip('/')}"
+    try:
+        response = httpx.get(
+            endpoint_url,
+            timeout=timeout_seconds,
+            follow_redirects=True,
+            headers={
+                "Accept": (
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                "User-Agent": "TW-ETF-AI-Analyzer-Frontend/0.1",
+            },
+        )
+        response.raise_for_status()
+    except httpx.RequestError as error:
+        raise APIConnectionError(
+            f"無法連接 FastAPI 後端：{endpoint_url}"
+        ) from error
+    except httpx.HTTPStatusError as error:
+        detail = extract_response_detail(error.response)
+        status_code = error.response.status_code
+        if status_code == 404:
+            raise APIResourceNotFoundError(
+                f"{operation_name}找不到資料：{detail}"
+            ) from error
+        raise APIResponseError(
+            f"{operation_name}失敗：HTTP {status_code}；{detail}"
+        ) from error
+    if not response.content:
+        raise APIResponseError(f"{operation_name}回傳空白檔案")
+    return response.content
+
+
 def post_json(
     api_base_url: str,
     endpoint_path: str,

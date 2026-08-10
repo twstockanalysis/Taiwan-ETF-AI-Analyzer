@@ -6,6 +6,8 @@ M11-1 introduces the first persisted decision inputs after the M10 calculation
 contracts stabilized. It is deliberately limited to one public-site profile and
 manual Taiwan ETF holdings. It does not provide accounts, access isolation,
 broker synchronization, recommendations, decision records or trading.
+M11-4 later adds assessment snapshots under the separate decision-record
+contract; it does not change the M11-1 profile into a recommendation engine.
 
 Because this is one mutable singleton with no account isolation, its write API
 and Streamlit page are suitable only for a controlled single-user environment.
@@ -66,3 +68,7 @@ current-holding scenario is an investment recommendation.
 
 M11-3 candidate analysis follows the separate
 `CANDIDATE_HOLDING_ANALYSIS_CONTRACT.md` and never mutates this profile.
+
+M11-4 follows `DECISION_RECORD_EXPORT_CONTRACT.md`. Saving a record reruns the
+candidate analysis and appends an immutable snapshot. It never changes the
+singleton conditions or manual holdings.

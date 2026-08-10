@@ -508,13 +508,21 @@ Delivered:
 - Preserved missing deduction and overlap assumptions instead of using zero
 - Added a read-only FastAPI scenario and Streamlit comparison flow
 
-### M11-4+ — Decision records and export
+### M11-4 — Decision records and export — Completed
 
-Planned:
+Status: implementation completed on 2026-08-10; full-suite verification is
+recorded in the changelog.
 
-- Preserve recommendation rationale, exclusions, alternatives and risk notes
-- Add decision records and Excel export
-- Keep the initial public release single-user and exclude automatic trading
+Delivered:
+
+- Preserved candidate assessment rationale, exclusions, alternatives and risk
+  notes in append-only decision snapshots
+- Reran candidate analysis on the server before saving instead of trusting a
+  frontend result
+- Added record list/detail and five-sheet Excel export
+- Kept the initial release single-user and excluded broker connectivity and
+  automatic trading
+- Kept the M12 direction-and-function audit unexecuted and mandatory
 
 ## M12 — Automation and deployment
 

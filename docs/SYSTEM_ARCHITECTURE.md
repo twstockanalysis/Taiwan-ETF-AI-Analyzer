@@ -23,6 +23,13 @@ FastAPI /api/v1/decision-profile
                       +--> same portfolio aggregation before/after
                       +--> M10-5 eligibility and reason calculator
     |
+    +--> Decision-record Service
+             |
+             +--> server-side candidate re-analysis
+             +--> rationale / exclusion / alternative / risk notes
+             +--> append-only decision_record snapshot
+             +--> Excel export from saved snapshot
+    |
     v
 SQLite
 ```
@@ -37,6 +44,11 @@ the monthly target per ETF or persist calculated results.
 
 Candidate analysis also remains read-only. It derives a proposed snapshot in
 memory and never writes the candidate to `manual_holding`.
+
+M11-4 record creation is an explicit write, but only to `decision_record`. The
+service reruns the analysis before saving and exposes no record update or
+delete path. Excel generation reads that immutable record rather than mutable
+current conditions.
 
 ## Current website request flow
 

@@ -11,6 +11,9 @@ from frontend.api_client import (
     fetch_candidate_holding_analysis,
     fetch_current_holding_analysis,
     fetch_decision_profile,
+    fetch_decision_record_export,
+    fetch_decision_records,
+    save_candidate_decision_record,
     save_manual_holding,
     save_user_conditions,
 )
@@ -107,6 +110,43 @@ def load_decision_profile(api_base_url: str) -> dict[str, Any]:
 @st.cache_data(ttl=30, max_entries=5, show_spinner=False)
 def load_current_holding_analysis(api_base_url: str) -> dict[str, Any]:
     return fetch_current_holding_analysis(api_base_url)
+
+
+@st.cache_data(ttl=30, max_entries=5, show_spinner=False)
+def load_decision_records(api_base_url: str) -> list[dict[str, Any]]:
+    return fetch_decision_records(api_base_url)
+
+
+def _clear_candidate_analysis_state() -> None:
+    for key in (
+        "candidate_holding_analysis_result",
+        "candidate_holding_analysis_request",
+        "candidate_holding_analysis_code",
+    ):
+        st.session_state.pop(key, None)
+
+
+def build_decision_record_rows(
+    records: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    outcome_labels = {
+        "ELIGIBLE": "通過目前門檻",
+        "INELIGIBLE": "未通過目前門檻",
+        "NOT_EVALUATED": "未進行候選判定",
+        "UNAVAILABLE": "資料不足",
+    }
+    return [
+        {
+            "紀錄": f"#{item['id']}",
+            "建立時間": format_iso_date(item["created_at"]),
+            "候選 ETF": (
+                f"{item['candidate_etf_code']} {item['candidate_name']}"
+            ),
+            "分析狀態": item["analysis_status"],
+            "資格結果": outcome_labels[item["outcome"]],
+        }
+        for item in records
+    ]
 
 
 def _metric_value(value: Any, *, suffix: str = "") -> str:
@@ -299,7 +339,7 @@ def confirm_holding_delete(api_base_url: str, etf_code: str) -> None:
                 return
             load_decision_profile.clear()
             load_current_holding_analysis.clear()
-            st.session_state.pop("candidate_holding_analysis_result", None)
+            _clear_candidate_analysis_state()
             st.rerun()
 
 
@@ -385,7 +425,7 @@ def render_decision_profile() -> None:
         else:
             load_decision_profile.clear()
             load_current_holding_analysis.clear()
-            st.session_state.pop("candidate_holding_analysis_result", None)
+            _clear_candidate_analysis_state()
             st.rerun()
 
     st.divider()
@@ -447,7 +487,7 @@ def render_decision_profile() -> None:
             else:
                 load_decision_profile.clear()
                 load_current_holding_analysis.clear()
-                st.session_state.pop("candidate_holding_analysis_result", None)
+                _clear_candidate_analysis_state()
                 st.rerun()
 
     if not profile["holdings"]:
@@ -538,27 +578,119 @@ def render_decision_profile() -> None:
         if not normalized_candidate:
             st.warning("請輸入候選 ETF 代號。")
         else:
+            _clear_candidate_analysis_state()
             try:
                 with loading_state("正在比較候選 ETF 加入前後..."):
+                    candidate_request = {
+                        "proposed_units": int(proposed_units),
+                        "unit_price": candidate_price,
+                        "holding_overlap_pct": (
+                            overlap if has_overlap else None
+                        ),
+                        "monthly_coverage_enabled": (
+                            analysis_goal == "補足月配缺口"
+                        ),
+                    }
                     st.session_state[
                         "candidate_holding_analysis_result"
                     ] = fetch_candidate_holding_analysis(
                         api_base_url,
                         normalized_candidate,
-                        {
-                            "proposed_units": int(proposed_units),
-                            "unit_price": candidate_price,
-                            "holding_overlap_pct": (
-                                overlap if has_overlap else None
-                            ),
-                            "monthly_coverage_enabled": (
-                                analysis_goal == "補足月配缺口"
-                            ),
-                        },
+                        candidate_request,
                     )
+                    st.session_state[
+                        "candidate_holding_analysis_request"
+                    ] = candidate_request
+                    st.session_state[
+                        "candidate_holding_analysis_code"
+                    ] = normalized_candidate
             except APIClientError as error:
                 render_api_error("無法完成候選持倉分析。", error)
     if "candidate_holding_analysis_result" in st.session_state:
         render_candidate_holding_analysis_result(
             st.session_state["candidate_holding_analysis_result"]
+        )
+        st.caption(
+            "保存時後端會重新執行同一份輸入，再建立不可變快照；"
+            "後續條件或資料更新不會改寫舊紀錄。"
+        )
+        if st.button(
+            "保存為決策紀錄",
+            icon=":material/save:",
+            key="save_candidate_decision_record",
+        ):
+            try:
+                with loading_state("正在重新分析並保存不可變快照..."):
+                    saved_record = save_candidate_decision_record(
+                        api_base_url,
+                        st.session_state["candidate_holding_analysis_code"],
+                        st.session_state["candidate_holding_analysis_request"],
+                    )
+            except APIClientError as error:
+                render_api_error("無法保存決策紀錄。", error)
+            else:
+                load_decision_records.clear()
+                st.success(f"已保存決策紀錄 #{saved_record['id']}。")
+
+    st.divider()
+    st.subheader("決策紀錄與 Excel 匯出")
+    st.caption(
+        "每筆紀錄都是保存當下的不可變快照；不提供覆寫或刪除，"
+        "重新分析會建立新紀錄。"
+    )
+    try:
+        records = load_decision_records(api_base_url)
+    except APIClientError as error:
+        render_api_error("無法取得決策紀錄。", error)
+        return
+    if not records:
+        st.info("尚未保存候選分析決策紀錄。")
+        return
+    st.table(build_decision_record_rows(records))
+    selected_record_id = st.selectbox(
+        "選擇要匯出的紀錄",
+        options=[item["id"] for item in records],
+        format_func=lambda record_id: next(
+            (
+                f"#{item['id']} · {item['candidate_etf_code']} "
+                f"{item['candidate_name']}"
+                for item in records
+                if item["id"] == record_id
+            ),
+            f"#{record_id}",
+        ),
+        key="decision_record_export_selection",
+    )
+    prepared_key = f"decision_record_export_{selected_record_id}"
+    if st.button(
+        "準備 Excel",
+        icon=":material/table_view:",
+        key=f"prepare_{prepared_key}",
+    ):
+        try:
+            with loading_state("正在建立 Excel..."):
+                st.session_state[prepared_key] = fetch_decision_record_export(
+                    api_base_url,
+                    selected_record_id,
+                )
+        except APIClientError as error:
+            render_api_error("無法準備決策紀錄 Excel。", error)
+    if prepared_key in st.session_state:
+        selected_record = next(
+            item for item in records if item["id"] == selected_record_id
+        )
+        st.download_button(
+            "下載 Excel",
+            data=st.session_state[prepared_key],
+            file_name=(
+                f"decision-record-{selected_record_id}-"
+                f"{selected_record['candidate_etf_code']}.xlsx"
+            ),
+            mime=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+            on_click="ignore",
+            icon=":material/download:",
+            key=f"download_{prepared_key}",
         )

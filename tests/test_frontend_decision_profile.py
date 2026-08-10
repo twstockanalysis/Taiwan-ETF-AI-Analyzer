@@ -7,11 +7,26 @@ from streamlit.testing.v1 import AppTest
 from frontend.pages.decision_profile import (
     build_analysis_holding_rows,
     build_candidate_comparison_rows,
+    build_decision_record_rows,
     build_holding_rows,
 )
 
 
 class TestFrontendDecisionProfile(unittest.TestCase):
+    def test_decision_record_rows_use_human_readable_outcome(self):
+        rows = build_decision_record_rows(
+            [{
+                "id": 3,
+                "created_at": "2026-08-10T12:00:00",
+                "candidate_etf_code": "00878",
+                "candidate_name": "國泰永續高股息",
+                "analysis_status": "PARTIAL",
+                "outcome": "INELIGIBLE",
+            }]
+        )
+        self.assertEqual(rows[0]["紀錄"], "#3")
+        self.assertEqual(rows[0]["資格結果"], "未通過目前門檻")
+
     def test_holding_rows_calculate_reference_value(self):
         rows = build_holding_rows(
             {
@@ -101,6 +116,7 @@ page.load_decision_profile = lambda api_base_url: {
         "price_as_of_date": None,
     }],
 }
+page.load_decision_records = lambda api_base_url: []
 page.render_decision_profile()
 """
         )
@@ -154,6 +170,7 @@ page.load_current_holding_analysis = lambda api_base_url: {
         "scenario_estimate": {"projection_years": 10},
     },
 }
+page.load_decision_records = lambda api_base_url: []
 page.render_decision_profile()
 '''
         )
@@ -210,6 +227,43 @@ render_candidate_holding_analysis_result({
         self.assertEqual(metric_values["目標覆蓋率變化"], "4.00%")
         successes = " ".join(item.value for item in app.success)
         self.assertIn("通過資料品質與風險門檻", successes)
+
+    def test_saved_record_can_prepare_excel_download(self):
+        app = AppTest.from_string(
+            '''
+import frontend.pages.decision_profile as page
+
+page.load_decision_profile = lambda api_base_url: {
+    "profile_scope": "SINGLE_USER",
+    "broker_connected": False,
+    "conditions": None,
+    "holdings": [{
+        "etf_code": "0056", "name": "元大高股息",
+        "is_active": False, "is_bond": False,
+        "held_units": 1000, "unit_price": "30",
+        "price_as_of_date": None,
+    }],
+}
+page.load_decision_records = lambda api_base_url: [{
+    "id": 1,
+    "record_type": "CANDIDATE_HOLDING_ANALYSIS",
+    "candidate_etf_code": "00878",
+    "candidate_name": "國泰永續高股息",
+    "analysis_status": "PARTIAL",
+    "outcome": "INELIGIBLE",
+    "created_at": "2026-08-10T12:00:00",
+}]
+page.fetch_decision_record_export = lambda api_base_url, record_id: b"xlsx"
+page.render_decision_profile()
+'''
+        )
+        app.run(timeout=10)
+        next(
+            button for button in app.button if button.label == "準備 Excel"
+        ).click().run(timeout=10)
+        self.assertEqual(app.exception, [])
+        download_buttons = app.get("download_button")
+        self.assertEqual(download_buttons[0].label, "下載 Excel")
 
 
 if __name__ == "__main__":

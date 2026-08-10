@@ -744,3 +744,61 @@ ON manual_holding (
     updated_at DESC,
     etf_code
 );
+
+-- ============================================================
+-- M11-4 不可變候選分析決策快照
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS decision_record (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    record_type TEXT NOT NULL
+        CHECK (record_type = 'CANDIDATE_HOLDING_ANALYSIS'),
+
+    candidate_etf_code TEXT NOT NULL
+        CHECK (length(trim(candidate_etf_code)) > 0),
+
+    candidate_name TEXT NOT NULL
+        CHECK (length(trim(candidate_name)) > 0),
+
+    analysis_status TEXT NOT NULL
+        CHECK (analysis_status IN ('AVAILABLE', 'PARTIAL', 'UNAVAILABLE')),
+
+    outcome TEXT NOT NULL
+        CHECK (
+            outcome IN (
+                'ELIGIBLE',
+                'INELIGIBLE',
+                'NOT_EVALUATED',
+                'UNAVAILABLE'
+            )
+        ),
+
+    request_json TEXT NOT NULL
+        CHECK (length(trim(request_json)) > 0),
+
+    analysis_json TEXT NOT NULL
+        CHECK (length(trim(analysis_json)) > 0),
+
+    rationale_json TEXT NOT NULL
+        CHECK (length(trim(rationale_json)) > 0),
+
+    exclusions_json TEXT NOT NULL
+        CHECK (length(trim(exclusions_json)) > 0),
+
+    alternatives_json TEXT NOT NULL
+        CHECK (length(trim(alternatives_json)) > 0),
+
+    risk_notes_json TEXT NOT NULL
+        CHECK (length(trim(risk_notes_json)) > 0),
+
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE INDEX IF NOT EXISTS
+idx_decision_record_created
+ON decision_record (
+    created_at DESC,
+    id DESC
+);
