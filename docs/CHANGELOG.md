@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-10 — M11-5A2 visible base ETF cash-flow analysis
+
+- Added a read-only latest-close API returning the stored official price,
+  trading date and source, while preserving a missing price as null.
+- Exposed the existing base-ETF target analysis on ETF detail before the
+  tax/reinvestment section without allowing the official price to be overridden.
+- Added required capital, funding shortfall, annual target coverage and a
+  January-December historical annualized gross/after-tax cash table.
+- Moved generic cash-deduction application into the backend calculation path;
+  omitted assumptions and no-event months remain unavailable rather than zero.
+- Added API client, contract, information-architecture and Streamlit regression
+  coverage for the visible flow.
+
 ## 2026-08-10 — M11-5A1 dynamic holdings and official close boundary
 
 - Added an idempotent `etf_daily_close` store populated from the existing TWSE

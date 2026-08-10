@@ -269,9 +269,9 @@ class TestTargetAnalysisAPI(unittest.TestCase):
             gross_distribution_cash=Decimal(
                 "1072"
             ),
-            distribution_tax=None,
-            supplementary_premium=None,
-            other_distribution_costs=None,
+            distribution_tax=Decimal("0"),
+            supplementary_premium=Decimal("0"),
+            other_distribution_costs=Decimal("53.6"),
             annual_gross_cash_rate_pct=Decimal(
                 "3.019718"
             ),
@@ -332,9 +332,9 @@ class TestTargetAnalysisAPI(unittest.TestCase):
             gross_distribution_cash=Decimal(
                 "1072"
             ),
-            distribution_tax=None,
-            supplementary_premium=None,
-            other_distribution_costs=None,
+            distribution_tax=Decimal("0"),
+            supplementary_premium=Decimal("0"),
+            other_distribution_costs=Decimal("53.6"),
             annual_gross_cash_rate_pct=Decimal(
                 "3.019718"
             ),
@@ -665,5 +665,46 @@ class TestTargetAnalysisAPI(unittest.TestCase):
             annual_gross_cash_rate_pct=None,
             annual_price_return_pct=None,
         )
+
+    @patch("backend.app.api.routers.target_analysis.get_latest_daily_close")
+    @patch("backend.app.api.routers.target_analysis.get_etf_by_code")
+    def test_latest_close_returns_traceable_official_price(
+        self, mock_get_etf_by_code, mock_get_latest_daily_close
+    ) -> None:
+        mock_get_etf_by_code.return_value = {
+            "code": "0056",
+            "name": "元大高股息",
+        }
+        mock_get_latest_daily_close.return_value = {
+            "etf_code": "0056",
+            "close_price": Decimal("35.25"),
+            "trade_date": "2026-08-07",
+            "source_id": "TWSE_STOCK_DAY",
+        }
+
+        response = self.client.get("/api/v1/etfs/0056/latest-close")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["close_price"], "35.25")
+        self.assertEqual(response.json()["trade_date"], "2026-08-07")
+        self.assertEqual(response.json()["source_id"], "TWSE_STOCK_DAY")
+
+    @patch("backend.app.api.routers.target_analysis.get_latest_daily_close")
+    @patch("backend.app.api.routers.target_analysis.get_etf_by_code")
+    def test_latest_close_preserves_missing_price(
+        self, mock_get_etf_by_code, mock_get_latest_daily_close
+    ) -> None:
+        mock_get_etf_by_code.return_value = {
+            "code": "0056",
+            "name": "元大高股息",
+        }
+        mock_get_latest_daily_close.return_value = None
+
+        response = self.client.get("/api/v1/etfs/0056/latest-close")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["close_price"])
+        self.assertIsNone(response.json()["trade_date"])
+        self.assertIsNone(response.json()["source_id"])
 if __name__ == "__main__":
     unittest.main()

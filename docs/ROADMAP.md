@@ -528,8 +528,8 @@ Delivered:
 
 Status: scope explicitly confirmed by the user on 2026-08-10; implementation
 began after the confirmed M12 entry-audit change was merged. M11-5A1 implements
-the dynamic holding and official-close boundary; visible base-target output and
-M11-5B warnings remain before M12.
+the dynamic holding and official-close boundary, and M11-5A2 exposes the visible
+base-target output. M11-5B warnings remain before M12.
 
 Delivered in M11-5A1:
 
@@ -542,10 +542,18 @@ Delivered in M11-5A1:
   preserved missing price as unavailable rather than zero
 - Added a lossless upgrade for existing user-entered manual prices
 
+Delivered in M11-5A2:
+
+- Added a read-only latest stored official close endpoint for the base ETF
+- Exposed target analysis before tax/reinvestment on ETF detail using that
+  official price rather than a user-entered price
+- Displayed required capital, funding shortfall, annual target coverage and
+  January-December historical annualized gross/after-tax cash
+- Preserved missing deduction assumptions and missing payment months as
+  unavailable rather than formal zero
+
 Remaining:
 
-- Expose the existing base-ETF target analysis in Streamlit with required
-  capital, shortfall, annual coverage and January-December gross/after-tax cash
 - Complete or explicitly reconcile persistent-decline, weak-recovery and
   material-peer-underperformance warnings
 - Cover the cash-flow, tax/reinvestment and monthly-combination UI directly
