@@ -4,7 +4,13 @@ from typing import Any
 from urllib.parse import quote
 
 from frontend.api.errors import APIResponseError
-from frontend.api.transport import delete_json, get_json, post_json, put_json
+from frontend.api.transport import (
+    delete_json,
+    get_binary,
+    get_json,
+    post_json,
+    put_json,
+)
 
 
 def validate_user_conditions(payload: object) -> dict[str, Any]:
@@ -134,6 +140,65 @@ def validate_candidate_holding_analysis(payload: object) -> dict[str, Any]:
     return payload
 
 
+def validate_decision_record_summary(payload: object) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise APIResponseError("決策紀錄摘要必須是 JSON 物件")
+    required = {
+        "id",
+        "record_type",
+        "candidate_etf_code",
+        "candidate_name",
+        "analysis_status",
+        "outcome",
+        "created_at",
+    }
+    if required - payload.keys():
+        raise APIResponseError("決策紀錄摘要缺少必要欄位")
+    if payload["record_type"] != "CANDIDATE_HOLDING_ANALYSIS":
+        raise APIResponseError("決策紀錄類型格式不正確")
+    if not isinstance(payload["id"], int) or payload["id"] <= 0:
+        raise APIResponseError("決策紀錄 id 格式不正確")
+    if payload["analysis_status"] not in {
+        "AVAILABLE",
+        "PARTIAL",
+        "UNAVAILABLE",
+    }:
+        raise APIResponseError("決策紀錄 analysis_status 格式不正確")
+    if payload["outcome"] not in {
+        "ELIGIBLE",
+        "INELIGIBLE",
+        "NOT_EVALUATED",
+        "UNAVAILABLE",
+    }:
+        raise APIResponseError("決策紀錄 outcome 格式不正確")
+    return payload
+
+
+def validate_decision_record(payload: object) -> dict[str, Any]:
+    result = validate_decision_record_summary(payload)
+    if result.get("profile_scope") != "SINGLE_USER":
+        raise APIResponseError("決策紀錄 scope 格式不正確")
+    if result.get("broker_connected") is not False:
+        raise APIResponseError("決策紀錄不可宣稱已連接券商")
+    if result.get("immutable") is not True:
+        raise APIResponseError("決策紀錄必須標示為不可變快照")
+    required = {
+        "request",
+        "analysis",
+        "rationale",
+        "exclusions",
+        "alternatives",
+        "risk_notes",
+    }
+    if required - result.keys():
+        raise APIResponseError("決策紀錄缺少完整快照欄位")
+    validate_candidate_holding_analysis(result["analysis"])
+    for field in ("rationale", "exclusions", "alternatives", "risk_notes"):
+        if not isinstance(result[field], list):
+            raise APIResponseError(f"決策紀錄 {field} 格式不正確")
+    return result
+
+
 def fetch_decision_profile(
     api_base_url: str,
     timeout_seconds: float = 10.0,
@@ -180,6 +245,60 @@ def fetch_candidate_holding_analysis(
         timeout_seconds=timeout_seconds,
     )
     return validate_candidate_holding_analysis(result)
+
+
+def save_candidate_decision_record(
+    api_base_url: str,
+    etf_code: str,
+    payload: dict[str, Any],
+    timeout_seconds: float = 30.0,
+) -> dict[str, Any]:
+    normalized_code = etf_code.strip().upper()
+    if not normalized_code:
+        raise ValueError("ETF 代號不可為空白")
+    result = post_json(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            "/api/v1/decision-profile/candidate-analysis/"
+            f"{quote(normalized_code, safe='')}/decision-records"
+        ),
+        operation_name=f"ETF {normalized_code} 決策紀錄儲存",
+        payload=payload,
+        timeout_seconds=timeout_seconds,
+    )
+    return validate_decision_record(result)
+
+
+def fetch_decision_records(
+    api_base_url: str,
+    timeout_seconds: float = 10.0,
+) -> list[dict[str, Any]]:
+    result = get_json(
+        api_base_url=api_base_url,
+        endpoint_path="/api/v1/decision-profile/decision-records",
+        operation_name="決策紀錄列表查詢",
+        timeout_seconds=timeout_seconds,
+    )
+    if not isinstance(result, list):
+        raise APIResponseError("決策紀錄列表必須是 JSON 陣列")
+    return [validate_decision_record_summary(item) for item in result]
+
+
+def fetch_decision_record_export(
+    api_base_url: str,
+    record_id: int,
+    timeout_seconds: float = 30.0,
+) -> bytes:
+    if record_id <= 0:
+        raise ValueError("決策紀錄編號必須大於零")
+    return get_binary(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            f"/api/v1/decision-profile/decision-records/{record_id}/export.xlsx"
+        ),
+        operation_name=f"決策紀錄 {record_id} Excel 匯出",
+        timeout_seconds=timeout_seconds,
+    )
 
 
 def save_user_conditions(

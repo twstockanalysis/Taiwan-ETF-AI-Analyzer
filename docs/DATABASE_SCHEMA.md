@@ -11,6 +11,12 @@ and history windows, nullable cash-deduction assumption and TWD currency.
 reference price must be positive. A missing `price_as_of_date` remains `NULL`.
 Deleting an ETF master row cascades only its local manual holding.
 
+`decision_record` is an append-only M11-4 snapshot table. It stores candidate
+identity, analysis status, stable outcome and canonical JSON for the original
+request, complete analysis, rationale, exclusions, alternatives and risk
+notes. Candidate identity is intentionally copied rather than foreign-keyed so
+a historical record remains readable if ETF master data later changes.
+
 ## Database
 
 Development database:
@@ -40,6 +46,7 @@ idempotent upgrade sequence:
 2. `migrate_dividend_component_basis`
 3. `migrate_dividend_source_document`
 4. `migrate_dividend_review_queue`
+5. `migrate_dividend_summary_metric`
 
 This order supports both a fresh database and databases created by earlier
 milestones. Initialization does not delete user data.

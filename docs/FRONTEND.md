@@ -21,6 +21,12 @@ month coverage is enabled. The result shows native before/after metrics, a
 small static comparison table and every reused M10-5 inclusion, exclusion or
 trade-off reason. Submitting the form does not save the candidate as a holding.
 
+M11-4 adds an explicit `保存為決策紀錄` action after a candidate comparison.
+The backend recomputes the submitted scenario and returns an immutable record.
+The page lists record summaries, lets the user prepare one Excel file on
+demand, and then exposes a native `st.download_button` with no download rerun.
+The UI does not expose record overwrite or deletion.
+
 ## Architecture
 
 ```text
@@ -44,7 +50,7 @@ path. New implementation belongs in focused modules under `frontend/api/`:
 | `errors.py` | Client exception types |
 | `validators.py` | Shared response-field validation |
 | `normalizers.py` | Query and filter normalization |
-| `transport.py` | HTTP GET, JSON decoding and transport errors |
+| `transport.py` | HTTP JSON/binary transport and errors |
 | `health.py` | FastAPI health check |
 | `etfs.py` | ETF list and detail |
 | `performance.py` | ETF performance and rankings |
@@ -53,6 +59,7 @@ path. New implementation belongs in focused modules under `frontend/api/`:
 | `system_overview.py` | Homepage system overview |
 | `data_profile.py` | ETF source coverage and freshness |
 | `comparison.py` | Multi-ETF comparison |
+| `decision_profile.py` | Conditions, holdings, analyses, records and export |
 
 API domain modules may depend on shared errors, validators, normalizers and
 transport, but must not import the compatibility facade. Existing callers may

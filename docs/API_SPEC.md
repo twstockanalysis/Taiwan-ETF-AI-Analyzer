@@ -63,6 +63,10 @@ remain `null`; the API does not substitute the current date.
 GET /api/v1/decision-profile
 GET /api/v1/decision-profile/current-holding-analysis
 POST /api/v1/decision-profile/candidate-analysis/{etf_code}
+POST /api/v1/decision-profile/candidate-analysis/{etf_code}/decision-records
+GET /api/v1/decision-profile/decision-records
+GET /api/v1/decision-profile/decision-records/{record_id}
+GET /api/v1/decision-profile/decision-records/{record_id}/export.xlsx
 PUT /api/v1/decision-profile/conditions
 PUT /api/v1/decision-profile/holdings/{etf_code}
 DELETE /api/v1/decision-profile/holdings/{etf_code}
@@ -90,6 +94,13 @@ TWD reference price, optional holding overlap and the existing M10-5 rules. It
 returns current and proposed portfolio snapshots, calculable deltas and the
 M10-5 selected/rejected candidate result with stable reasons. The scenario is
 read-only and never updates the saved holding.
+
+M11-4 reruns the candidate analysis on the server before saving an immutable
+record. Records preserve the original request, full analysis snapshot,
+rationale, exclusions, deterministic alternatives and risk notes. The record
+API has no update or delete operation. Excel export uses the saved snapshot and
+returns a five-sheet `.xlsx`; later profile or market-data changes do not alter
+existing records. Unknown record IDs return `404`.
 
 ## ETF master data
 

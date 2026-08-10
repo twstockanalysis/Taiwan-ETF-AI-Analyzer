@@ -167,3 +167,45 @@ class CandidateHoldingAnalysisResponse(DecisionProfileBaseModel):
     unavailable_fields: list[TargetAnalysisUnavailableField] = Field(
         default_factory=list,
     )
+
+
+class DecisionRecordNote(DecisionProfileBaseModel):
+    """可匯出且可追溯的決策紀錄說明。"""
+
+    code: str = Field(min_length=1, max_length=80)
+    message: str = Field(min_length=1)
+    affected_months: list[int] = Field(default_factory=list)
+
+
+DecisionRecordOutcome = Literal[
+    "ELIGIBLE",
+    "INELIGIBLE",
+    "NOT_EVALUATED",
+    "UNAVAILABLE",
+]
+
+
+class DecisionRecordSummary(DecisionProfileBaseModel):
+    """不可變候選評估快照的列表摘要。"""
+
+    id: int = Field(gt=0)
+    record_type: Literal["CANDIDATE_HOLDING_ANALYSIS"]
+    candidate_etf_code: str
+    candidate_name: str
+    analysis_status: TargetAnalysisStatus
+    outcome: DecisionRecordOutcome
+    created_at: datetime
+
+
+class DecisionRecordResponse(DecisionRecordSummary):
+    """包含輸入、分析與理由的完整不可變決策快照。"""
+
+    profile_scope: Literal["SINGLE_USER"] = "SINGLE_USER"
+    broker_connected: Literal[False] = False
+    immutable: Literal[True] = True
+    request: CandidateHoldingAnalysisRequest
+    analysis: CandidateHoldingAnalysisResponse
+    rationale: list[DecisionRecordNote] = Field(default_factory=list)
+    exclusions: list[DecisionRecordNote] = Field(default_factory=list)
+    alternatives: list[DecisionRecordNote] = Field(default_factory=list)
+    risk_notes: list[DecisionRecordNote] = Field(default_factory=list)

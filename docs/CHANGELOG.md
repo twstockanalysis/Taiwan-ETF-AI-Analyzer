@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-10 — M11-4 decision records and Excel export
+
+- Added append-only candidate assessment snapshots containing the original
+  request, full analysis, rationale, exclusions, alternatives and risk notes.
+- Added server-side re-analysis before persistence and intentionally omitted
+  record update/delete operations.
+- Added list/detail/export APIs and a five-sheet typed `.xlsx` workbook.
+- Added Streamlit save, record-list, prepare and native download actions.
+- Preserved single-user, no-broker, no-trading and pre-M12 audit boundaries.
+
 ## 2026-08-10 — M11-3 candidate holding analysis
 
 - Added a read-only candidate ETF scenario comparing the saved current

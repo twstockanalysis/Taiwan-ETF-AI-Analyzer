@@ -211,7 +211,9 @@ unavailable or visibly qualified rather than assigned a neutral score.
 - FastAPI-backed Streamlit website with automated contract tests
 
 These capabilities now form the data and deterministic decision-calculation
-layers. Decision records and Excel export remain M11 work. Automation,
+layers. M11 decision records and Excel export preserve immutable candidate
+assessment snapshots without turning the site into a recommendation or
+trading system. Automation,
 operational controls and public deployment remain M12 work and are subject to
 the mandatory `M12_ENTRY_AUDIT.md` direction-and-function reconfirmation.
 

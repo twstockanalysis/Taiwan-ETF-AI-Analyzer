@@ -8,6 +8,9 @@ from frontend.api.decision_profile import (
     fetch_candidate_holding_analysis,
     fetch_current_holding_analysis,
     fetch_decision_profile,
+    fetch_decision_record_export,
+    fetch_decision_records,
+    save_candidate_decision_record,
     save_manual_holding,
     save_user_conditions,
 )
@@ -15,6 +18,47 @@ from frontend.api.errors import APIResponseError
 
 
 class TestFrontendDecisionProfileClient(unittest.TestCase):
+    @staticmethod
+    def candidate_analysis():
+        return {
+            "profile_scope": "SINGLE_USER",
+            "broker_connected": False,
+            "status": "AVAILABLE",
+            "analysis_date": "2026-08-10",
+            "candidate_etf_code": "00878",
+            "candidate_name": "國泰永續高股息",
+            "current_portfolio": {},
+            "proposed_portfolio": {},
+            "comparison": {},
+            "eligibility": {
+                "selected_candidates": [{"reasons": []}],
+                "rejected_candidates": [],
+            },
+            "decision_priority": ["TOTAL_RETURN_AND_PRINCIPAL_RISK"],
+            "unavailable_fields": [],
+        }
+
+    @classmethod
+    def decision_record(cls):
+        return {
+            "id": 1,
+            "record_type": "CANDIDATE_HOLDING_ANALYSIS",
+            "candidate_etf_code": "00878",
+            "candidate_name": "國泰永續高股息",
+            "analysis_status": "AVAILABLE",
+            "outcome": "ELIGIBLE",
+            "created_at": "2026-08-10T12:00:00",
+            "profile_scope": "SINGLE_USER",
+            "broker_connected": False,
+            "immutable": True,
+            "request": {"proposed_units": 100, "unit_price": "20"},
+            "analysis": cls.candidate_analysis(),
+            "rationale": [],
+            "exclusions": [],
+            "alternatives": [],
+            "risk_notes": [],
+        }
+
     @staticmethod
     def conditions():
         return {
@@ -88,23 +132,7 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
     def test_posts_candidate_holding_analysis(self, mock_post):
         response = Mock()
         response.raise_for_status.return_value = None
-        response.json.return_value = {
-            "profile_scope": "SINGLE_USER",
-            "broker_connected": False,
-            "status": "AVAILABLE",
-            "analysis_date": "2026-08-10",
-            "candidate_etf_code": "00878",
-            "candidate_name": "國泰永續高股息",
-            "current_portfolio": {},
-            "proposed_portfolio": {},
-            "comparison": {},
-            "eligibility": {
-                "selected_candidates": [{"reasons": []}],
-                "rejected_candidates": [],
-            },
-            "decision_priority": ["TOTAL_RETURN_AND_PRINCIPAL_RISK"],
-            "unavailable_fields": [],
-        }
+        response.json.return_value = self.candidate_analysis()
         mock_post.return_value = response
         payload = {"proposed_units": 100, "unit_price": 20}
 
@@ -121,6 +149,55 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
                 "/api/v1/decision-profile/candidate-analysis/00878"
             )
         )
+
+    @patch("frontend.api.transport.httpx.post")
+    def test_saves_server_recomputed_decision_record(self, mock_post):
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = self.decision_record()
+        mock_post.return_value = response
+        payload = {"proposed_units": 100, "unit_price": 20}
+
+        result = save_candidate_decision_record(
+            "http://127.0.0.1:8000", "00878", payload
+        )
+
+        self.assertTrue(result["immutable"])
+        self.assertTrue(
+            mock_post.call_args.args[0].endswith(
+                "/candidate-analysis/00878/decision-records"
+            )
+        )
+
+    @patch("frontend.api.transport.httpx.get")
+    def test_lists_records_and_fetches_binary_export(self, mock_get):
+        summary = {
+            key: value
+            for key, value in self.decision_record().items()
+            if key in {
+                "id",
+                "record_type",
+                "candidate_etf_code",
+                "candidate_name",
+                "analysis_status",
+                "outcome",
+                "created_at",
+            }
+        }
+        list_response = Mock()
+        list_response.raise_for_status.return_value = None
+        list_response.json.return_value = [summary]
+        binary_response = Mock()
+        binary_response.raise_for_status.return_value = None
+        binary_response.content = b"PK\x03\x04xlsx"
+        mock_get.side_effect = [list_response, binary_response]
+
+        records = fetch_decision_records("http://127.0.0.1:8000")
+        exported = fetch_decision_record_export("http://127.0.0.1:8000", 1)
+
+        self.assertEqual(records[0]["id"], 1)
+        self.assertEqual(exported, b"PK\x03\x04xlsx")
+        self.assertIn("export.xlsx", mock_get.call_args.args[0])
 
     @patch("frontend.api.transport.httpx.put")
     def test_saves_conditions_and_holding_with_put(self, mock_put):
