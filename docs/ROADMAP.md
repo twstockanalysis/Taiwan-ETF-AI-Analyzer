@@ -306,7 +306,7 @@ Completed:
 - Kept the calculation layer independent from the database, API, frontend, user
   accounts and persisted profiles
 
-### M10-3 — Single-ETF target analysis — Next
+### M10-3 — Single-ETF target analysis — Completed
 
 Goal:
 
@@ -333,7 +333,7 @@ Acceptance:
   zero
 - The feature does not claim that historical distributions will continue
 
-### M10-4 — Tax and reinvestment scenarios
+### M10-4 — Tax and reinvestment scenarios — Completed
 
 Status: implementation completed on 2026-08-09; full-suite verification is
 recorded in the changelog.
@@ -494,16 +494,37 @@ Delivered:
 - Preserved missing deductions and incomplete ETF history as partial results
 - Added a read-only FastAPI endpoint and Streamlit analysis dashboard
 
-### M11-3+ — Candidate analysis, records and export
+### M11-3 — Candidate holding analysis — Completed
+
+Status: implementation completed on 2026-08-10; full-suite verification is
+recorded in the changelog.
+
+Delivered:
+
+- Compared the saved current portfolio with one non-persisted candidate addition
+- Reused the same M11-2 portfolio aggregation before and after the candidate
+- Reused M10-5 eligibility gates, stable reason codes and payment-month logic
+- Kept the fixed monthly target unchanged when candidate capital was added
+- Preserved missing deduction and overlap assumptions instead of using zero
+- Added a read-only FastAPI scenario and Streamlit comparison flow
+
+### M11-4+ — Decision records and export
 
 Planned:
 
-- Reuse M10 calculations for candidate analysis
 - Preserve recommendation rationale, exclusions, alternatives and risk notes
 - Add decision records and Excel export
 - Keep the initial public release single-user and exclude automatic trading
 
 ## M12 — Automation and deployment
+
+Entry gate:
+
+- Before M12, execute `docs/M12_ENTRY_AUDIT.md`
+- Use post-M9 direction commit `03a9635`, the current PRD and actual website
+  behavior as the reconciliation baseline
+- Do not begin M12 until the current direction/function gap report is complete
+  and the user explicitly confirms the reconciled scope
 
 Planned:
 

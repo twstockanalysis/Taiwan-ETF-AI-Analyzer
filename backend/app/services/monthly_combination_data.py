@@ -65,7 +65,7 @@ def build_candidate_input(
     monthly_income: dict | None,
     performance_rows: list[dict],
     lookback_years: int,
-    cash_deduction_rate_pct: Decimal,
+    cash_deduction_rate_pct: Decimal | None,
     rules: MonthlyCombinationEligibilityRules,
     as_of_date: date,
 ) -> MonthlyCombinationCandidateInput:
@@ -134,7 +134,7 @@ def build_candidate_input(
         ).quantize(_PERCENT_QUANTUM, rounding=ROUND_HALF_UP)
 
     annual_after_tax_cash_rate_pct = None
-    if monthly_available:
+    if monthly_available and cash_deduction_rate_pct is not None:
         annual_amount = (
             _decimal(monthly_income["total_amount_per_unit"])
             / Decimal(lookback_years)
@@ -191,7 +191,7 @@ def load_monthly_combination_data(
     assumptions: list[MonthlyCombinationCandidateAssumption],
     database_path,
     lookback_years: int,
-    cash_deduction_rate_pct: Decimal,
+    cash_deduction_rate_pct: Decimal | None,
     rules: MonthlyCombinationEligibilityRules,
     as_of_date: date,
 ) -> MonthlyCombinationLoadedData:

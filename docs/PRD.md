@@ -203,10 +203,17 @@ unavailable or visibly qualified rather than assigned a neutral score.
 - ACTUAL dividend-component handling, including official `54C` and `76W`
 - Source-document retention, freshness and data-quality coverage
 - January-through-December monthly-income API
+- Fixed-target cash-flow and no-reinvestment total-return calculations
+- Taiwan individual-tax and four reinvestment scenarios
+- Explainable monthly-payment candidate inclusion and exclusion
+- Single-user saved conditions and manual holdings without broker connectivity
+- Current-portfolio analysis and read-only candidate addition comparison
 - FastAPI-backed Streamlit website with automated contract tests
 
-These capabilities form the data layer. The next product work adds the decision
-calculation layer.
+These capabilities now form the data and deterministic decision-calculation
+layers. Decision records and Excel export remain M11 work. Automation,
+operational controls and public deployment remain M12 work and are subject to
+the mandatory `M12_ENTRY_AUDIT.md` direction-and-function reconfirmation.
 
 ## Core principles
 

@@ -62,6 +62,7 @@ remain `null`; the API does not substitute the current date.
 ```http
 GET /api/v1/decision-profile
 GET /api/v1/decision-profile/current-holding-analysis
+POST /api/v1/decision-profile/candidate-analysis/{etf_code}
 PUT /api/v1/decision-profile/conditions
 PUT /api/v1/decision-profile/holdings/{etf_code}
 DELETE /api/v1/decision-profile/holdings/{etf_code}
@@ -83,6 +84,12 @@ facts, total saved holding value and one portfolio-level M10 target-analysis
 result. The monthly target is applied once to the portfolio. Missing fixed
 conditions or holdings return `UNAVAILABLE`; missing market data or assumptions
 return `PARTIAL` with `null` results and explicit unavailable fields.
+
+The M11-3 candidate endpoint accepts proposed positive whole units, a positive
+TWD reference price, optional holding overlap and the existing M10-5 rules. It
+returns current and proposed portfolio snapshots, calculable deltas and the
+M10-5 selected/rejected candidate result with stable reasons. The scenario is
+read-only and never updates the saved holding.
 
 ## ETF master data
 

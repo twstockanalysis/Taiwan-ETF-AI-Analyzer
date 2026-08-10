@@ -6,6 +6,7 @@ from streamlit.testing.v1 import AppTest
 
 from frontend.pages.decision_profile import (
     build_analysis_holding_rows,
+    build_candidate_comparison_rows,
     build_holding_rows,
 )
 
@@ -68,6 +69,19 @@ class TestFrontendDecisionProfile(unittest.TestCase):
         self.assertEqual(rows[0]["年均稅前配息現金"], "無法計算")
         self.assertEqual(rows[0]["價格報酬期間"], "無資料")
 
+    def test_candidate_comparison_keeps_missing_values_explicit(self):
+        rows = build_candidate_comparison_rows(
+            {
+                "total_value_before": "30000",
+                "total_value_after": "32000",
+                "annual_after_tax_cash_before": None,
+                "annual_after_tax_cash_after": None,
+            }
+        )
+        self.assertEqual(rows[0]["目前持倉"], "30,000.00 TWD")
+        self.assertEqual(rows[0]["加入候選後"], "32,000.00 TWD")
+        self.assertEqual(rows[1]["目前持倉"], "無法計算")
+
     def test_page_renders_native_forms_and_manual_boundary(self):
         app = AppTest.from_string(
             """
@@ -90,7 +104,7 @@ page.load_decision_profile = lambda api_base_url: {
 page.render_decision_profile()
 """
         )
-        app.run()
+        app.run(timeout=10)
         self.assertEqual(app.exception, [])
         self.assertEqual(app.title[0].value, "我的條件與持有部位")
         captions = " ".join(item.value for item in app.caption)
@@ -101,6 +115,7 @@ page.render_decision_profile()
         self.assertIn("儲存固定條件", button_labels)
         self.assertIn("新增或更新持有部位", button_labels)
         self.assertIn("分析目前持倉", button_labels)
+        self.assertIn("比較候選加入前後", button_labels)
 
     def test_analysis_action_renders_portfolio_metrics(self):
         app = AppTest.from_string(
@@ -142,15 +157,59 @@ page.load_current_holding_analysis = lambda api_base_url: {
 page.render_decision_profile()
 '''
         )
-        app.run()
+        app.run(timeout=10)
         next(
             button for button in app.button
             if button.label == "分析目前持倉"
-        ).click().run()
+        ).click().run(timeout=10)
         self.assertEqual(app.exception, [])
         metric_values = {item.label: item.value for item in app.metric}
         self.assertEqual(metric_values["目前部位總值"], "35,500.00 TWD")
         self.assertEqual(metric_values["年度目標覆蓋率"], "60.00%")
+
+    def test_candidate_result_renders_deltas_and_reasons(self):
+        app = AppTest.from_string(
+            '''
+from frontend.pages.decision_profile import render_candidate_holding_analysis_result
+
+render_candidate_holding_analysis_result({
+    "status": "AVAILABLE",
+    "estimate_label": "候選 ETF 加碼情境，非投資建議或保證",
+    "unavailable_fields": [],
+    "comparison": {
+        "additional_capital": "2000",
+        "total_value_before": "30000",
+        "total_value_after": "32000",
+        "annual_after_tax_cash_before": "1000",
+        "annual_after_tax_cash_after": "1200",
+        "annual_after_tax_cash_delta": "200",
+        "target_coverage_pct_before": "20",
+        "target_coverage_pct_after": "24",
+        "target_coverage_pct_delta": "4",
+        "funding_shortfall_before": "10000",
+        "funding_shortfall_after": "8000",
+        "funding_shortfall_reduction": "2000",
+        "after_tax_total_return_pct_before": "5",
+        "after_tax_total_return_pct_after": "5.5",
+    },
+    "eligibility": {
+        "selected_candidates": [{
+            "reasons": [{
+                "code": "PASSES_ELIGIBILITY",
+                "message": "通過資料品質與風險門檻。",
+            }]
+        }],
+        "rejected_candidates": [],
+    },
+})
+'''
+        )
+        app.run(timeout=10)
+        self.assertEqual(app.exception, [])
+        metric_values = {item.label: item.value for item in app.metric}
+        self.assertEqual(metric_values["目標覆蓋率變化"], "4.00%")
+        successes = " ".join(item.value for item in app.success)
+        self.assertIn("通過資料品質與風險門檻", successes)
 
 
 if __name__ == "__main__":

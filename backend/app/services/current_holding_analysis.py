@@ -85,28 +85,16 @@ def _append_unavailable(
     items.append(_unavailable(field, reason))
 
 
-def analyze_current_holdings(
+def analyze_holding_snapshot(
     database_path: str | Path,
     *,
+    condition_row: dict,
+    holding_rows: list[dict],
     as_of_date: date | None = None,
 ) -> CurrentHoldingAnalysisResponse:
-    """彙總所有手動持倉後，只執行一次既有 M10 目標計算器。"""
+    """彙總指定持倉快照後，只執行一次既有 M10 目標計算器。"""
 
     analysis_date = as_of_date or date.today()
-    condition_row = get_user_conditions(database_path)
-    holding_rows = list_manual_holdings(database_path)
-
-    if condition_row is None:
-        return CurrentHoldingAnalysisResponse(
-            status=TargetAnalysisStatus.UNAVAILABLE,
-            analysis_date=analysis_date,
-            conditions=None,
-            holdings=[],
-            unavailable_fields=[
-                _unavailable("conditions", "尚未儲存固定分析條件")
-            ],
-        )
-
     conditions = UserConditionsResponse(**condition_row)
     if not holding_rows:
         return CurrentHoldingAnalysisResponse(
@@ -283,4 +271,31 @@ def analyze_current_holdings(
         holdings=facts,
         portfolio_analysis=portfolio_analysis,
         unavailable_fields=top_level_unavailable,
+    )
+
+
+def analyze_current_holdings(
+    database_path: str | Path,
+    *,
+    as_of_date: date | None = None,
+) -> CurrentHoldingAnalysisResponse:
+    """載入已儲存條件與持倉，建立目前持倉分析。"""
+
+    analysis_date = as_of_date or date.today()
+    condition_row = get_user_conditions(database_path)
+    if condition_row is None:
+        return CurrentHoldingAnalysisResponse(
+            status=TargetAnalysisStatus.UNAVAILABLE,
+            analysis_date=analysis_date,
+            conditions=None,
+            holdings=[],
+            unavailable_fields=[
+                _unavailable("conditions", "尚未儲存固定分析條件")
+            ],
+        )
+    return analyze_holding_snapshot(
+        database_path,
+        condition_row=condition_row,
+        holding_rows=list_manual_holdings(database_path),
+        as_of_date=analysis_date,
     )

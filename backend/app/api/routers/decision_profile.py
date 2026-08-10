@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from backend.app.api.dependencies import get_database_path
 from backend.app.models.decision_profile import (
+    CandidateHoldingAnalysisRequest,
+    CandidateHoldingAnalysisResponse,
     CurrentHoldingAnalysisResponse,
     DecisionProfileResponse,
     ManualHoldingResponse,
@@ -23,6 +25,9 @@ from backend.app.repositories.decision_profile_repository import (
 )
 from backend.app.repositories.etf_repository import get_etf_by_code
 from backend.app.services.current_holding_analysis import analyze_current_holdings
+from backend.app.services.candidate_holding_analysis import (
+    analyze_candidate_holding,
+)
 
 
 DatabasePath = Annotated[Path, Depends(get_database_path)]
@@ -51,6 +56,30 @@ def read_current_holding_analysis(
     database_path: DatabasePath,
 ) -> CurrentHoldingAnalysisResponse:
     return analyze_current_holdings(database_path)
+
+
+@router.post(
+    "/candidate-analysis/{etf_code}",
+    response_model=CandidateHoldingAnalysisResponse,
+    summary="比較候選 ETF 加入目前持倉前後的情境",
+)
+def read_candidate_holding_analysis(
+    etf_code: str,
+    value: CandidateHoldingAnalysisRequest,
+    database_path: DatabasePath,
+) -> CandidateHoldingAnalysisResponse:
+    normalized_code = etf_code.strip().upper()
+    result = analyze_candidate_holding(
+        normalized_code,
+        value,
+        database_path,
+    )
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到 ETF：{normalized_code}",
+        )
+    return result
 
 
 @router.put(

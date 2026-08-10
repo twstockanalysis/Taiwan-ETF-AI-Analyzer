@@ -43,12 +43,14 @@ from frontend.api.data_profile import (
 )
 from frontend.api.decision_profile import (
     delete_manual_holding,
+    fetch_candidate_holding_analysis,
     fetch_current_holding_analysis,
     fetch_decision_profile,
     save_manual_holding,
     save_user_conditions,
     validate_decision_profile,
     validate_current_holding_analysis,
+    validate_candidate_holding_analysis,
     validate_manual_holding,
     validate_user_conditions,
 )
