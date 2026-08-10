@@ -528,11 +528,14 @@ Delivered:
 
 Entry gate:
 
-- Before M12, execute `docs/M12_ENTRY_AUDIT.md`
+- `docs/M12_ENTRY_AUDIT.md` was executed on 2026-08-10 against merged main
+  `f07b279`; it is awaiting the user's explicit direction/function confirmation
 - Use post-M9 direction commit `03a9635`, the current PRD and actual website
   behavior as the reconciliation baseline
-- Do not begin M12 until the current direction/function gap report is complete
-  and the user explicitly confirms the reconciled scope
+- Do not begin M11-5 or M12 until the user explicitly confirms the reconciled
+  scope and owner-only decision-profile boundary
+- The audit recommends M11-5 visible-flow and principal-warning closure before
+  M12; that recommendation is not approved merely by this documentation change
 
 Planned:
 
