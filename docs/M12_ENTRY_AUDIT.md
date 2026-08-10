@@ -1,9 +1,9 @@
 # M12 Entry Audit Gate
 
-Status: **executed on 2026-08-10; awaiting the user's explicit confirmation**.
+Status: **executed and explicitly confirmed by the user on 2026-08-10**.
 
-M12 implementation remains blocked. Completion of this report does not by
-itself authorize M12.
+M11-5 may begin after this confirmed audit change is merged. M12 implementation
+remains blocked until M11-5 is completed and merged.
 
 ## Audit baseline and method
 
@@ -147,6 +147,16 @@ deployment automation:
 
 ### M11-5A — Complete the visible base-ETF cash-flow flow
 
+- Start the cash-flow flow with a dynamic current-holdings editor that accepts
+  zero to any number (`0-N`) of Taiwan ETFs; zero rows is the valid initial state
+- Let the user add each row with a `+` action and remove a row with a `-` action;
+  each row has exactly two editable fields: `[ETF code] [held units]`
+- Reject duplicate ETF codes and non-positive or non-whole held units with
+  row-specific validation; an empty editor represents no current holdings
+- Resolve each holding's reference price, price date and source from the latest
+  stored official close and show them as read-only context. A missing price must
+  make value-dependent output unavailable and must never be treated as zero;
+  the website must not claim that the price is real-time
 - Add a Streamlit client and result section for the existing target-analysis API
 - Show required capital, funding shortfall and annual target coverage for the
   selected base ETF
@@ -163,21 +173,21 @@ deployment automation:
   API-client and AppTest regression tests
 - Add direct UI tests for the tax/reinvestment and monthly-combination sections
 
-Recommendation: implement these as M11-5 before starting M12. The product
-direction does not need to change; the visible website must catch up with the
-already-confirmed direction.
+The user explicitly approved M11-5 before M12, with the dynamic current-holding
+input amendment above. The product direction does not need to change; the
+visible website must catch up with the already-confirmed direction.
 
 ## True M12 scope after M11-5
 
-Once the user confirms this reconciliation and M11-5 is complete, M12 should be
-limited to:
+Once M11-5 is complete and merged, M12 should be limited to:
 
 1. Scheduled ETF-master, performance, dividend and reviewed ACTUAL pipelines
 2. Deployment-time schema initialization and migration verification
 3. Durable SQLite storage, backup, restore drill and recovery documentation
 4. Freshness, pipeline-failure, API-health and storage monitoring
-5. Owner-only authentication for every decision-profile read/write/export
-   endpoint and conditional removal of that page for anonymous visitors
+5. One operational, owner-only authentication gate for every decision-profile
+   read/write/export endpoint and conditional removal of that page for
+   anonymous visitors. This is not a self-service user-account system
 6. Production configuration, secrets, domain, HTTPS and public deployment
 7. A documented launch data threshold, including non-zero reviewed ACTUAL/76W
    coverage or an explicitly approved limited-coverage launch
@@ -224,14 +234,23 @@ The first public version should contain exactly these product capabilities:
 AI scoring, AI portfolios and broader decision automation remain after the
 first public website is operating.
 
-## Confirmation still required
+## User confirmation and amendment recorded
 
-The user must explicitly confirm all three statements before work continues:
+On 2026-08-10, the user explicitly confirmed the reconciled direction and
+seven-function first-release list, and approved M11-5 before M12 with these
+clarifications:
 
-1. The proposed direction and seven-function first-release list are correct.
-2. M11-5A and M11-5B should be completed before M12 begins.
-3. The entire singleton decision-profile boundary should be owner-only, while
-   anonymous visitors retain stateless ETF analysis access.
+1. Before cash-flow calculation, the user can enter `0-N` currently held ETFs.
+   The editor starts empty; `+` adds a `[ETF code] [held units]` row below the
+   existing rows, and `-` removes an individual row.
+2. The two fields above are the only user-editable holding inputs. Reference
+   price, as-of date and source are system-derived, read-only and explicitly
+   unavailable when no trustworthy stored price exists.
+3. M12 protects the entire singleton decision-profile boundary for one
+   operational owner, while anonymous visitors retain stateless ETF analysis.
+4. Self-service account aliases, passwords, login and per-user holding data are
+   explicitly deferred until after M12, when they require a separate go/no-go
+   decision. They are not implicitly authorized by this confirmation.
 
-Until that confirmation is recorded, do not begin M11-5 implementation and do
-not begin M12.
+After this audit update is merged, M11-5 implementation may begin. Do not begin
+M12 until M11-5 is completed and merged.

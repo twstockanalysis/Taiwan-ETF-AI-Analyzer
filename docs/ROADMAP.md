@@ -522,20 +522,42 @@ Delivered:
 - Added record list/detail and five-sheet Excel export
 - Kept the initial release single-user and excluded broker connectivity and
   automatic trading
-- Kept the M12 direction-and-function audit unexecuted and mandatory
+- Kept the M12 direction-and-function audit mandatory
+
+### M11-5 — Confirmed public cash-flow flow closure — Next
+
+Status: scope explicitly confirmed by the user on 2026-08-10; implementation
+may begin after the confirmed M12 entry-audit change is merged.
+
+Planned:
+
+- Add a dynamic current-holdings editor before cash-flow calculation, initially
+  empty and accepting `0-N` Taiwan ETFs
+- Use `+` and `-` controls to add or remove rows with exactly two editable
+  fields: `[ETF code] [held units]`
+- Reject duplicate codes and invalid units with row-specific messages
+- Derive the reference price, as-of date and source from the latest stored
+  official close, display them read-only, and never substitute zero when price
+  data is missing or claim that it is real-time
+- Expose the existing base-ETF target analysis in Streamlit with required
+  capital, shortfall, annual coverage and January-December gross/after-tax cash
+- Complete or explicitly reconcile persistent-decline, weak-recovery and
+  material-peer-underperformance warnings
+- Cover the cash-flow, tax/reinvestment and monthly-combination UI directly
+  with regression tests
 
 ## M12 — Automation and deployment
 
 Entry gate:
 
 - `docs/M12_ENTRY_AUDIT.md` was executed on 2026-08-10 against merged main
-  `f07b279`; it is awaiting the user's explicit direction/function confirmation
+  `f07b279`; the user explicitly confirmed its direction and amended M11-5 scope
 - Use post-M9 direction commit `03a9635`, the current PRD and actual website
   behavior as the reconciliation baseline
-- Do not begin M11-5 or M12 until the user explicitly confirms the reconciled
-  scope and owner-only decision-profile boundary
-- The audit recommends M11-5 visible-flow and principal-warning closure before
-  M12; that recommendation is not approved merely by this documentation change
+- Begin M11-5 only after the confirmed audit change is merged
+- Do not begin M12 until M11-5 is completed and merged
+- Keep M12 authentication to an operational single-owner gate; do not expand it
+  into self-service accounts or a multi-user data model
 
 Planned:
 
@@ -544,12 +566,15 @@ Planned:
 - Administration status
 - Backup and recovery
 - Public deployment, domain and HTTPS
-- Protect decision-profile writes before exposing the site to anonymous users
+- Protect every decision-profile read, write, record and export boundary before
+  exposing the site to anonymous users
 
 ## Optional external integrations — after the core website
 
 Deferred until M9–M12 are complete:
 
+- Decide whether to build self-service account aliases, passwords, login and
+  per-user holding-data isolation
 - Third-party market-data evaluation
 - Fugle market-data API
 - Sinopac Shioaji read-only account synchronization

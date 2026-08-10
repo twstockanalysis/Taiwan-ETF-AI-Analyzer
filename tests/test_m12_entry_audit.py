@@ -13,13 +13,17 @@ class TestM12EntryAudit(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("03a9635", audit)
-        self.assertIn("executed on 2026-08-10", audit)
-        self.assertIn("awaiting the user's explicit confirmation", audit)
+        self.assertIn("on 2026-08-10", audit)
+        self.assertIn("explicitly confirmed by the user", audit)
         self.assertIn("total-return and principal-risk checks", audit)
         self.assertIn("M11-5A", audit)
         self.assertIn("M11-5B", audit)
         self.assertIn("owner-only", audit)
-        self.assertIn("do not begin M11-5 implementation", audit)
+        self.assertIn("0-N", audit)
+        self.assertIn("[ETF code] [held units]", audit)
+        self.assertIn("stored official close", audit)
+        self.assertIn("deferred until after M12", audit)
+        self.assertIn("Do not begin\nM12 until M11-5", audit)
 
     def test_audit_maps_actual_product_and_runtime_gaps(self):
         audit = (PROJECT_ROOT / "docs" / "M12_ENTRY_AUDIT.md").read_text(
@@ -32,14 +36,17 @@ class TestM12EntryAudit(unittest.TestCase):
         self.assertIn("`PARTIAL`", audit)
         self.assertIn("True M12 scope after M11-5", audit)
 
-    def test_roadmap_blocks_m12_until_audit(self):
+    def test_roadmap_allows_m11_5_after_merge_and_blocks_m12(self):
         roadmap = (PROJECT_ROOT / "docs" / "ROADMAP.md").read_text(
             encoding="utf-8"
         )
         self.assertIn("docs/M12_ENTRY_AUDIT.md", roadmap)
-        self.assertIn("Do not begin M11-5 or M12", roadmap)
+        self.assertIn("M11-5 — Confirmed public cash-flow flow closure", roadmap)
+        self.assertIn("initially\n  empty and accepting `0-N`", roadmap)
+        self.assertIn("Do not begin M12 until M11-5 is completed", roadmap)
+        self.assertIn("self-service account aliases", roadmap)
         self.assertIn("03a9635", roadmap)
-        self.assertIn("awaiting the user's explicit", roadmap)
+        self.assertIn("explicitly confirmed", roadmap)
 
 
 if __name__ == "__main__":
