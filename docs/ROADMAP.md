@@ -481,11 +481,24 @@ Delivered:
 - Kept broker connectivity and automatic trading explicitly disabled
 - Preserved missing cash-deduction assumptions separately from formal zero
 
-### M11-2+ — Decision analysis, records and export
+### M11-2 — Current-holding analysis — Completed
+
+Status: implementation completed on 2026-08-09; full-suite verification is
+recorded in the changelog.
+
+Delivered:
+
+- Reused M10 data loaders and pure target calculations for all saved holdings
+- Applied the monthly target once at portfolio level
+- Annualized period price returns and weighted them by saved holding value
+- Preserved missing deductions and incomplete ETF history as partial results
+- Added a read-only FastAPI endpoint and Streamlit analysis dashboard
+
+### M11-3+ — Candidate analysis, records and export
 
 Planned:
 
-- Reuse M10 calculations for current-holding and candidate analysis
+- Reuse M10 calculations for candidate analysis
 - Preserve recommendation rationale, exclusions, alternatives and risk notes
 - Add decision records and Excel export
 - Keep the initial public release single-user and exclude automatic trading

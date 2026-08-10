@@ -1,12 +1,19 @@
 # Streamlit Frontend
 
-## M11-1 decision profile page
+## M11 decision profile and current-holding analysis page
 
 The public navigation includes `我的條件與持有部位`. The page reads and writes
 only through FastAPI and states that it is a single-user, manual-entry flow
 with no broker connection. Separate native forms save fixed analysis conditions
 and one ETF holding at a time. A small static table shows user-entered reference
 values, and every delete requires a confirmation dialog.
+
+M11-2 adds an explicit `分析目前持倉` action on the same page. Native metric
+cards show total saved value, historical annual gross cash, modeled after-tax
+cash and target coverage. A static table keeps each ETF's historical cash and
+annualized price-return facts visible. Missing results display `無法計算`, and
+the page labels the output as a no-reinvestment scenario rather than a
+recommendation or guarantee.
 
 ## Architecture
 

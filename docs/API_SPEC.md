@@ -61,6 +61,7 @@ remain `null`; the API does not substitute the current date.
 
 ```http
 GET /api/v1/decision-profile
+GET /api/v1/decision-profile/current-holding-analysis
 PUT /api/v1/decision-profile/conditions
 PUT /api/v1/decision-profile/holdings/{etf_code}
 DELETE /api/v1/decision-profile/holdings/{etf_code}
@@ -76,6 +77,12 @@ positive whole units, a user-supplied positive TWD reference price and an
 optional price date. Repeating a holding `PUT` updates that ETF; `DELETE`
 removes only the website's manual record. Missing deductions remain `null`,
 while a formal `0%` deduction remains numerical zero.
+
+The M11-2 current-holding endpoint is read-only. It returns per-ETF historical
+facts, total saved holding value and one portfolio-level M10 target-analysis
+result. The monthly target is applied once to the portfolio. Missing fixed
+conditions or holdings return `UNAVAILABLE`; missing market data or assumptions
+return `PARTIAL` with `null` results and explicit unavailable fields.
 
 ## ETF master data
 

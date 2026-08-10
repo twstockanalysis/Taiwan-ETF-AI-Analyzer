@@ -207,3 +207,27 @@ M10-2 may add pure models, services, tests and documentation. It does not add:
 
 FastAPI and Streamlit integration begin only after the pure calculation
 contract passes table-driven tests.
+
+## M11-2 current-holding aggregation
+
+The saved current-holding scenario reuses the M10 target calculator with one
+synthetic portfolio input: one unit priced at the sum of every saved holding's
+`held_units * unit_price`. This representation changes no M10 formula and
+ensures the fixed monthly target is evaluated once.
+
+For each holding:
+
+```text
+annual gross distribution cash
+= historical distribution cash per unit / history years * held units
+
+annualized price return
+= (1 + period PRICE_RETURN) ^ (1 / period years) - 1
+```
+
+Portfolio annual gross cash is the sum only when every holding has compatible
+TWD cash data. No foreign-exchange conversion is assumed. Portfolio annual
+price return is the current-value-weighted mean
+only when every holding has a usable annualized return. Any missing component
+keeps the dependent portfolio input `None`; partial known totals are not passed
+off as complete portfolio totals.

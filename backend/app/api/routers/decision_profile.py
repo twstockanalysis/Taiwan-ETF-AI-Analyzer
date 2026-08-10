@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from backend.app.api.dependencies import get_database_path
 from backend.app.models.decision_profile import (
+    CurrentHoldingAnalysisResponse,
     DecisionProfileResponse,
     ManualHoldingResponse,
     ManualHoldingUpsert,
@@ -21,6 +22,7 @@ from backend.app.repositories.decision_profile_repository import (
     upsert_user_conditions,
 )
 from backend.app.repositories.etf_repository import get_etf_by_code
+from backend.app.services.current_holding_analysis import analyze_current_holdings
 
 
 DatabasePath = Annotated[Path, Depends(get_database_path)]
@@ -38,6 +40,17 @@ def read_decision_profile(
         conditions=get_user_conditions(database_path),
         holdings=list_manual_holdings(database_path),
     )
+
+
+@router.get(
+    "/current-holding-analysis",
+    response_model=CurrentHoldingAnalysisResponse,
+    summary="以已儲存條件分析目前手動持倉",
+)
+def read_current_holding_analysis(
+    database_path: DatabasePath,
+) -> CurrentHoldingAnalysisResponse:
+    return analyze_current_holdings(database_path)
 
 
 @router.put(
