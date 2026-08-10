@@ -18,6 +18,10 @@ FastAPI /api/v1/decision-profile
              +--> M10 target-analysis data loaders
              +--> portfolio aggregation
              +--> M10 pure target calculator (once per portfolio)
+             +--> candidate snapshot (read-only)
+                      |
+                      +--> same portfolio aggregation before/after
+                      +--> M10-5 eligibility and reason calculator
     |
     v
 SQLite
@@ -30,6 +34,9 @@ before public deployment.
 
 The analysis route is read-only. It does not call its own HTTP API, duplicate
 the monthly target per ETF or persist calculated results.
+
+Candidate analysis also remains read-only. It derives a proposed snapshot in
+memory and never writes the candidate to `manual_holding`.
 
 ## Current website request flow
 

@@ -15,6 +15,12 @@ annualized price-return facts visible. Missing results display `無法計算`, a
 the page labels the output as a no-reinvestment scenario rather than a
 recommendation or guarantee.
 
+M11-3 adds a candidate ETF form beneath the saved portfolio analysis. It asks
+for proposed units, a TWD reference price, optional overlap and whether payment-
+month coverage is enabled. The result shows native before/after metrics, a
+small static comparison table and every reused M10-5 inclusion, exclusion or
+trade-off reason. Submitting the form does not save the candidate as a holding.
+
 ## Architecture
 
 ```text

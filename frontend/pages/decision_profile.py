@@ -8,6 +8,7 @@ import streamlit as st
 from frontend.api_client import (
     APIClientError,
     delete_manual_holding,
+    fetch_candidate_holding_analysis,
     fetch_current_holding_analysis,
     fetch_decision_profile,
     save_manual_holding,
@@ -173,6 +174,113 @@ def render_current_holding_analysis_result(
         st.warning(f"部分結果無法計算：{reasons}")
 
 
+def build_candidate_comparison_rows(
+    comparison: dict[str, Any],
+) -> list[dict[str, str]]:
+    """建立候選加入前後的小型靜態比較表。"""
+
+    fields = [
+        ("目前部位總值", "total_value_before", "total_value_after", " TWD"),
+        (
+            "年均稅後可用現金",
+            "annual_after_tax_cash_before",
+            "annual_after_tax_cash_after",
+            " TWD",
+        ),
+        (
+            "年度目標覆蓋率",
+            "target_coverage_pct_before",
+            "target_coverage_pct_after",
+            "%",
+        ),
+        (
+            "資金缺口",
+            "funding_shortfall_before",
+            "funding_shortfall_after",
+            " TWD",
+        ),
+        (
+            "情境稅後總報酬率",
+            "after_tax_total_return_pct_before",
+            "after_tax_total_return_pct_after",
+            "%",
+        ),
+    ]
+    return [
+        {
+            "比較項目": label,
+            "目前持倉": _metric_value(comparison.get(before), suffix=suffix),
+            "加入候選後": _metric_value(comparison.get(after), suffix=suffix),
+        }
+        for label, before, after, suffix in fields
+    ]
+
+
+def render_candidate_holding_analysis_result(
+    analysis: dict[str, Any],
+) -> None:
+    """呈現候選 ETF 前後差異與 M10-5 納入／排除理由。"""
+
+    if analysis["status"] == "UNAVAILABLE":
+        reasons = "、".join(
+            item["reason"] for item in analysis["unavailable_fields"]
+        )
+        st.info(f"目前無法比較候選 ETF：{reasons}")
+        return
+
+    comparison = analysis["comparison"]
+    with st.container(horizontal=True):
+        st.metric(
+            "候選投入金額",
+            _metric_value(comparison.get("additional_capital"), suffix=" TWD"),
+            border=True,
+        )
+        st.metric(
+            "目標覆蓋率變化",
+            _metric_value(
+                comparison.get("target_coverage_pct_delta"), suffix="%"
+            ),
+            border=True,
+        )
+        st.metric(
+            "稅後現金變化",
+            _metric_value(
+                comparison.get("annual_after_tax_cash_delta"), suffix=" TWD"
+            ),
+            border=True,
+        )
+        st.metric(
+            "資金缺口減少",
+            _metric_value(
+                comparison.get("funding_shortfall_reduction"), suffix=" TWD"
+            ),
+            border=True,
+        )
+    st.table(build_candidate_comparison_rows(comparison))
+
+    eligibility = analysis["eligibility"]
+    selected = eligibility["selected_candidates"]
+    rejected = eligibility["rejected_candidates"]
+    candidate = selected[0] if selected else rejected[0]
+    reason_text = "；".join(
+        item["message"] for item in candidate.get("reasons", [])
+    )
+    reason_codes = {
+        item["code"] for item in candidate.get("reasons", [])
+    }
+    if "MONTHLY_COVERAGE_DISABLED" in reason_codes:
+        st.info(f"本次未進行月配候選判定：{reason_text}")
+    elif selected:
+        st.success(f"候選通過目前門檻：{reason_text}")
+    else:
+        st.warning(f"候選未通過目前門檻：{reason_text}")
+    st.caption(
+        "判定順序固定為：總報酬與本金風險 → 稅後現金流可行性 → "
+        "稅務效率 → 選配月月領息。持股重疊缺值不等於零。"
+    )
+    st.caption(analysis["estimate_label"] + "；分析不會寫入手動持倉。")
+
+
 @st.dialog("確認刪除持有部位")
 def confirm_holding_delete(api_base_url: str, etf_code: str) -> None:
     st.write(f"確定刪除 **{etf_code}** 的手動持有部位嗎？")
@@ -191,6 +299,7 @@ def confirm_holding_delete(api_base_url: str, etf_code: str) -> None:
                 return
             load_decision_profile.clear()
             load_current_holding_analysis.clear()
+            st.session_state.pop("candidate_holding_analysis_result", None)
             st.rerun()
 
 
@@ -276,6 +385,7 @@ def render_decision_profile() -> None:
         else:
             load_decision_profile.clear()
             load_current_holding_analysis.clear()
+            st.session_state.pop("candidate_holding_analysis_result", None)
             st.rerun()
 
     st.divider()
@@ -337,6 +447,7 @@ def render_decision_profile() -> None:
             else:
                 load_decision_profile.clear()
                 load_current_holding_analysis.clear()
+                st.session_state.pop("candidate_holding_analysis_result", None)
                 st.rerun()
 
     if not profile["holdings"]:
@@ -374,3 +485,80 @@ def render_decision_profile() -> None:
             render_api_error("無法取得目前持倉分析。", error)
         else:
             render_current_holding_analysis_result(analysis)
+
+    st.divider()
+    st.subheader("候選 ETF 加碼比較")
+    st.caption(
+        "輸入一個候選加碼情境，比較加入前後的整體持倉；"
+        "此分析不會新增或更新手動持倉。"
+    )
+    with st.form("candidate_holding_analysis"):
+        candidate_columns = st.columns(3)
+        with candidate_columns[0]:
+            candidate_code = st.text_input(
+                "候選 ETF 代號",
+                placeholder="例如 00878",
+                max_chars=10,
+            )
+            proposed_units = st.number_input(
+                "預計增加單位數",
+                min_value=1,
+                value=1000,
+                step=1,
+            )
+        with candidate_columns[1]:
+            candidate_price = st.number_input(
+                "候選參考單價（TWD）",
+                min_value=0.01,
+                value=20.0,
+                step=0.1,
+            )
+            analysis_goal = st.segmented_control(
+                "候選分析目標",
+                options=["補足月配缺口", "不進行月配候選判定"],
+                default="補足月配缺口",
+            )
+        with candidate_columns[2]:
+            has_overlap = st.checkbox("提供持股重疊估計", value=False)
+            overlap = st.number_input(
+                "與目前持倉重疊（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=0.0,
+                disabled=not has_overlap,
+            )
+        candidate_submitted = st.form_submit_button(
+            "比較候選加入前後",
+            type="primary",
+            icon=":material/compare_arrows:",
+        )
+
+    if candidate_submitted:
+        normalized_candidate = candidate_code.strip().upper()
+        if not normalized_candidate:
+            st.warning("請輸入候選 ETF 代號。")
+        else:
+            try:
+                with loading_state("正在比較候選 ETF 加入前後..."):
+                    st.session_state[
+                        "candidate_holding_analysis_result"
+                    ] = fetch_candidate_holding_analysis(
+                        api_base_url,
+                        normalized_candidate,
+                        {
+                            "proposed_units": int(proposed_units),
+                            "unit_price": candidate_price,
+                            "holding_overlap_pct": (
+                                overlap if has_overlap else None
+                            ),
+                            "monthly_coverage_enabled": (
+                                analysis_goal == "補足月配缺口"
+                            ),
+                        },
+                    )
+            except APIClientError as error:
+                render_api_error("無法完成候選持倉分析。", error)
+    if "candidate_holding_analysis_result" in st.session_state:
+        render_candidate_holding_analysis_result(
+            st.session_state["candidate_holding_analysis_result"]
+        )

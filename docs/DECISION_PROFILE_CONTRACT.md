@@ -63,3 +63,6 @@ Every API response declares `profile_scope=SINGLE_USER` and
 M10 calculations while preserving their calculation modes, assumptions,
 warnings and missing-value semantics. Neither the saved profile nor the
 current-holding scenario is an investment recommendation.
+
+M11-3 candidate analysis follows the separate
+`CANDIDATE_HOLDING_ANALYSIS_CONTRACT.md` and never mutates this profile.

@@ -4,7 +4,7 @@ from typing import Any
 from urllib.parse import quote
 
 from frontend.api.errors import APIResponseError
-from frontend.api.transport import delete_json, get_json, put_json
+from frontend.api.transport import delete_json, get_json, post_json, put_json
 
 
 def validate_user_conditions(payload: object) -> dict[str, Any]:
@@ -93,6 +93,47 @@ def validate_current_holding_analysis(payload: object) -> dict[str, Any]:
     return payload
 
 
+def validate_candidate_holding_analysis(payload: object) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise APIResponseError("候選持倉分析回應必須是 JSON 物件")
+    if payload.get("profile_scope") != "SINGLE_USER":
+        raise APIResponseError("候選持倉分析 scope 格式不正確")
+    if payload.get("broker_connected") is not False:
+        raise APIResponseError("候選持倉分析不可宣稱已連接券商")
+    if payload.get("status") not in {"AVAILABLE", "PARTIAL", "UNAVAILABLE"}:
+        raise APIResponseError("候選持倉分析 status 格式不正確")
+    required = {
+        "analysis_date",
+        "candidate_etf_code",
+        "candidate_name",
+        "current_portfolio",
+        "proposed_portfolio",
+        "comparison",
+        "eligibility",
+        "decision_priority",
+        "unavailable_fields",
+    }
+    if required - payload.keys():
+        raise APIResponseError("候選持倉分析回應缺少必要欄位")
+    if not isinstance(payload["decision_priority"], list):
+        raise APIResponseError("候選持倉分析 decision_priority 格式不正確")
+    if not isinstance(payload["unavailable_fields"], list):
+        raise APIResponseError("候選持倉分析 unavailable_fields 格式不正確")
+    eligibility = payload.get("eligibility")
+    if eligibility is not None:
+        for field in ("selected_candidates", "rejected_candidates"):
+            items = eligibility.get(field) if isinstance(eligibility, dict) else None
+            if not isinstance(items, list):
+                raise APIResponseError("候選持倉分析缺少候選資格結果")
+            if any(
+                not isinstance(item, dict)
+                or not isinstance(item.get("reasons"), list)
+                for item in items
+            ):
+                raise APIResponseError("候選持倉分析缺少納入或排除理由")
+    return payload
+
+
 def fetch_decision_profile(
     api_base_url: str,
     timeout_seconds: float = 10.0,
@@ -117,6 +158,28 @@ def fetch_current_holding_analysis(
         timeout_seconds=timeout_seconds,
     )
     return validate_current_holding_analysis(result)
+
+
+def fetch_candidate_holding_analysis(
+    api_base_url: str,
+    etf_code: str,
+    payload: dict[str, Any],
+    timeout_seconds: float = 30.0,
+) -> dict[str, Any]:
+    normalized_code = etf_code.strip().upper()
+    if not normalized_code:
+        raise ValueError("ETF 代號不可為空白")
+    result = post_json(
+        api_base_url=api_base_url,
+        endpoint_path=(
+            "/api/v1/decision-profile/candidate-analysis/"
+            f"{quote(normalized_code, safe='')}"
+        ),
+        operation_name=f"ETF {normalized_code} 候選持倉分析",
+        payload=payload,
+        timeout_seconds=timeout_seconds,
+    )
+    return validate_candidate_holding_analysis(result)
 
 
 def save_user_conditions(

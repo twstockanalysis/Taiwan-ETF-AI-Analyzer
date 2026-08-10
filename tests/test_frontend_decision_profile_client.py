@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from frontend.api.decision_profile import (
     delete_manual_holding,
+    fetch_candidate_holding_analysis,
     fetch_current_holding_analysis,
     fetch_decision_profile,
     save_manual_holding,
@@ -80,6 +81,44 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         self.assertTrue(
             mock_get.call_args.args[0].endswith(
                 "/api/v1/decision-profile/current-holding-analysis"
+            )
+        )
+
+    @patch("frontend.api.transport.httpx.post")
+    def test_posts_candidate_holding_analysis(self, mock_post):
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "profile_scope": "SINGLE_USER",
+            "broker_connected": False,
+            "status": "AVAILABLE",
+            "analysis_date": "2026-08-10",
+            "candidate_etf_code": "00878",
+            "candidate_name": "國泰永續高股息",
+            "current_portfolio": {},
+            "proposed_portfolio": {},
+            "comparison": {},
+            "eligibility": {
+                "selected_candidates": [{"reasons": []}],
+                "rejected_candidates": [],
+            },
+            "decision_priority": ["TOTAL_RETURN_AND_PRINCIPAL_RISK"],
+            "unavailable_fields": [],
+        }
+        mock_post.return_value = response
+        payload = {"proposed_units": 100, "unit_price": 20}
+
+        result = fetch_candidate_holding_analysis(
+            "http://127.0.0.1:8000",
+            "00878",
+            payload,
+        )
+
+        self.assertEqual(result["candidate_etf_code"], "00878")
+        self.assertEqual(mock_post.call_args.kwargs["json"], payload)
+        self.assertTrue(
+            mock_post.call_args.args[0].endswith(
+                "/api/v1/decision-profile/candidate-analysis/00878"
             )
         )
 

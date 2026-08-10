@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-10 — M11-3 candidate holding analysis
+
+- Added a read-only candidate ETF scenario comparing the saved current
+  portfolio with the same portfolio after a proposed addition
+- Reused M11-2 portfolio aggregation and M10-5 eligibility, exclusion and
+  payment-month reason contracts
+- Kept the fixed monthly target unchanged as candidate capital increased
+- Preserved missing deduction and holding-overlap assumptions instead of zero
+- Added FastAPI, frontend client, native Streamlit comparison and integration
+  coverage confirming that candidate analysis does not persist a holding
+- Added a mandatory pre-M12 audit gate based on post-M9 direction commit
+  `03a9635`, the current PRD and explicit user confirmation
+
 ## 2026-08-09 — M11-2 current-holding analysis
 
 - Added a read-only analysis that aggregates every saved manual holding and
