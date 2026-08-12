@@ -160,6 +160,8 @@ class TestFrontendETFDetailInformationArchitecture(
             "render_etf_performance(",
             "render_dividend_summary(",
             "render_actual_76w_summary(",
+            "render_base_target_analysis(",
+            "render_tax_reinvestment_analysis(",
             "render_dividend_history(",
             "render_data_profile(",
             "render_comparison_entry_point(",

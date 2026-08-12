@@ -74,3 +74,15 @@ class ETFDailyCloseRecord(BaseModel):
             )
 
         return value.strip().lower()
+
+
+class ETFLatestCloseResponse(BaseModel):
+    """最新已保存官方收盤價；缺值是正常資料狀態。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    etf_code: str
+    name: str
+    close_price: Decimal | None = Field(default=None, gt=0)
+    trade_date: date | None = None
+    source_id: str | None = None

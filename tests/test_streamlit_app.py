@@ -211,10 +211,22 @@ def fake_fetch_etf_performance(**kwargs):
     }
 
 
+def fake_fetch_etf_latest_close(**kwargs):
+    return {
+        "etf_code": "0050",
+        "name": "元大台灣50",
+        "close_price": 60.0,
+        "trade_date": "2026-07-29",
+        "source_id": "TWSE_STOCK_DAY",
+    }
+
+
 page.fetch_etf_by_code = fake_fetch_etf_by_code
 page.fetch_etf_performance = fake_fetch_etf_performance
+page.fetch_etf_latest_close = fake_fetch_etf_latest_close
 page.load_etf_detail.clear()
 page.load_etf_performance.clear()
+page.load_etf_latest_close.clear()
 page.render_etf_detail()
 """
 

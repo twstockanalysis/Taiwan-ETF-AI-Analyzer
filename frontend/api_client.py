@@ -112,6 +112,12 @@ from frontend.api.tax_reinvestment import (
     fetch_tax_reinvestment_scenarios,
     validate_tax_reinvestment_result,
 )
+from frontend.api.target_analysis import (
+    fetch_etf_latest_close,
+    fetch_etf_target_analysis,
+    validate_latest_close,
+    validate_target_analysis_result,
+)
 
 from frontend.api.validators import (
     validate_non_negative_integer,

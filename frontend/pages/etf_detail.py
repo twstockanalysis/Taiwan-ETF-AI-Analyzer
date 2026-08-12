@@ -14,6 +14,8 @@ from frontend.api_client import (
     fetch_etf_data_profile,
     fetch_etf_dividends,
     fetch_etf_performance,
+    fetch_etf_latest_close,
+    fetch_etf_target_analysis,
     fetch_tax_reinvestment_scenarios,
 )
 from frontend.config import (
@@ -132,6 +134,16 @@ def load_etf_actual_76w(
         api_base_url=api_base_url,
         code=code,
     )
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def load_etf_latest_close(
+    api_base_url: str,
+    code: str,
+) -> dict[str, Any]:
+    """取得並短暫快取官方最新收盤價。"""
+
+    return fetch_etf_latest_close(api_base_url=api_base_url, code=code)
 
 
 @st.cache_data(
@@ -1571,6 +1583,167 @@ def _render_tax_reinvestment_result(result: dict[str, Any]) -> None:
         )
 
 
+def build_target_monthly_cash_rows(
+    monthly_cash_flow: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """建立 1 至 12 月現金流表格並清楚區分缺值與零。"""
+
+    rows: list[dict[str, Any]] = []
+    for item in monthly_cash_flow:
+        rows.append(
+            {
+                "月份": f"{item['month']} 月",
+                "歷史入帳次數": item["event_count"],
+                "涵蓋年數": item["observed_year_count"],
+                "年化稅前現金": format_shared_amount(
+                    item.get("annualized_gross_cash"),
+                    missing_text="無法計算",
+                    decimal_places=2,
+                ),
+                "年化稅後現金": format_shared_amount(
+                    item.get("annualized_after_tax_cash"),
+                    missing_text="無法計算",
+                    decimal_places=2,
+                ),
+                "最近入帳日": format_iso_date(
+                    item.get("latest_payment_date")
+                ),
+            }
+        )
+    return rows
+
+
+def _render_target_analysis_result(result: dict[str, Any]) -> None:
+    """呈現固定現金流目標與歷史逐月估算。"""
+
+    cash_flow = result["cash_flow"]
+    scenario = result["scenario_estimate"]
+    with st.container(horizontal=True, border=True):
+        st.metric(
+            "所需本金",
+            format_shared_amount(
+                cash_flow.get("required_capital"), decimal_places=0
+            ),
+        )
+        st.metric(
+            "資金缺口",
+            format_shared_amount(
+                cash_flow.get("funding_shortfall"), decimal_places=0
+            ),
+        )
+        st.metric(
+            "年度稅後目標",
+            format_shared_amount(
+                cash_flow.get("annual_after_tax_target"), decimal_places=0
+            ),
+        )
+        st.metric(
+            "目前目標覆蓋率",
+            format_shared_percentage(cash_flow.get("target_coverage_pct")),
+        )
+
+    st.caption(
+        "下表以歷史付款月份按涵蓋年數年化；無入帳資料顯示為無法計算，"
+        "不代表該月現金流為 0。"
+    )
+    st.table(build_target_monthly_cash_rows(result["monthly_cash_flow"]))
+    st.caption(
+        "不再投入配息情境的估算稅後總報酬："
+        + format_shared_percentage(
+            scenario.get("after_tax_total_return_pct"), signed=True
+        )
+    )
+    for warning in result.get("warnings", []):
+        st.warning(warning.get("message", "歷史結果不保證未來表現。"))
+    if result.get("unavailable_fields"):
+        fields = "、".join(
+            str(item.get("field", "未知欄位"))
+            for item in result["unavailable_fields"]
+        )
+        st.info(f"目前無法計算：{fields}")
+
+
+def render_base_target_analysis(
+    *,
+    api_base_url: str,
+    etf: dict[str, Any],
+    latest_close: dict[str, Any] | None,
+    latest_close_error: APIClientError | None = None,
+) -> None:
+    """呈現基準 ETF 的固定現金流目標分析。"""
+
+    st.divider()
+    st.subheader("目標現金流分析")
+    st.caption("依歷史配息與市價績效估算；不是報酬承諾或投資建議。")
+    if latest_close_error is not None:
+        render_warning_state("無法取得官方最新收盤價。", detail=latest_close_error)
+        return
+    if latest_close is None or latest_close.get("close_price") is None:
+        st.warning("目前沒有可追溯的官方收盤價，因此暫不提供本金需求估算。")
+        return
+
+    st.info(
+        "計算採用官方收盤價 "
+        f"{latest_close['close_price']:.2f} TWD（{latest_close['trade_date']}；"
+        f"來源 {latest_close['source_id']}），價格不可手動覆寫。"
+    )
+    with st.form(f"target_analysis_{etf['code']}"):
+        columns = st.columns(3)
+        with columns[0]:
+            held_units = st.number_input(
+                "目前持有單位數", min_value=0, value=0, step=100
+            )
+            monthly_target = st.number_input(
+                "每月稅後現金目標（TWD）",
+                min_value=0.0,
+                value=3000.0,
+                step=500.0,
+            )
+        with columns[1]:
+            analysis_years = st.number_input(
+                "估算年數", min_value=1, max_value=50, value=10
+            )
+            history_years = st.number_input(
+                "歷史資料年數", min_value=1, max_value=10, value=3
+            )
+        with columns[2]:
+            has_deduction = st.checkbox("提供現金扣除率假設", value=False)
+            deduction_rate = st.number_input(
+                "現金扣除率（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=5.0,
+                disabled=not has_deduction,
+            )
+        submitted = st.form_submit_button(
+            "計算現金流目標", type="primary", icon=":material/calculate:"
+        )
+
+    state_key = f"target_analysis_result_{etf['code']}"
+    if submitted:
+        payload = {
+            "held_units": int(held_units),
+            "unit_price": latest_close["close_price"],
+            "monthly_after_tax_target": monthly_target,
+            "analysis_years": int(analysis_years),
+            "history_years": int(history_years),
+            "cash_deduction_rate_pct": (
+                deduction_rate if has_deduction else None
+            ),
+        }
+        try:
+            with loading_state("正在計算目標現金流..."):
+                st.session_state[state_key] = fetch_etf_target_analysis(
+                    api_base_url=api_base_url,
+                    code=str(etf["code"]),
+                    payload=payload,
+                )
+        except APIClientError as error:
+            render_warning_state("無法完成目標現金流分析。", detail=error)
+    if state_key in st.session_state:
+        _render_target_analysis_result(st.session_state[state_key])
+
+
 def render_tax_reinvestment_analysis(
     *,
     api_base_url: str,
@@ -1810,6 +1983,16 @@ def render_etf_detail() -> None:
     except APIClientError as error:
         actual_76w_error = error
 
+    latest_close: dict[str, Any] | None = None
+    latest_close_error: APIClientError | None = None
+    try:
+        latest_close = load_etf_latest_close(
+            api_base_url=api_base_url,
+            code=requested_code,
+        )
+    except APIClientError as error:
+        latest_close_error = error
+
     refresh_column, _ = st.columns(
         [
             1,
@@ -1827,6 +2010,7 @@ def render_etf_detail() -> None:
             load_etf_performance.clear()
             load_etf_dividends.clear()
             load_etf_actual_76w.clear()
+            load_etf_latest_close.clear()
             load_dividend_detail.clear()
             st.rerun()
 
@@ -1869,6 +2053,13 @@ def render_etf_detail() -> None:
         render_actual_76w_summary(
             actual_76w
         )
+
+    render_base_target_analysis(
+        api_base_url=api_base_url,
+        etf=etf,
+        latest_close=latest_close,
+        latest_close_error=latest_close_error,
+    )
 
     render_tax_reinvestment_analysis(
         api_base_url=api_base_url,

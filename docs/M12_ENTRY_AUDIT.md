@@ -147,6 +147,9 @@ deployment automation:
 
 ### M11-5A — Complete the visible base-ETF cash-flow flow
 
+Implementation status: completed by M11-5A1 and M11-5A2; M12 remains blocked
+until M11-5B is completed and the full M11-5 result is merged.
+
 - Start the cash-flow flow with a dynamic current-holdings editor that accepts
   zero to any number (`0-N`) of Taiwan ETFs; zero rows is the valid initial state
 - Let the user add each row with a `+` action and remove a row with a `-` action;

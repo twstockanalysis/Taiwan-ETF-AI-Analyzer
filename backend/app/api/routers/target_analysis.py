@@ -25,10 +25,12 @@ from backend.app.models.cash_flow_analysis import (
     CalculationContext,
 )
 from backend.app.models.target_analysis import (
+    TargetAnalysisMonthlyCashFlow,
     TargetAnalysisRequest,
     TargetAnalysisResult,
     TargetAnalysisStatus,
 )
+from backend.app.models.etf_price import ETFLatestCloseResponse
 from backend.app.models.tax_reinvestment import (
     TaxReinvestmentAnalysisRequest,
     TaxReinvestmentAnalysisResult,
@@ -40,6 +42,9 @@ from backend.app.repositories.dividend_repository import (
 )
 from backend.app.repositories.etf_repository import (
     get_etf_by_code,
+)
+from backend.app.repositories.daily_close_repository import (
+    get_latest_daily_close,
 )
 from backend.app.services.target_analysis_calculator import (
     calculate_target_analysis,
@@ -59,6 +64,32 @@ router = APIRouter(
     prefix="/api/v1/etfs",
     tags=["Target Analysis"],
 )
+
+
+@router.get(
+    "/{code}/latest-close",
+    response_model=ETFLatestCloseResponse,
+    summary="取得最新已保存官方收盤價",
+)
+def read_latest_close(
+    code: str,
+    database_path: Path = Depends(get_database_path),
+) -> ETFLatestCloseResponse:
+    normalized_code = code.strip().upper()
+    etf = get_etf_by_code(normalized_code, database_path)
+    if etf is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到 ETF：{normalized_code}",
+        )
+    latest = get_latest_daily_close(normalized_code, database_path)
+    return ETFLatestCloseResponse(
+        etf_code=normalized_code,
+        name=etf["name"],
+        close_price=latest["close_price"] if latest else None,
+        trade_date=latest["trade_date"] if latest else None,
+        source_id=latest["source_id"] if latest else None,
+    )
 
 
 def _to_decimal(value) -> Decimal | None:
@@ -185,6 +216,50 @@ def analyze_etf_target(
             rounding=ROUND_HALF_UP,
         )
 
+    aggregate_deductions = None
+    zero_deduction = None
+    if (
+        gross_distribution_cash is not None
+        and request.cash_deduction_rate_pct is not None
+    ):
+        aggregate_deductions = (
+            gross_distribution_cash
+            * request.cash_deduction_rate_pct
+            / Decimal("100")
+        )
+        zero_deduction = Decimal("0")
+
+    monthly_cash_flow = []
+    for item in monthly_income.get("months", []):
+        amount_per_unit = _to_decimal(item.get("total_amount_per_unit"))
+        annualized_gross = (
+            amount_per_unit
+            / Decimal(str(request.history_years))
+            * Decimal(str(request.held_units))
+            if amount_per_unit is not None
+            else None
+        )
+        annualized_after_tax = (
+            annualized_gross
+            * (
+                Decimal("1")
+                - request.cash_deduction_rate_pct / Decimal("100")
+            )
+            if annualized_gross is not None
+            and request.cash_deduction_rate_pct is not None
+            else None
+        )
+        monthly_cash_flow.append(
+            TargetAnalysisMonthlyCashFlow(
+                month=item["month"],
+                event_count=item["event_count"],
+                observed_year_count=item["observed_year_count"],
+                annualized_gross_cash=annualized_gross,
+                annualized_after_tax_cash=annualized_after_tax,
+                latest_payment_date=item.get("latest_payment_date"),
+            )
+        )
+
     annual_price_return_pct = None
 
     if loaded_data.selected_performance is not None:
@@ -200,9 +275,9 @@ def analyze_etf_target(
         gross_distribution_cash=(
             gross_distribution_cash
         ),
-        distribution_tax=None,
-        supplementary_premium=None,
-        other_distribution_costs=None,
+        distribution_tax=zero_deduction,
+        supplementary_premium=zero_deduction,
+        other_distribution_costs=aggregate_deductions,
         annual_gross_cash_rate_pct=(
             annual_gross_cash_rate_pct
         ),
@@ -253,6 +328,7 @@ def analyze_etf_target(
             "unavailable_fields": (
                 merged_unavailable_fields
             ),
+            "monthly_cash_flow": monthly_cash_flow,
         },
     )
 
