@@ -1,5 +1,6 @@
 """ETF 詳細資料頁面。"""
 
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import streamlit as st
@@ -697,6 +698,8 @@ def get_component_display_name(
 def build_component_display_rows(
     components: list[dict[str, Any]],
     component_basis: str,
+    dividend_amount_per_unit: Any = None,
+    currency: Any = "TWD",
 ) -> list[dict[str, str]]:
     """建立指定資訊基礎的配息組成顯示資料。"""
 
@@ -718,6 +721,35 @@ def build_component_display_rows(
 
         if current_basis != normalized_basis:
             continue
+
+        component_amount = component.get(
+            "amount_per_unit"
+        )
+        amount_basis = "官方揭露"
+
+        if component_amount is None:
+            ratio_pct = component.get(
+                "ratio_pct"
+            )
+
+            if (
+                normalized_basis == "ESTIMATED"
+                and dividend_amount_per_unit is not None
+                and ratio_pct is not None
+            ):
+                try:
+                    component_amount = (
+                        Decimal(str(dividend_amount_per_unit))
+                        * Decimal(str(ratio_pct))
+                        / Decimal("100")
+                    )
+                    amount_basis = "依總配息與預估占比推算"
+
+                except (InvalidOperation, ValueError):
+                    component_amount = None
+
+            if component_amount is None:
+                amount_basis = "尚未取得"
 
         rows.append(
             {
@@ -741,15 +773,13 @@ def build_component_display_rows(
                 ),
                 "每單位金額": (
                     format_dividend_amount(
-                        component.get(
-                            "amount_per_unit"
-                        )
+                        component_amount,
+                        currency,
                     )
-                    if component.get(
-                        "amount_per_unit"
-                    ) is not None
+                    if component_amount is not None
                     else "尚未取得"
                 ),
+                "金額依據": amount_basis,
                 "來源": str(
                     component.get(
                         "source_id",
@@ -766,6 +796,8 @@ def render_component_group(
     title: str,
     components: list[dict[str, Any]],
     component_basis: str,
+    dividend_amount_per_unit: Any = None,
+    currency: Any = "TWD",
 ) -> None:
     """顯示預估或實際配息組成。"""
 
@@ -776,6 +808,10 @@ def render_component_group(
     rows = build_component_display_rows(
         components=components,
         component_basis=component_basis,
+        dividend_amount_per_unit=(
+            dividend_amount_per_unit
+        ),
+        currency=currency,
     )
 
     if not rows:
@@ -1145,12 +1181,25 @@ def render_dividend_history(
                 title="預估配息組成",
                 components=components,
                 component_basis="ESTIMATED",
+                dividend_amount_per_unit=(
+                    detail.get("amount_per_unit")
+                ),
+                currency=detail.get("currency"),
+            )
+
+            st.caption(
+                "預估組成金額＝每單位總配息 × e添富預估占比；"
+                "這是推算值，不等同正式所得代碼 54C 或 76W。"
             )
 
             render_component_group(
                 title="實際所得組成",
                 components=components,
                 component_basis="ACTUAL",
+                dividend_amount_per_unit=(
+                    detail.get("amount_per_unit")
+                ),
+                currency=detail.get("currency"),
             )
 
 
