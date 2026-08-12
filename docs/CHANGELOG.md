@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-13 — Multi-issuer dividend source framework
+
+- Registered explicit discovery capabilities and official domains for Cathay,
+  CTBC, KGI and UPAM dividend-document sources.
+- Added deterministic, ETF-code-based HEAD discovery for CTBC's official
+  `ETFLatestDividend` PDF path without downloading or snapshotting the file.
+- Kept CTBC, KGI and UPAM in discovery-only status until their document content
+  parsers independently prove ACTUAL versus estimated semantics.
+- Added path-injection, redirect-domain, content-type, missing-document and
+  source-capability tests.
+
 ## 2026-08-12 — Cathay actual-dividend announcement discovery
 
 - Added bounded ETF-code searches against Cathay SITE's public announcement
