@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-12 — Estimated dividend component amounts
+
+- Converted e添富 estimated component ratios into per-unit amounts when the
+  parent dividend amount is available and the component amount is absent.
+- Labeled converted values as derived from total dividend times estimated
+  ratio, while preserving official amounts when supplied.
+- Kept estimated dividend, interest and realized capital gain separate from
+  official tax codes such as `54C` and `76W`.
+- Verified the stored 0050 example: 0.6 TWD × 26% = 0.156 TWD and 0.6 TWD ×
+  74% = 0.444 TWD.
+
 ## 2026-08-12 — M12 reviewed ACTUAL launch seed
 
 - Added bounded ETF/year queries to the TWSE dividend pipeline while keeping

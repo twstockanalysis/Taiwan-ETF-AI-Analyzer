@@ -583,6 +583,8 @@ class TestFrontendDividendUI(
             build_component_display_rows(
                 components,
                 "ESTIMATED",
+                dividend_amount_per_unit=0.6,
+                currency="TWD",
             )
         )
 
@@ -604,6 +606,16 @@ class TestFrontendDividendUI(
         )
 
         self.assertEqual(
+            estimated_rows[0]["每單位金額"],
+            "0.48 TWD",
+        )
+
+        self.assertEqual(
+            estimated_rows[0]["金額依據"],
+            "依總配息與預估占比推算",
+        )
+
+        self.assertEqual(
             len(actual_rows),
             1,
         )
@@ -612,6 +624,51 @@ class TestFrontendDividendUI(
             actual_rows[0]["代碼"],
             "76W",
         )
+
+        self.assertEqual(
+            actual_rows[0]["每單位金額"],
+            "0.5 TWD",
+        )
+
+        self.assertEqual(
+            actual_rows[0]["金額依據"],
+            "官方揭露",
+        )
+
+    def test_0050_estimated_components_are_converted_to_amounts(self) -> None:
+        """0050 範例依 0.6 元總配息換算，但不改標正式代碼。"""
+
+        rows = build_component_display_rows(
+            [
+                {
+                    "component_code": "EST_DIVIDEND",
+                    "component_basis": "ESTIMATED",
+                    "component_name": "股利所得",
+                    "amount_per_unit": None,
+                    "ratio_pct": 26,
+                    "source_id": "twse_etfortune_dividend",
+                },
+                {
+                    "component_code": "EST_REALIZED_CAPITAL_GAIN",
+                    "component_basis": "ESTIMATED",
+                    "component_name": "已實現資本利得",
+                    "amount_per_unit": None,
+                    "ratio_pct": 74,
+                    "source_id": "twse_etfortune_dividend",
+                },
+            ],
+            "ESTIMATED",
+            dividend_amount_per_unit=0.6,
+            currency="TWD",
+        )
+
+        self.assertEqual(rows[0]["每單位金額"], "0.156 TWD")
+        self.assertEqual(rows[1]["每單位金額"], "0.444 TWD")
+        self.assertEqual(
+            rows[1]["代碼"],
+            "EST_REALIZED_CAPITAL_GAIN",
+        )
+        self.assertNotEqual(rows[1]["代碼"], "76W")
 
     def test_summary_rows_preserve_official_period_and_yield_basis(
         self,
