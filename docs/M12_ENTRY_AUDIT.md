@@ -170,6 +170,10 @@ until M11-5B is completed and the full M11-5 result is merged.
 
 ### M11-5B — Complete principal-risk warnings
 
+Implementation status: completed in the M11-5B feature branch with fixed,
+source-dated rules and direct UI regression coverage; merge is still required
+before M12 begins.
+
 - Implement or explicitly remove from the PRD the promised persistent-decline,
   weak-recovery and material-peer-underperformance checks
 - Keep every warning deterministic, source-dated and covered by calculation,

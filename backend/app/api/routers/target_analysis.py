@@ -52,6 +52,9 @@ from backend.app.services.target_analysis_calculator import (
 from backend.app.services.target_analysis_data import (
     load_target_analysis_data,
 )
+from backend.app.services.principal_risk_warnings import (
+    build_principal_risk_warnings,
+)
 from backend.app.services.tax_reinvestment_calculator import (
     calculate_tax_reinvestment_scenarios,
 )
@@ -167,6 +170,7 @@ def analyze_etf_target(
         database_path=database_path,
         history_years=request.history_years,
         as_of_date=analysis_date,
+        include_principal_risk_facts=True,
     )
 
     monthly_income = loaded_data.monthly_income
@@ -263,10 +267,8 @@ def analyze_etf_target(
     annual_price_return_pct = None
 
     if loaded_data.selected_performance is not None:
-        annual_price_return_pct = _to_decimal(
-            loaded_data.selected_performance.get(
-                "return_pct"
-            )
+        annual_price_return_pct = _annualize_price_return(
+            loaded_data.selected_performance
         )
 
     calculated_result = calculate_target_analysis(
@@ -286,6 +288,18 @@ def analyze_etf_target(
         ),
     )
 
+    principal_risk_warnings = build_principal_risk_warnings(
+        etf_code=normalized_code,
+        analysis_date=analysis_date,
+        after_tax_total_return_pct=(
+            calculated_result.scenario_estimate.after_tax_total_return_pct
+        ),
+        selected_performance=loaded_data.one_year_performance,
+        daily_closes=loaded_data.daily_closes,
+        dividends=loaded_data.dividends,
+        peer_performance=loaded_data.peer_performance,
+    )
+
     merged_warnings = list(
         calculated_result.warnings
     )
@@ -298,6 +312,12 @@ def analyze_etf_target(
         if warning.code in warning_codes:
             continue
 
+        warning_codes.add(warning.code)
+        merged_warnings.append(warning)
+
+    for warning in principal_risk_warnings:
+        if warning.code in warning_codes:
+            continue
         warning_codes.add(warning.code)
         merged_warnings.append(warning)
 

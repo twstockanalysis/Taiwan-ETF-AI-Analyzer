@@ -1,6 +1,7 @@
 """M11-3 候選 ETF 持倉情境整合測試。"""
 
 from pathlib import Path
+from datetime import date
 import tempfile
 import unittest
 
@@ -117,7 +118,7 @@ class TestCandidateHoldingAnalysis(unittest.TestCase):
                 performance_rows.append(
                     (
                         code,
-                        "2026-08-01",
+                        date.today().isoformat(),
                         period,
                         "PRICE_RETURN",
                         return_pct,

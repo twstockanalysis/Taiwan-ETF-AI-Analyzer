@@ -57,6 +57,21 @@ def validate_target_analysis_result(payload: object) -> dict[str, Any]:
     for field in ("warnings", "unavailable_fields"):
         if not isinstance(result.get(field), list):
             raise APIResponseError(f"{field} 必須是陣列")
+    for index, warning in enumerate(result["warnings"]):
+        if not isinstance(warning, dict):
+            raise APIResponseError(f"warnings[{index}] 必須是物件")
+        validate_required_text(warning.get("code"), f"warnings[{index}].code")
+        validate_required_text(
+            warning.get("message"), f"warnings[{index}].message"
+        )
+        validate_optional_iso_date(
+            warning.get("as_of_date"), f"warnings[{index}].as_of_date"
+        )
+        source_id = warning.get("source_id")
+        if source_id is not None:
+            validate_required_text(source_id, f"warnings[{index}].source_id")
+        if not isinstance(warning.get("evidence", {}), dict):
+            raise APIResponseError(f"warnings[{index}].evidence 必須是物件")
     monthly = result.get("monthly_cash_flow")
     if not isinstance(monthly, list) or len(monthly) != 12:
         raise APIResponseError("monthly_cash_flow 必須包含 12 個月份")

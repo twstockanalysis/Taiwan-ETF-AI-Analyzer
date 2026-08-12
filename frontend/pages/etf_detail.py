@@ -1655,6 +1655,31 @@ def _render_target_analysis_result(result: dict[str, Any]) -> None:
     )
     for warning in result.get("warnings", []):
         st.warning(warning.get("message", "歷史結果不保證未來表現。"))
+        if warning.get("as_of_date") or warning.get("source_id"):
+            basis = "；".join(
+                item
+                for item in (
+                    (
+                        f"資料基準日 {warning['as_of_date']}"
+                        if warning.get("as_of_date")
+                        else ""
+                    ),
+                    (
+                        f"來源 {warning['source_id']}"
+                        if warning.get("source_id")
+                        else ""
+                    ),
+                )
+                if item
+            )
+            st.caption(basis)
+        if warning.get("evidence"):
+            evidence_text = "、".join(
+                f"{key}={value}"
+                for key, value in warning["evidence"].items()
+                if value is not None and value != ""
+            )
+            st.caption(f"判定證據：{evidence_text}")
     if result.get("unavailable_fields"):
         fields = "、".join(
             str(item.get("field", "未知欄位"))

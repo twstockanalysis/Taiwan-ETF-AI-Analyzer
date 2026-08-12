@@ -316,6 +316,7 @@ class TestTargetAnalysisAPI(unittest.TestCase):
             database_path=self.database_path,
             history_years=3,
             as_of_date=ANY,
+            include_principal_risk_facts=True,
         )
 
         load_call = (

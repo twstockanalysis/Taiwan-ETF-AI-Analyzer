@@ -1,5 +1,5 @@
 import calendar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from backend.app.models.etf_analysis import PerformancePeriod
@@ -100,6 +100,9 @@ class TargetAnalysisData:
     selected_performance: dict | None
     warnings: list
     unavailable_fields: list
+    daily_closes: list[dict] = field(default_factory=list)
+    one_year_performance: dict | None = None
+    peer_performance: list[dict] = field(default_factory=list)
 
 
 def _parse_date(value) -> date | None:
@@ -121,6 +124,7 @@ def load_target_analysis_data(
     database_path,
     history_years: int,
     as_of_date: date,
+    include_principal_risk_facts: bool = False,
 ) -> TargetAnalysisData:
     from backend.app.models.target_analysis import (
         TargetAnalysisUnavailableField,
@@ -128,7 +132,9 @@ def load_target_analysis_data(
         TargetAnalysisWarningCode,
     )
     from backend.app.repositories import (
+        daily_close_repository,
         dividend_repository,
+        etf_repository,
         monthly_income_repository,
         performance_repository,
     )
@@ -154,6 +160,24 @@ def load_target_analysis_data(
             database_path=database_path,
         )
     )
+    daily_closes = []
+    peer_performance = []
+    if include_principal_risk_facts:
+        daily_closes = daily_close_repository.list_daily_closes(
+            etf_code=etf_code,
+            database_path=database_path,
+        )
+        etf = etf_repository.get_etf_by_code(etf_code, database_path)
+        if etf is not None:
+            peer_performance = (
+                performance_repository.list_latest_multi_period_performance_ranking(
+                    database_path=database_path,
+                    sort_period=PerformancePeriod.ONE_YEAR,
+                    is_bond=bool(etf["is_bond"]),
+                    limit=10000,
+                    period_codes=(PerformancePeriod.ONE_YEAR,),
+                )
+            )
 
     warnings = []
     warning_codes = set()
@@ -365,4 +389,7 @@ def load_target_analysis_data(
         selected_performance=selected_performance,
         warnings=warnings,
         unavailable_fields=unavailable_fields,
+        daily_closes=daily_closes,
+        one_year_performance=rows_by_period.get(PerformancePeriod.ONE_YEAR),
+        peer_performance=peer_performance,
     )
