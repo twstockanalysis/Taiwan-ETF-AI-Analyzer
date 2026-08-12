@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-12 — M12-3 scheduling and operational monitoring
+
+- Added a locked, declarative scheduled pipeline runner with per-job logs,
+  atomic run reports and stop-on-first-failure behavior.
+- Added machine-readable database, disk, pipeline, freshness, backup, restore
+  drill and API health checks with deployment-safe exit codes.
+- Documented initial alert thresholds, Task Scheduler setup and reviewed-ACTUAL
+  handling while keeping host credentials and provider binding out of source.
+
 ## 2026-08-12 — M12-2 durable SQLite backup and recovery
 
 - Added an absolute `TW_ETF_DATABASE_PATH` production contract while retaining

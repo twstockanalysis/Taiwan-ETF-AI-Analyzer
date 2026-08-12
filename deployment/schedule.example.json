@@ -1,0 +1,16 @@
+{
+  "jobs": [
+    {
+      "name": "etf-master",
+      "argv": [".venv\\Scripts\\python.exe", "-m", "backend.app.data_sources.etf_master_pipeline"]
+    },
+    {
+      "name": "performance",
+      "argv": [".venv\\Scripts\\python.exe", "-m", "backend.app.data_sources.performance_pipeline"]
+    },
+    {
+      "name": "dividend",
+      "argv": [".venv\\Scripts\\python.exe", "-m", "backend.app.data_sources.dividend_pipeline"]
+    }
+  ]
+}
