@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-12 — M12-2 durable SQLite backup and recovery
+
+- Added an absolute `TW_ETF_DATABASE_PATH` production contract while retaining
+  the repository database only as the local-development default.
+- Added no-overwrite SQLite backup and restore commands with SHA-256, byte-size,
+  schema, integrity, foreign-key and exact row-count verification.
+- Added a versioned backup manifest, initial retention policy and recovery
+  runbook that restores to a new path before operational cutover.
+- Kept backup scheduling, off-host automation and monitoring in M12-3.
+
 ## 2026-08-12 — M12-1 deployment database readiness
 
 - Added explicit deployment database `verify`, `initialize` and isolated

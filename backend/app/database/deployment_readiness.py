@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sqlite3
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 from backend.app.database.init_db import initialize_database
@@ -66,6 +68,30 @@ class MigrationRehearsalReport:
     upgraded_row_counts: dict[str, int]
     preserved_tables: list[str]
     readiness: DatabaseReadinessReport
+
+
+@dataclass(frozen=True)
+class DatabaseBackupReport:
+    source_path: str
+    backup_path: str
+    manifest_path: str
+    created_at: str
+    sha256: str
+    size_bytes: int
+    row_counts: dict[str, int]
+    schema_ready: bool
+
+
+@dataclass(frozen=True)
+class DatabaseRestoreReport:
+    backup_path: str
+    restored_path: str
+    manifest_path: str
+    sha256_verified: bool
+    row_counts_verified: bool
+    integrity_check: str
+    foreign_key_violation_count: int
+    schema_ready: bool
 
 
 def _connect(path: Path, *, read_only: bool) -> sqlite3.Connection:
@@ -177,6 +203,138 @@ def _sqlite_backup(source: Path, destination: Path) -> None:
         source_connection.close()
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _default_manifest_path(backup: Path) -> Path:
+    return Path(f"{backup}.manifest.json")
+
+
+def backup_database(
+    source_path: str | Path,
+    backup_path: str | Path,
+    manifest_path: str | Path | None = None,
+) -> DatabaseBackupReport:
+    """Create a transactionally consistent backup and a recovery manifest."""
+
+    source = Path(source_path).resolve()
+    backup = Path(backup_path).resolve()
+    manifest = (
+        Path(manifest_path).resolve()
+        if manifest_path is not None
+        else _default_manifest_path(backup)
+    )
+    if not source.is_file():
+        raise FileNotFoundError(f"來源資料庫不存在：{source}")
+    if source == backup:
+        raise ValueError("來源與備份資料庫不得相同")
+    if manifest in {source, backup}:
+        raise ValueError("備份清單不得與來源或備份資料庫使用相同路徑")
+    if manifest.exists():
+        raise FileExistsError(f"備份清單已存在：{manifest}")
+    source_report = verify_database_schema(source)
+    if (
+        source_report.integrity_check != "ok"
+        or source_report.foreign_key_violation_count
+    ):
+        raise RuntimeError("來源資料庫未通過完整性或外鍵檢查")
+    _sqlite_backup(source, backup)
+    backup_report = verify_database_schema(backup)
+    if (
+        backup_report.integrity_check != "ok"
+        or backup_report.foreign_key_violation_count
+    ):
+        raise RuntimeError("備份資料庫未通過完整性或外鍵檢查")
+    if backup_report.row_counts != source_report.row_counts:
+        raise RuntimeError("備份資料列數與來源不一致")
+    created_at = datetime.now(timezone.utc).isoformat()
+    report = DatabaseBackupReport(
+        source_path=str(source),
+        backup_path=str(backup),
+        manifest_path=str(manifest),
+        created_at=created_at,
+        sha256=_sha256(backup),
+        size_bytes=backup.stat().st_size,
+        row_counts=backup_report.row_counts,
+        schema_ready=backup_report.ready,
+    )
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    manifest.write_text(
+        json.dumps(
+            {"manifest_version": 1, **asdict(report)},
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return report
+
+
+def restore_database(
+    backup_path: str | Path,
+    restored_path: str | Path,
+    manifest_path: str | Path | None = None,
+) -> DatabaseRestoreReport:
+    """Restore into a new path and verify it against the backup manifest."""
+
+    backup = Path(backup_path).resolve()
+    restored = Path(restored_path).resolve()
+    manifest = (
+        Path(manifest_path).resolve()
+        if manifest_path is not None
+        else _default_manifest_path(backup)
+    )
+    if not backup.is_file():
+        raise FileNotFoundError(f"備份資料庫不存在：{backup}")
+    if not manifest.is_file():
+        raise FileNotFoundError(f"備份清單不存在：{manifest}")
+    if backup == restored:
+        raise ValueError("備份與還原目的地不得相同")
+    if manifest in {backup, restored}:
+        raise ValueError("備份清單不得與備份或還原資料庫使用相同路徑")
+    if restored.exists():
+        raise FileExistsError(f"還原目的地已存在：{restored}")
+    metadata = json.loads(manifest.read_text(encoding="utf-8"))
+    if metadata.get("manifest_version") != 1:
+        raise ValueError("不支援的備份清單版本")
+    expected_hash = str(metadata.get("sha256", ""))
+    if not expected_hash or _sha256(backup) != expected_hash:
+        raise RuntimeError("備份 SHA-256 與清單不一致")
+    if backup.stat().st_size != int(metadata.get("size_bytes", -1)):
+        raise RuntimeError("備份檔案大小與清單不一致")
+    _sqlite_backup(backup, restored)
+    restored_report = verify_database_schema(restored)
+    expected_counts = {
+        str(table): int(count)
+        for table, count in dict(metadata.get("row_counts", {})).items()
+    }
+    counts_verified = restored_report.row_counts == expected_counts
+    schema_verified = restored_report.ready == bool(metadata.get("schema_ready"))
+    if (
+        restored_report.integrity_check != "ok"
+        or restored_report.foreign_key_violation_count
+        or not counts_verified
+        or not schema_verified
+    ):
+        raise RuntimeError("還原資料庫未通過完整性、外鍵、結構或資料列數驗證")
+    return DatabaseRestoreReport(
+        backup_path=str(backup),
+        restored_path=str(restored),
+        manifest_path=str(manifest),
+        sha256_verified=True,
+        row_counts_verified=True,
+        integrity_check=restored_report.integrity_check,
+        foreign_key_violation_count=restored_report.foreign_key_violation_count,
+        schema_ready=restored_report.ready,
+    )
+
+
 def rehearse_database_migration(
     source_path: str | Path,
     rehearsal_path: str | Path,
@@ -226,6 +384,14 @@ def _parser() -> argparse.ArgumentParser:
     rehearse = subparsers.add_parser("rehearse")
     rehearse.add_argument("--source", required=True, type=Path)
     rehearse.add_argument("--rehearsal", required=True, type=Path)
+    backup = subparsers.add_parser("backup")
+    backup.add_argument("--source", required=True, type=Path)
+    backup.add_argument("--backup", required=True, type=Path)
+    backup.add_argument("--manifest", type=Path)
+    restore = subparsers.add_parser("restore")
+    restore.add_argument("--backup", required=True, type=Path)
+    restore.add_argument("--restored", required=True, type=Path)
+    restore.add_argument("--manifest", type=Path)
     return parser
 
 
@@ -239,6 +405,10 @@ def main() -> None:
         return
     if args.command == "initialize":
         report = initialize_deployment_database(args.database)
+    elif args.command == "backup":
+        report = backup_database(args.source, args.backup, args.manifest)
+    elif args.command == "restore":
+        report = restore_database(args.backup, args.restored, args.manifest)
     else:
         report = rehearse_database_migration(args.source, args.rehearsal)
     print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
