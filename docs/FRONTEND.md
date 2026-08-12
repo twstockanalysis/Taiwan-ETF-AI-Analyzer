@@ -276,6 +276,12 @@ estimated dividend income and 74% estimated realized capital gain displays
 0.156 TWD and 0.444 TWD. These remain estimates and are not relabeled as
 official `54C` or `76W`.
 
+The tax and reinvestment section applies the same provenance boundary. It uses
+a complete official composition first; if none is available, it automatically
+uses the latest complete e添富 estimated composition and displays a
+`ESTIMATED_FALLBACK` warning. Estimated codes remain visible, and the result is
+described as a planning substitute rather than an official income statement.
+
 ### ETF Detail
 
 The detail page is hidden from sidebar navigation and opened through:

@@ -36,8 +36,15 @@ class TaxScenarioUnavailableReason(StrEnum):
     NON_POSITIVE_INITIAL_VALUE = "NON_POSITIVE_INITIAL_VALUE"
 
 
+class ComponentCalculationBasis(StrEnum):
+    """稅務情境所使用的組成資料層級。"""
+
+    ACTUAL = "ACTUAL"
+    ESTIMATED_FALLBACK = "ESTIMATED_FALLBACK"
+
+
 class OfficialComponentAllocation(TaxReinvestmentBaseModel):
-    """歷史正式 ACTUAL 配息組成。"""
+    """歷史配息組成；來源層級由外層欄位說明。"""
 
     component_code: str = Field(
         min_length=1,
@@ -161,7 +168,11 @@ class TaxReinvestmentCalculationInput(TaxReinvestmentBaseModel):
         decimal_places=6,
     )
     payments_per_year: int = Field(ge=1, le=365)
-    actual_component_mix: list[OfficialComponentAllocation] | None
+    actual_component_mix: list[OfficialComponentAllocation] | None = None
+    calculation_component_mix: (
+        list[OfficialComponentAllocation] | None
+    ) = None
+    component_calculation_basis: ComponentCalculationBasis | None = None
     tax_rule: TaiwanIndividualTaxRule
     custom_reinvestment_pct: Decimal = Field(
         ge=0,
@@ -172,21 +183,27 @@ class TaxReinvestmentCalculationInput(TaxReinvestmentBaseModel):
 
     @model_validator(mode="after")
     def validate_actual_mix(self):
-        """正式組成須唯一且合計為 100%，缺值則保留 None。"""
+        """計算組成須唯一且合計約為 100%。"""
 
-        if self.actual_component_mix is None:
+        mix = self.calculation_component_mix or self.actual_component_mix
+        if mix is None:
             return self
 
-        codes = [item.component_code for item in self.actual_component_mix]
+        codes = [item.component_code for item in mix]
         if len(codes) != len(set(codes)):
-            raise ValueError("ACTUAL 所得代碼不可重複")
+            raise ValueError("配息組成代碼不可重複")
 
         total = sum(
-            (item.ratio_pct for item in self.actual_component_mix),
+            (item.ratio_pct for item in mix),
             Decimal("0"),
         )
         if total < Decimal("99") or total > Decimal("101"):
-            raise ValueError("ACTUAL 配息組成比例合計必須介於 99% 與 101%")
+            raise ValueError("配息組成比例合計必須介於 99% 與 101%")
+        if (
+            self.calculation_component_mix is not None
+            and self.component_calculation_basis is None
+        ):
+            raise ValueError("計算組成必須標示資料層級")
         return self
 
 
@@ -223,7 +240,7 @@ class TaxReinvestmentCalculationResult(TaxReinvestmentBaseModel):
     estimate_label: str = "情境估算，非稅務建議"
     rule_version: str
     rule_effective_date: date
-    historical_component_basis: str = "ACTUAL"
+    historical_component_basis: str | None = None
     scenarios: list[ReinvestmentScenarioResult]
     issues: list[TaxScenarioIssue] = Field(default_factory=list)
 
@@ -265,6 +282,8 @@ class TaxReinvestmentHistoricalFacts(TaxReinvestmentBaseModel):
     component_source_event_id: str | None = None
     component_source_date: date | None = None
     actual_component_mix: list[OfficialComponentAllocation] | None
+    calculation_component_mix: list[OfficialComponentAllocation] | None = None
+    component_calculation_basis: ComponentCalculationBasis | None = None
     annual_gross_distribution_rate_pct: Decimal | None
     price_return_period_code: str | None = None
     annual_price_return_pct: Decimal | None

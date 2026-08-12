@@ -135,6 +135,92 @@ class TestTaxReinvestmentAPI(unittest.TestCase):
             "情境估算，非稅務建議",
         )
 
+    @patch(
+        "backend.app.api.routers.target_analysis."
+        "list_etf_actual_component_history"
+    )
+    @patch(
+        "backend.app.api.routers.target_analysis.load_target_analysis_data"
+    )
+    @patch("backend.app.api.routers.target_analysis.get_etf_by_code")
+    def test_estimated_mix_is_used_as_labeled_fallback(
+        self,
+        mock_get_etf,
+        mock_load_data,
+        mock_list_components,
+    ) -> None:
+        mock_get_etf.return_value = {"code": "0050"}
+        mock_load_data.return_value = TargetAnalysisData(
+            monthly_income={
+                "analysis_currency": "TWD",
+                "window_start_date": date(2023, 1, 1),
+                "as_of_date": date(2025, 12, 31),
+                "total_amount_per_unit": 6,
+            },
+            dividends=[],
+            selected_performance={"period_code": "3Y", "return_pct": 3},
+            warnings=[],
+            unavailable_fields=[],
+        )
+        common = {
+            "dividend_id": 8,
+            "source_event_id": "twse-estimated-8",
+            "payment_date": "2025-12-20",
+            "component_basis": "ESTIMATED",
+        }
+        mock_list_components.return_value = [
+            {
+                **common,
+                "component_code": "EST_DIVIDEND",
+                "component_name": "股利所得",
+                "ratio_pct": 26,
+            },
+            {
+                **common,
+                "component_code": "EST_REALIZED_CAPITAL_GAIN",
+                "component_name": "已實現資本利得",
+                "ratio_pct": 74,
+            },
+        ]
+        payload = self.request_payload()
+        payload["tax_rule"]["component_assumptions"].extend(
+            [
+                {
+                    "component_code": "EST_DIVIDEND",
+                    "income_tax_rate_pct": 12,
+                    "tax_credit_rate_pct": 8.5,
+                    "supplementary_premium_applicable": True,
+                },
+                {
+                    "component_code": "EST_REALIZED_CAPITAL_GAIN",
+                    "income_tax_rate_pct": 0,
+                },
+            ]
+        )
+
+        response = self.client.post(
+            "/api/v1/etfs/0050/tax-reinvestment-scenarios",
+            json=payload,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"], "AVAILABLE")
+        facts = body["historical_facts"]
+        self.assertIsNone(facts["actual_component_mix"])
+        self.assertEqual(
+            facts["component_calculation_basis"],
+            "ESTIMATED_FALLBACK",
+        )
+        self.assertEqual(
+            facts["calculation_component_mix"][0]["component_code"],
+            "EST_DIVIDEND",
+        )
+        self.assertEqual(
+            body["calculation"]["historical_component_basis"],
+            "ESTIMATED_FALLBACK",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

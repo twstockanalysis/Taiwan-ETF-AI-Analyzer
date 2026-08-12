@@ -5,6 +5,7 @@ from decimal import Decimal
 import unittest
 
 from backend.app.models.tax_reinvestment import (
+    ComponentCalculationBasis,
     ComponentTaxAssumption,
     OfficialComponentAllocation,
     ReinvestmentPolicy,
@@ -164,6 +165,50 @@ class TestTaxReinvestmentCalculator(unittest.TestCase):
 
         self.assertEqual(result.issues, [])
         self.assertIsNotNone(result.scenarios[0].modeled_tax_cost)
+
+    def test_estimated_fallback_is_calculable_and_labeled(self) -> None:
+        rule = self.build_input().tax_rule.model_copy(
+            update={
+                "component_assumptions": [
+                    ComponentTaxAssumption(
+                        component_code="EST_DIVIDEND",
+                        income_tax_rate_pct="12",
+                        tax_credit_rate_pct="8.5",
+                        supplementary_premium_applicable=True,
+                    ),
+                    ComponentTaxAssumption(
+                        component_code="EST_REALIZED_CAPITAL_GAIN",
+                        income_tax_rate_pct="0",
+                    ),
+                ]
+            }
+        )
+        result = calculate_tax_reinvestment_scenarios(
+            self.build_input(
+                actual_component_mix=None,
+                calculation_component_mix=[
+                    OfficialComponentAllocation(
+                        component_code="EST_DIVIDEND",
+                        ratio_pct="26",
+                    ),
+                    OfficialComponentAllocation(
+                        component_code="EST_REALIZED_CAPITAL_GAIN",
+                        ratio_pct="74",
+                    ),
+                ],
+                component_calculation_basis=(
+                    ComponentCalculationBasis.ESTIMATED_FALLBACK
+                ),
+                tax_rule=rule,
+            )
+        )
+
+        self.assertEqual(result.issues, [])
+        self.assertEqual(
+            result.historical_component_basis,
+            "ESTIMATED_FALLBACK",
+        )
+        self.assertIsNotNone(result.scenarios[0].usable_cash)
 
     def test_positive_component_requires_explicit_tax_assumption(self) -> None:
         rule = self.build_input().tax_rule.model_copy(

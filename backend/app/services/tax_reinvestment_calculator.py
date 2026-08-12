@@ -91,7 +91,10 @@ def _calculate_scenario(
 ) -> ReinvestmentScenarioResult:
     assert value.annual_gross_distribution_rate_pct is not None
     assert value.annual_price_return_pct is not None
-    assert value.actual_component_mix is not None
+    component_mix = (
+        value.calculation_component_mix or value.actual_component_mix
+    )
+    assert component_mix is not None
 
     assumptions = {
         item.component_code: item
@@ -116,7 +119,7 @@ def _calculate_scenario(
         tax_credit = Decimal("0")
         premium_base = Decimal("0")
 
-        for component in value.actual_component_mix:
+        for component in component_mix:
             assumption = assumptions[component.component_code]
             component_cash = gross_cash * component.ratio_pct / HUNDRED
             income_tax += (
@@ -221,7 +224,10 @@ def calculate_tax_reinvestment_scenarios(
                 TaxScenarioUnavailableReason.MISSING_INPUT,
             )
         )
-    if value.actual_component_mix is None:
+    component_mix = (
+        value.calculation_component_mix or value.actual_component_mix
+    )
+    if component_mix is None:
         issues.append(
             _issue(
                 "actual_component_mix",
@@ -229,12 +235,12 @@ def calculate_tax_reinvestment_scenarios(
             )
         )
 
-    if value.actual_component_mix is not None:
+    if component_mix is not None:
         assumption_codes = {
             item.component_code
             for item in value.tax_rule.component_assumptions
         }
-        for component in value.actual_component_mix:
+        for component in component_mix:
             if (
                 component.ratio_pct > 0
                 and component.component_code not in assumption_codes
@@ -270,6 +276,11 @@ def calculate_tax_reinvestment_scenarios(
         currency=value.currency,
         rule_version=value.tax_rule.rule_version,
         rule_effective_date=value.tax_rule.effective_date,
+        historical_component_basis=(
+            value.component_calculation_basis.value
+            if value.component_calculation_basis is not None
+            else ("ACTUAL" if value.actual_component_mix is not None else None)
+        ),
         scenarios=scenarios,
         issues=issues,
     )

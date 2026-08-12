@@ -1,4 +1,4 @@
-"""M10-4 正式配息組成資料選擇。"""
+"""M10-4 配息組成資料選擇與估算降階。"""
 
 from dataclasses import dataclass
 from datetime import date
@@ -16,6 +16,17 @@ class ActualComponentSelection:
     dividend_id: int
     source_event_id: str
     source_date: date | None
+    mix: list[OfficialComponentAllocation]
+
+
+@dataclass(frozen=True, slots=True)
+class CalculationComponentSelection:
+    """計算使用的最新完整組成與來源層級。"""
+
+    dividend_id: int
+    source_event_id: str
+    source_date: date | None
+    basis: str
     mix: list[OfficialComponentAllocation]
 
 
@@ -82,4 +93,31 @@ def select_latest_complete_actual_mix(
                 for row in event_rows
             ],
         )
+    return None
+
+
+def select_calculation_component_mix(
+    rows: list[dict],
+) -> CalculationComponentSelection | None:
+    """優先選 ACTUAL；缺少時以完整 ESTIMATED 組成降階。"""
+
+    for source_basis, calculation_basis in (
+        ("ACTUAL", "ACTUAL"),
+        ("ESTIMATED", "ESTIMATED_FALLBACK"),
+    ):
+        basis_rows = [
+            row
+            for row in rows
+            if str(row.get("component_basis", "ACTUAL")).upper()
+            == source_basis
+        ]
+        selection = select_latest_complete_actual_mix(basis_rows)
+        if selection is not None:
+            return CalculationComponentSelection(
+                dividend_id=selection.dividend_id,
+                source_event_id=selection.source_event_id,
+                source_date=selection.source_date,
+                basis=calculation_basis,
+                mix=selection.mix,
+            )
     return None

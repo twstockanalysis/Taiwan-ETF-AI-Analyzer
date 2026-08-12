@@ -38,7 +38,7 @@ from backend.app.models.tax_reinvestment import (
     TaxReinvestmentHistoricalFacts,
 )
 from backend.app.repositories.dividend_repository import (
-    list_etf_actual_component_history,
+    list_etf_component_history as list_etf_actual_component_history,
 )
 from backend.app.repositories.etf_repository import (
     get_etf_by_code,
@@ -59,7 +59,7 @@ from backend.app.services.tax_reinvestment_calculator import (
     calculate_tax_reinvestment_scenarios,
 )
 from backend.app.services.tax_reinvestment_data import (
-    select_latest_complete_actual_mix,
+    select_calculation_component_mix,
 )
 
 
@@ -363,7 +363,7 @@ def analyze_tax_reinvestment_scenarios(
     request: TaxReinvestmentAnalysisRequest,
     database_path: Path = Depends(get_database_path),
 ) -> TaxReinvestmentAnalysisResult:
-    """以歷史 ACTUAL 組成和明示稅務假設執行情境估算。"""
+    """以 ACTUAL 優先、ESTIMATED 降階的組成執行情境估算。"""
 
     normalized_code = code.strip().upper()
     if get_etf_by_code(normalized_code, database_path) is None:
@@ -398,8 +398,13 @@ def analyze_tax_reinvestment_scenarios(
         normalized_code,
         database_path,
     )
-    selection = select_latest_complete_actual_mix(component_rows)
-    actual_mix = selection.mix if selection is not None else None
+    selection = select_calculation_component_mix(component_rows)
+    calculation_mix = selection.mix if selection is not None else None
+    actual_mix = (
+        calculation_mix
+        if selection is not None and selection.basis == "ACTUAL"
+        else None
+    )
     history_start = _to_date(monthly_income["window_start_date"])
     history_end = _to_date(monthly_income["as_of_date"])
 
@@ -413,6 +418,10 @@ def analyze_tax_reinvestment_scenarios(
             annual_cash_target=request.monthly_cash_target * Decimal("12"),
             payments_per_year=request.payments_per_year,
             actual_component_mix=actual_mix,
+            calculation_component_mix=calculation_mix,
+            component_calculation_basis=(
+                selection.basis if selection is not None else None
+            ),
             tax_rule=request.tax_rule,
             custom_reinvestment_pct=request.custom_reinvestment_pct,
         )
@@ -431,6 +440,10 @@ def analyze_tax_reinvestment_scenarios(
                 selection.source_date if selection is not None else None
             ),
             actual_component_mix=actual_mix,
+            calculation_component_mix=calculation_mix,
+            component_calculation_basis=(
+                selection.basis if selection is not None else None
+            ),
             annual_gross_distribution_rate_pct=annual_distribution_rate,
             price_return_period_code=(
                 str(selected_performance.get("period_code"))
