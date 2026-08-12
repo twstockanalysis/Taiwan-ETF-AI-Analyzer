@@ -269,6 +269,18 @@ The multi-issuer design deliberately separates three states: an official host,
 a discoverable official document, and a verified ACTUAL parser. Reaching an
 earlier state never implies the later one.
 
+KGI discovery submits the official page's bounded form fields (`ETF`, the
+validated ETF code and function ID `1708`) to `/Home/ArticleVC`. It accepts only
+same-domain PDF links whose title says `收益分配期後公告`. `期前`, estimated,
+no-distribution and unrelated announcements remain explicit rejections. The
+returned PDF basis remains `UNKNOWN` until its content is parsed and verified:
+
+```powershell
+python -m backend.app.data_sources.kgi_actual_dividend_discovery `
+  --etf-code 00938 `
+  --allow-network
+```
+
 ## M11-2 current-holding aggregation
 
 The saved current-holding scenario reuses the M10 target calculator with one

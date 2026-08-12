@@ -141,7 +141,8 @@ ACTUAL_DIVIDEND_SOURCES: dict[
             discovery_kind=SourceDiscoveryKind.HTML_LIST,
             notes=(
                 "官方 ETF 公告頁可發現 PDF；"
-                "尚需驗證分頁與正式／期前公告分流。"
+                "已驗證依 ETF 代號查詢與期後／期前公告分流；"
+                "PDF 內容 Parser 尚未完成。"
             ),
         )
     ),
