@@ -664,8 +664,10 @@ Planned:
 - Wrote one isolated owner condition, restarted FastAPI and confirmed the same
   value persisted without modifying the source database
 - Added a repeatable split-port local smoke command; browser automation was not
-  available, so final visual interaction remains available for manual localhost
-  verification
+  available, so the owner completed the final visual interaction manually on
+  localhost
+- Owner browser acceptance completed on 2026-08-12: public pages, unlock UI,
+  private navigation, persisted 4,321 TWD target and relock hiding all passed
 
 ## Optional external integrations — after the core website
 

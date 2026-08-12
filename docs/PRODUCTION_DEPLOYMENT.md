@@ -63,3 +63,8 @@ It used an isolated migrated copy of the candidate database, preserved all
 eight existing-table counts, returned SQLite integrity `ok` and zero foreign-
 key violations. A test target of 4,321 TWD remained present after restarting
 FastAPI, proving native-process persistence against the isolated file.
+
+The owner then completed the browser acceptance on the same date and confirmed
+all five visible behaviors: public ETF pages rendered, the sidebar owner unlock
+was present, the test token revealed the private navigation, the persisted
+4,321 TWD monthly target was visible, and relocking removed the private entry.

@@ -7,6 +7,8 @@
   Streamlit root against an isolated migrated database.
 - Restarted FastAPI and proved the isolated owner condition persisted while
   schema integrity and foreign keys remained valid.
+- Recorded owner-confirmed browser acceptance for public navigation, owner
+  unlock, private route visibility, persisted target display and relock.
 
 ## 2026-08-12 — M12-5A reproducible production deployment package
 
