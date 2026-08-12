@@ -600,6 +600,37 @@ class TestDividendPipeline(
         "dividend_pipeline."
         "fetch_twse_dividend_html"
     )
+    def test_historical_query_is_forwarded(
+        self,
+        mock_fetch,
+    ) -> None:
+        self.insert_etfs(("0050", "00930", "00940"))
+        mock_fetch.return_value = self.html_text
+
+        run_dividend_pipeline(
+            database_path=self.database_path,
+            raw_output_root=self.raw_root,
+            processed_output_root=self.processed_root,
+            rejected_output_root=self.rejected_root,
+            report_output_root=self.report_root,
+            run_at=self.run_at,
+            etf_code="00878",
+            start_year=2023,
+            end_year=2023,
+            preserve_event_on_invalid_estimates=True,
+        )
+
+        mock_fetch.assert_called_once_with(
+            etf_code="00878",
+            start_year=2023,
+            end_year=2023,
+        )
+
+    @patch(
+        "backend.app.data_sources."
+        "dividend_pipeline."
+        "fetch_twse_dividend_html"
+    )
     def test_download_failure_is_recorded(
         self,
         mock_fetch,

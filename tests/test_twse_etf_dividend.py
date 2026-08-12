@@ -131,6 +131,44 @@ class TestTWSEETFDividendSource(
             ssl.SSLContext,
         )
 
+    @patch(
+        "backend.app.data_sources."
+        "twse_etf_dividend.httpx.get"
+    )
+    def test_historical_query_is_explicit(
+        self,
+        mock_get: Mock,
+    ) -> None:
+        response = Mock()
+        response.text = self.html_text
+        response.raise_for_status.return_value = None
+        mock_get.return_value = response
+
+        fetch_twse_dividend_html(
+            etf_code=" 00878 ",
+            start_year=2023,
+            end_year=2023,
+        )
+
+        self.assertEqual(
+            mock_get.call_args.kwargs["params"],
+            {
+                "stkNo": "00878",
+                "startDate": 2023,
+                "endDate": 2023,
+            },
+        )
+
+    def test_historical_query_rejects_partial_or_invalid_range(self) -> None:
+        with self.assertRaisesRegex(ValueError, "同時提供"):
+            fetch_twse_dividend_html(start_year=2023)
+
+        with self.assertRaisesRegex(ValueError, "不得早於"):
+            fetch_twse_dividend_html(start_year=2024, end_year=2023)
+
+        with self.assertRaisesRegex(ValueError, "代號格式"):
+            fetch_twse_dividend_html(etf_code="00878?")
+
     def test_html_snapshot_is_saved(
         self,
     ) -> None:

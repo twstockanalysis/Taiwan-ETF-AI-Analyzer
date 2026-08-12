@@ -111,6 +111,21 @@ Before using network retrieval, confirm that the page remains publicly
 accessible and that automated retrieval complies with the source's current
 terms and operational limits.
 
+When the matching parent event is outside the current TWSE page, request a
+bounded official history explicitly:
+
+```powershell
+python -m backend.app.data_sources.dividend_pipeline `
+    --etf-code 00878 `
+    --start-year 2023 `
+    --end-year 2023 `
+    --preserve-event-on-invalid-estimates
+```
+
+The final flag preserves a parent event only when its own dates and amount are
+valid. Any incomplete or abnormal estimated composition is still rejected and
+reported; it is never imported, repaired, or converted to ACTUAL.
+
 ## Processing Flow
 
 ```text

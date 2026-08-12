@@ -1,5 +1,6 @@
 """TWSE ETF 配息正式匯入 Pipeline。"""
 
+import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -484,6 +485,10 @@ def run_dividend_pipeline(
     report_output_root: Path | None = None,
     html_text: str | None = None,
     run_at: datetime | None = None,
+    etf_code: str | None = None,
+    start_year: int | None = None,
+    end_year: int | None = None,
+    preserve_event_on_invalid_estimates: bool = False,
 ) -> DividendPipelineResult:
     """執行 TWSE ETF 配息完整匯入流程。"""
 
@@ -522,7 +527,11 @@ def run_dividend_pipeline(
     try:
         if html_text is None:
             html_text = (
-                fetch_twse_dividend_html()
+                fetch_twse_dividend_html(
+                    etf_code=etf_code,
+                    start_year=start_year,
+                    end_year=end_year,
+                )
             )
 
         rows = extract_twse_dividend_rows(
@@ -551,7 +560,10 @@ def run_dividend_pipeline(
 
         normalization_result = (
             normalize_twse_dividend_rows(
-                rows
+                rows,
+                preserve_event_on_invalid_estimates=(
+                    preserve_event_on_invalid_estimates
+                ),
             )
         )
 
@@ -824,12 +836,41 @@ def run_dividend_pipeline(
         raise
 
 
-def main() -> None:
+def build_argument_parser() -> argparse.ArgumentParser:
+    """建立受控的目前／歷史配息查詢參數。"""
+
+    parser = argparse.ArgumentParser(
+        description="執行 TWSE ETF e添富配息 Pipeline"
+    )
+    parser.add_argument("--etf-code")
+    parser.add_argument("--start-year", type=int)
+    parser.add_argument("--end-year", type=int)
+    parser.add_argument(
+        "--preserve-event-on-invalid-estimates",
+        action="store_true",
+        help=(
+            "保留日期與金額有效的父配息事件，"
+            "但拒絕不完整或合計異常的預估組成"
+        ),
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
     """執行 TWSE ETF 配息 Pipeline。"""
+
+    args = build_argument_parser().parse_args(argv)
 
     print("開始執行 TWSE ETF 配息 Pipeline")
 
-    result = run_dividend_pipeline()
+    result = run_dividend_pipeline(
+        etf_code=args.etf_code,
+        start_year=args.start_year,
+        end_year=args.end_year,
+        preserve_event_on_invalid_estimates=(
+            args.preserve_event_on_invalid_estimates
+        ),
+    )
 
     print("-" * 70)
     print("TWSE ETF 配息 Pipeline 執行成功")

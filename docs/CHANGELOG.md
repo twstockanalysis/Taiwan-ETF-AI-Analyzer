@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-12 — M12 reviewed ACTUAL launch seed
+
+- Added bounded ETF/year queries to the TWSE dividend pipeline while keeping
+  the existing unfiltered default unchanged.
+- Added an explicit mode that preserves independently valid parent dividend
+  events while rejecting incomplete or abnormal estimated composition.
+- Rehearsed the official TWSE 00878 2023 history and Cathay announcement 5141
+  flow against a fresh candidate copy before changing the local candidate.
+- Created a verified pre-import backup and manifest, then imported four parent
+  events, one traceable source document and the official 76W/54C components.
+- Restored the pre-import backup to a separate temporary path and verified its
+  SHA-256, exact row counts, SQLite integrity and foreign keys.
+- Re-synchronized the review queue and moved the ordinary launch-data decision
+  from `NO_GO` to `READY` without a limited-coverage exception.
+- Kept the minimal 0.342466% coverage and 582 remaining review items explicit.
+
 ## 2026-08-12 — M12-6 launch-data threshold and decision
 
 - Added an executable ACTUAL/76W/source-document launch gate with a

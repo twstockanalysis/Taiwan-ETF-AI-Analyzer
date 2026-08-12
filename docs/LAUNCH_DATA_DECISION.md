@@ -41,7 +41,7 @@ rejects partial approval metadata. The approval does not change missing-data
 semantics: the website must continue to show unavailable ACTUAL/76W data as
 missing and must not convert estimates into official values.
 
-## Candidate result on 2026-08-12
+## Initial candidate result on 2026-08-12
 
 The repository candidate `database/tw_etf.db` produced:
 
@@ -52,10 +52,44 @@ The repository candidate `database/tw_etf.db` produced:
 | Official ACTUAL 76W events | 0 | 1 | Fail |
 | Traceable parsed ACTUAL source-document events | 0 | 1 | Fail |
 
-Decision: `NO_GO`. No limited-coverage approval has been supplied or inferred.
+Initial decision: `NO_GO`. No limited-coverage approval was supplied or
+inferred.
 
-M12-6 implementation can be merged because the threshold is now executable,
-tested and documented, but public launch remains blocked until either the
-ordinary gate passes or the owner explicitly approves a limited-coverage
-release with a recorded reason. Domain, TLS and public-host evidence remain the
-separate external M12-5 launch dependency.
+## Reviewed-data seed and final local candidate result
+
+The ordinary path was completed without a limited-coverage exception:
+
+1. TWSE ETF e添富 was queried explicitly for ETF `00878`, 2023 through 2023.
+2. Four official parent dividend events were accepted. Two incomplete or
+   abnormal estimated-composition disclosures remained rejected while their
+   independently valid dates and amounts were preserved.
+3. Cathay's official announcement `5141` was downloaded through the verified
+   adapter. It uniquely matched the 2023-08-16, 0.35 TWD event and imported the
+   published `76W` 97.14% and `54C` 2.86% components.
+4. The review queue, database integrity, foreign keys and launch-data gate were
+   rerun after import.
+
+Before the local candidate changed, the M12-2 backup command created a SQLite
+backup and manifest. A restore into a separate temporary path subsequently
+verified its SHA-256, exact row counts, integrity `ok` and zero foreign-key
+violations. The backup intentionally records the pre-migration candidate's
+`schema_ready=false`; the imported candidate was initialized and separately
+verified as deployment-ready.
+
+| Check | Actual | Minimum | Result |
+|---|---:|---:|---|
+| Dividend events | 292 | 1 | Pass |
+| Reviewed ACTUAL component events | 1 | 1 | Pass |
+| Official ACTUAL 76W events | 1 | 1 | Pass |
+| Traceable parsed ACTUAL source-document events | 1 | 1 | Pass |
+
+Final local candidate decision: `READY`, with no exception. SQLite integrity
+is `ok`, foreign-key violations are zero, and the deployment schema is ready.
+
+Coverage is intentionally described as minimal, not broad: each reviewed
+coverage ratio is `0.342466%` (1 of 292 events), and 582 review-queue items
+remain. The website must keep its existing missing-data disclosure and must not
+present this gate as a completeness score.
+
+The ordinary M12-6 gate now passes for the local candidate. Domain, TLS and
+public-host evidence remain the separate external M12-5 launch dependency.

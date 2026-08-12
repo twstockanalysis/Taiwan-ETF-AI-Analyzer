@@ -6,7 +6,11 @@ from pathlib import Path
 
 from backend.app.data_sources.dividend_normalizer import (
     normalize_twse_dividend_html,
+    normalize_twse_dividend_rows,
     parse_roc_date,
+)
+from backend.app.data_sources.twse_etf_dividend import (
+    extract_twse_dividend_rows,
 )
 from backend.app.models.etf_analysis import (
     DividendComponentBasis,
@@ -217,6 +221,22 @@ class TestDividendNormalizer(
                 for issue in result.rejected
             )
         )
+
+    def test_explicit_event_only_mode_preserves_valid_parent(self) -> None:
+        invalid_html = self.html_text.replace(
+            "(5)其他所得占比 0.00 %",
+            "",
+            1,
+        )
+
+        result = normalize_twse_dividend_rows(
+            extract_twse_dividend_rows(invalid_html),
+            preserve_event_on_invalid_estimates=True,
+        )
+
+        self.assertEqual(len(result.dividends), 2)
+        self.assertEqual(len(result.components), 5)
+        self.assertEqual(len(result.rejected), 2)
 
 
 if __name__ == "__main__":
