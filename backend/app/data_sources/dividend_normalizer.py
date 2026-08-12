@@ -243,6 +243,8 @@ def extract_estimated_components(
 
 def normalize_twse_dividend_rows(
     rows: list[TWSEDividendPageRow],
+    *,
+    preserve_event_on_invalid_estimates: bool = False,
 ) -> DividendNormalizationResult:
     """將 TWSE 頁面列轉成 Pydantic 模型。"""
 
@@ -305,15 +307,6 @@ def normalize_twse_dividend_rows(
                 )
             )
 
-            component_records = (
-                extract_estimated_components(
-                    row=row,
-                    source_event_id=(
-                        source_event_id
-                    ),
-                )
-            )
-
         except (
             ValueError,
             ValidationError,
@@ -331,6 +324,26 @@ def normalize_twse_dividend_rows(
         dividends.append(
             dividend_record
         )
+
+        try:
+            component_records = extract_estimated_components(
+                row=row,
+                source_event_id=source_event_id,
+            )
+
+        except (ValueError, ValidationError) as error:
+            rejected.append(
+                DividendNormalizationIssue(
+                    row_number=row_number,
+                    etf_code=row.etf_code,
+                    reason=str(error),
+                )
+            )
+
+            if not preserve_event_on_invalid_estimates:
+                dividends.pop()
+
+            continue
 
         components.extend(
             component_records

@@ -669,7 +669,7 @@ Planned:
 - Owner browser acceptance completed on 2026-08-12: public pages, unlock UI,
   private navigation, persisted 4,321 TWD target and relock hiding all passed
 
-### M12-6 — Launch-data threshold and decision — In implementation
+### M12-6 — Launch-data threshold and decision — Completed locally
 
 - Added a repeatable, machine-readable launch-data gate for reviewed ACTUAL
   components, official ACTUAL 76W and traceable parsed source documents
@@ -680,8 +680,20 @@ Planned:
 - Evaluated the 2026-08-12 repository candidate: 288 dividend events exist,
   while all three reviewed coverage counts are zero, so the current decision
   is `NO_GO`
-- M12-6 implementation may merge, but public launch remains blocked until the
-  gate passes or the owner explicitly approves a documented limited release
+- The initial M12-6 implementation could merge while the `NO_GO` data result
+  remained blocked; the reviewed seed below subsequently passed that gate
+- Added bounded TWSE ETF/year history retrieval and an explicit event-only mode
+  that preserves valid parent events while continuing to reject invalid
+  estimated composition
+- Imported one verified Cathay announcement after a successful isolated
+  rehearsal and recoverable pre-import backup; the local candidate now has one
+  ACTUAL event, one official 76W event and one traceable source document
+- The final local gate is `READY` without an exception; coverage remains only
+  0.342466% and 582 review items remain visible rather than being hidden
+
+M12 implementation is complete for the available local environment. Public
+host, domain, DNS and TLS evidence remain external deployment prerequisites,
+not locally reproducible product work.
 
 ## Optional external integrations — after the core website
 

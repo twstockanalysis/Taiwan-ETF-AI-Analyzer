@@ -166,6 +166,10 @@ def validate_twse_dividend_html(
 
 def fetch_twse_dividend_html(
     timeout_seconds: float = 30.0,
+    *,
+    etf_code: str | None = None,
+    start_year: int | None = None,
+    end_year: int | None = None,
 ) -> str:
     """下載 TWSE ETF e添富配息清單 HTML。"""
 
@@ -182,8 +186,35 @@ def fetch_twse_dividend_html(
         ),
     )
 
+    normalized_code = etf_code.strip().upper() if etf_code else None
+
+    if normalized_code and not re.fullmatch(
+        r"[0-9A-Z]{4,10}", normalized_code
+    ):
+        raise ValueError("ETF 代號格式不正確")
+
+    if (start_year is None) != (end_year is None):
+        raise ValueError("start_year 與 end_year 必須同時提供")
+
+    if start_year is not None:
+        if not 2000 <= start_year <= 2100:
+            raise ValueError("查詢年份必須介於 2000 與 2100")
+        if end_year is None or not start_year <= end_year <= 2100:
+            raise ValueError("end_year 不得早於 start_year")
+
+    parameters = {
+        key: value
+        for key, value in {
+            "stkNo": normalized_code,
+            "startDate": start_year,
+            "endDate": end_year,
+        }.items()
+        if value is not None
+    }
+
     response = httpx.get(
         source.base_url,
+        params=parameters or None,
         timeout=timeout_seconds,
         follow_redirects=True,
         verify=ssl_context,
