@@ -597,7 +597,7 @@ Planned:
   queue rows were preserved
 - Kept recoverable backup retention and restore drills in M12-2
 
-### M12-2 — Durable database backup and recovery — In implementation
+### M12-2 — Durable database backup and recovery — Completed
 
 - Added `TW_ETF_DATABASE_PATH` as the production database-path contract;
   deployments must provide an absolute path outside the release tree
@@ -613,6 +613,22 @@ Planned:
 - Completed a real backup/restore drill against the legacy deployment
   candidate: SHA-256 and all eight table counts matched, integrity was `ok`,
   and foreign-key violations were zero
+
+### M12-3 — Scheduled pipelines and operational monitoring — In implementation
+
+- Added a declarative sequential job runner with no-shell execution, exclusive
+  overlap lock, stop-on-failure behavior, per-job logs and atomic JSON status
+- Added machine-readable database, storage, latest-pipeline, data-freshness,
+  backup-age, restore-drill and optional API-health checks with non-zero critical
+  exit status
+- Defined initial production thresholds, escalation expectations and Windows
+  Task Scheduler guidance without committing host credentials
+- Kept reviewed ACTUAL ingestion explicit rather than automatically importing
+  unreviewed notices; host-specific provisioning remains M12-5
+- Exercised the monitor against the current candidate: it correctly identified
+  the four pre-initialization tables still missing, data observations older than
+  the 168-hour threshold and absent restore-drill state while confirming SQLite
+  integrity, zero foreign-key violations and available storage
 
 ## Optional external integrations — after the core website
 
