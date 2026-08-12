@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — KGI dividend announcement discovery
+
+- Added ETF-code searches against KGI SITE's official `ArticleVC` endpoint
+  using the same bounded ETF tag and function identifier as the public page.
+- Accepted only official PDF links titled as post-distribution announcements,
+  while retaining rejection reasons for pre-announcements, no-distribution
+  decisions, unrelated ETF codes and unrelated notices.
+- Kept every discovered PDF at `UNKNOWN` information basis until an
+  issuer-specific content parser verifies formal ACTUAL composition.
+- Added a read-only JSON CLI and official-domain, input-validation, response-
+  size and content-type safeguards.
+
 ## 2026-08-13 — Multi-issuer dividend source framework
 
 - Registered explicit discovery capabilities and official domains for Cathay,
