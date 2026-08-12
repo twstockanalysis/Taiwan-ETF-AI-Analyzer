@@ -52,6 +52,7 @@ def get_json(
     operation_name: str,
     params: dict[str, str | int] | None = None,
     timeout_seconds: float = 5.0,
+    request_headers: dict[str, str] | None = None,
 ) -> Any:
     """呼叫 FastAPI 並解析 JSON。
 
@@ -94,6 +95,7 @@ def get_json(
                 "User-Agent": (
                     "TW-ETF-AI-Analyzer-Frontend/0.1"
                 ),
+                **(request_headers or {}),
             },
         )
 
@@ -140,6 +142,7 @@ def get_binary(
     endpoint_path: str,
     operation_name: str,
     timeout_seconds: float = 30.0,
+    request_headers: dict[str, str] | None = None,
 ) -> bytes:
     """呼叫 FastAPI 並回傳二進位檔案內容。"""
 
@@ -155,6 +158,7 @@ def get_binary(
                     "spreadsheetml.sheet"
                 ),
                 "User-Agent": "TW-ETF-AI-Analyzer-Frontend/0.1",
+                **(request_headers or {}),
             },
         )
         response.raise_for_status()
@@ -183,6 +187,7 @@ def post_json(
     operation_name: str,
     payload: dict[str, Any],
     timeout_seconds: float = 10.0,
+    request_headers: dict[str, str] | None = None,
 ) -> Any:
     """以 POST 呼叫 FastAPI 並解析 JSON。"""
 
@@ -199,6 +204,7 @@ def post_json(
             headers={
                 "Accept": "application/json",
                 "User-Agent": "TW-ETF-AI-Analyzer-Frontend/0.1",
+                **(request_headers or {}),
             },
         )
         response.raise_for_status()
@@ -231,6 +237,7 @@ def put_json(
     operation_name: str,
     payload: dict[str, Any],
     timeout_seconds: float = 10.0,
+    request_headers: dict[str, str] | None = None,
 ) -> Any:
     """以 PUT 呼叫 FastAPI 並解析 JSON。"""
 
@@ -247,6 +254,7 @@ def put_json(
             headers={
                 "Accept": "application/json",
                 "User-Agent": "TW-ETF-AI-Analyzer-Frontend/0.1",
+                **(request_headers or {}),
             },
         )
         response.raise_for_status()
@@ -277,6 +285,7 @@ def delete_json(
     endpoint_path: str,
     operation_name: str,
     timeout_seconds: float = 10.0,
+    request_headers: dict[str, str] | None = None,
 ) -> Any:
     """以 DELETE 呼叫 FastAPI；204 回應保留為 None。"""
 
@@ -292,6 +301,7 @@ def delete_json(
             headers={
                 "Accept": "application/json",
                 "User-Agent": "TW-ETF-AI-Analyzer-Frontend/0.1",
+                **(request_headers or {}),
             },
         )
         response.raise_for_status()

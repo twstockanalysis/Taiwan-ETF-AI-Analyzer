@@ -18,6 +18,7 @@ from frontend.api_client import (
     save_user_conditions,
 )
 from frontend.config import get_api_base_url
+from frontend.owner_access import get_owner_token
 from frontend.ui.formatters import (
     asset_type_label,
     format_iso_date,
@@ -106,19 +107,16 @@ def build_analysis_holding_rows(
     return rows
 
 
-@st.cache_data(ttl=30, max_entries=5, show_spinner=False)
-def load_decision_profile(api_base_url: str) -> dict[str, Any]:
-    return fetch_decision_profile(api_base_url)
+def load_decision_profile(api_base_url: str, owner_token: str) -> dict[str, Any]:
+    return fetch_decision_profile(api_base_url, owner_token)
 
 
-@st.cache_data(ttl=30, max_entries=5, show_spinner=False)
-def load_current_holding_analysis(api_base_url: str) -> dict[str, Any]:
-    return fetch_current_holding_analysis(api_base_url)
+def load_current_holding_analysis(api_base_url: str, owner_token: str) -> dict[str, Any]:
+    return fetch_current_holding_analysis(api_base_url, owner_token)
 
 
-@st.cache_data(ttl=30, max_entries=5, show_spinner=False)
-def load_decision_records(api_base_url: str) -> list[dict[str, Any]]:
-    return fetch_decision_records(api_base_url)
+def load_decision_records(api_base_url: str, owner_token: str) -> list[dict[str, Any]]:
+    return fetch_decision_records(api_base_url, owner_token)
 
 
 def _clear_candidate_analysis_state() -> None:
@@ -333,14 +331,15 @@ def render_decision_profile() -> None:
         "M11-1 為單一使用者、手動輸入模式；"
         "不連接券商、不讀取帳戶，也不會送出交易。"
     )
-    st.warning(
-        "此頁目前只適用受控的單一使用者環境；"
-        "公開部署前必須限制寫入存取，避免不同訪客共用或覆寫資料。"
-    )
+    owner_token = get_owner_token()
+    if owner_token is None:
+        st.error("此頁僅限 owner；請回到側邊欄重新解鎖。")
+        st.stop()
+    st.info("此頁的讀取、寫入、分析、紀錄與匯出均由後端 owner gate 保護。")
     try:
         api_base_url = get_api_base_url()
         with loading_state("正在讀取已儲存的條件與持有部位..."):
-            profile = load_decision_profile(api_base_url)
+            profile = load_decision_profile(api_base_url, owner_token)
     except (APIClientError, ValueError) as error:
         render_api_error("無法取得決策條件。", error)
         return
@@ -401,12 +400,11 @@ def render_decision_profile() -> None:
                     ),
                     "currency": "TWD",
                 },
+                owner_token,
             )
         except APIClientError as error:
             render_api_error("無法儲存固定分析條件。", error)
         else:
-            load_decision_profile.clear()
-            load_current_holding_analysis.clear()
             _clear_candidate_analysis_state()
             st.rerun()
 
@@ -484,12 +482,11 @@ def render_decision_profile() -> None:
                 save_manual_holdings(
                     api_base_url,
                     holding_payload,
+                    owner_token,
                 )
             except APIClientError as error:
                 render_api_error("無法儲存全部持有部位。", error)
             else:
-                load_decision_profile.clear()
-                load_current_holding_analysis.clear()
                 _clear_candidate_analysis_state()
                 st.rerun()
 
@@ -518,7 +515,7 @@ def render_decision_profile() -> None:
     if st.session_state.get("show_current_holding_analysis", False):
         try:
             with loading_state("正在彙總目前持倉分析..."):
-                analysis = load_current_holding_analysis(api_base_url)
+                analysis = load_current_holding_analysis(api_base_url, owner_token)
         except APIClientError as error:
             render_api_error("無法取得目前持倉分析。", error)
         else:
@@ -595,6 +592,7 @@ def render_decision_profile() -> None:
                         api_base_url,
                         normalized_candidate,
                         candidate_request,
+                        owner_token,
                     )
                     st.session_state[
                         "candidate_holding_analysis_request"
@@ -623,11 +621,11 @@ def render_decision_profile() -> None:
                         api_base_url,
                         st.session_state["candidate_holding_analysis_code"],
                         st.session_state["candidate_holding_analysis_request"],
+                        owner_token,
                     )
             except APIClientError as error:
                 render_api_error("無法保存決策紀錄。", error)
             else:
-                load_decision_records.clear()
                 st.success(f"已保存決策紀錄 #{saved_record['id']}。")
 
     st.divider()
@@ -637,7 +635,7 @@ def render_decision_profile() -> None:
         "重新分析會建立新紀錄。"
     )
     try:
-        records = load_decision_records(api_base_url)
+        records = load_decision_records(api_base_url, owner_token)
     except APIClientError as error:
         render_api_error("無法取得決策紀錄。", error)
         return
@@ -670,6 +668,7 @@ def render_decision_profile() -> None:
                 st.session_state[prepared_key] = fetch_decision_record_export(
                     api_base_url,
                     selected_record_id,
+                    owner_token,
                 )
         except APIClientError as error:
             render_api_error("無法準備決策紀錄 Excel。", error)

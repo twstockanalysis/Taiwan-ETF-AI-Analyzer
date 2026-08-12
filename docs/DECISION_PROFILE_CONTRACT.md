@@ -3,16 +3,30 @@
 ## Scope
 
 M11-1 introduces the first persisted decision inputs after the M10 calculation
-contracts stabilized. It is deliberately limited to one public-site profile and
-manual Taiwan ETF holdings. It does not provide accounts, access isolation,
+contracts stabilized. It is deliberately limited to one site-owner profile and
+manual Taiwan ETF holdings. It does not provide accounts, per-user isolation,
 broker synchronization, recommendations, decision records or trading.
 M11-4 later adds assessment snapshots under the separate decision-record
 contract; it does not change the M11-1 profile into a recommendation engine.
 
-Because this is one mutable singleton with no account isolation, its write API
-and Streamlit page are suitable only for a controlled single-user environment.
-They must not be exposed to anonymous public visitors before write-access
-controls are added.
+Because this is one mutable singleton with no account isolation, M12-4 protects
+the complete `/api/v1/decision-profile` router with one deployment owner token.
+This includes every read, write, analysis, snapshot and Excel export endpoint;
+there is no read-side privacy exception.
+
+Production must set a high-entropy `TW_ETF_OWNER_TOKEN` of at least 32 characters
+outside source control.
+Clients send it as `X-Owner-Token`. A missing server setting fails closed with
+HTTP 503; missing or incorrect credentials return HTTP 401. Comparison uses a
+constant-time primitive and errors never echo the configured or submitted
+token. Public ETF, ranking, comparison, quality and health APIs remain public.
+
+Streamlit verifies an entered token through the protected backend before it
+shows the private navigation route. The token is retained only in that browser
+tab's Streamlit session and is attached to every private API request; locking
+or closing the tab clears access. Private responses are not put in the shared
+Streamlit data cache. Hiding navigation is usability only—the backend gate is
+the authoritative security boundary.
 
 ## Fixed conditions
 
@@ -78,3 +92,8 @@ M11-3 candidate analysis follows the separate
 M11-4 follows `DECISION_RECORD_EXPORT_CONTRACT.md`. Saving a record reruns the
 candidate analysis and appends an immutable snapshot. It never changes the
 singleton conditions or manual holdings.
+
+This M12-4 gate is not a self-service login system: it has no account alias,
+password reset, roles, cookies or durable sessions. Use only behind HTTPS,
+rotate the owner token after suspected disclosure, and restart both services
+after rotation. Rate limiting and provider edge controls belong to M12-5.

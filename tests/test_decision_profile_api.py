@@ -7,6 +7,7 @@ import unittest
 from fastapi.testclient import TestClient
 
 from backend.app.api.dependencies import get_database_path
+from backend.app.api.owner_access import require_owner_access
 from backend.app.database.connection import get_connection
 from backend.app.database.init_db import initialize_database
 from backend.app.main import create_app
@@ -30,6 +31,7 @@ class TestDecisionProfileAPI(unittest.TestCase):
         self.application.dependency_overrides[get_database_path] = (
             lambda: self.database_path
         )
+        self.application.dependency_overrides[require_owner_access] = lambda: None
         self.client = TestClient(self.application)
 
     def tearDown(self):

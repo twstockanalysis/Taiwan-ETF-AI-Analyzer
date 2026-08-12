@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from backend.app.api.dependencies import get_database_path
+from backend.app.api.owner_access import require_owner_access
 from backend.app.models.decision_profile import (
     CandidateHoldingAnalysisRequest,
     CandidateHoldingAnalysisResponse,
@@ -51,6 +52,7 @@ DatabasePath = Annotated[Path, Depends(get_database_path)]
 router = APIRouter(
     prefix="/api/v1/decision-profile",
     tags=["Decision Profile"],
+    dependencies=[Depends(require_owner_access)],
 )
 
 

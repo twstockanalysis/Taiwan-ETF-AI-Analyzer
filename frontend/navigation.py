@@ -86,12 +86,14 @@ PUBLIC_ROUTES = (
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
     ETF_COMPARISON_ROUTE,
-    DECISION_PROFILE_ROUTE,
     DIVIDEND_DATA_QUALITY_ROUTE,
 )
 
+OWNER_ROUTES = (DECISION_PROFILE_ROUTE,)
+
 ALL_ROUTES = (
     *PUBLIC_ROUTES,
+    *OWNER_ROUTES,
     ETF_DETAIL_ROUTE,
 )
 
@@ -187,7 +189,15 @@ def create_streamlit_page(
     )
 
 
-def create_navigation() -> Any:
+def navigation_routes(owner_unlocked: bool) -> tuple[PageRoute, ...]:
+    return (
+        *PUBLIC_ROUTES,
+        *(OWNER_ROUTES if owner_unlocked else ()),
+        ETF_DETAIL_ROUTE,
+    )
+
+
+def create_navigation(owner_unlocked: bool = False) -> Any:
     """建立網站唯一的 Streamlit 導覽表。"""
 
     from frontend.ui.theme import (
@@ -198,7 +208,7 @@ def create_navigation() -> Any:
 
     pages = [
         create_streamlit_page(route)
-        for route in ALL_ROUTES
+        for route in navigation_routes(owner_unlocked)
     ]
 
     return st.navigation(

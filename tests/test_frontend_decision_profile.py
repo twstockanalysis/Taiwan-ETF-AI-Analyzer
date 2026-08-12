@@ -101,8 +101,10 @@ class TestFrontendDecisionProfile(unittest.TestCase):
         app = AppTest.from_string(
             """
 import frontend.pages.decision_profile as page
+import streamlit as st
 
-page.load_decision_profile = lambda api_base_url: {
+st.session_state["owner_access_token"] = "test-token"
+page.load_decision_profile = lambda api_base_url, owner_token: {
     "profile_scope": "SINGLE_USER",
     "broker_connected": False,
     "conditions": None,
@@ -116,7 +118,7 @@ page.load_decision_profile = lambda api_base_url: {
         "price_as_of_date": None,
     }],
 }
-page.load_decision_records = lambda api_base_url: []
+page.load_decision_records = lambda api_base_url, owner_token: []
 page.render_decision_profile()
 """
         )
@@ -125,8 +127,8 @@ page.render_decision_profile()
         self.assertEqual(app.title[0].value, "我的條件與持有部位")
         captions = " ".join(item.value for item in app.caption)
         self.assertIn("不連接券商", captions)
-        warnings = " ".join(item.value for item in app.warning)
-        self.assertIn("公開部署前必須限制寫入存取", warnings)
+        information = " ".join(item.value for item in app.info)
+        self.assertIn("後端 owner gate 保護", information)
         button_labels = [item.label for item in app.button]
         self.assertIn("儲存固定條件", button_labels)
         self.assertIn("儲存全部持股", button_labels)
@@ -142,8 +144,10 @@ page.render_decision_profile()
         app = AppTest.from_string(
             '''
 import frontend.pages.decision_profile as page
+import streamlit as st
 
-page.load_decision_profile = lambda api_base_url: {
+st.session_state["owner_access_token"] = "test-token"
+page.load_decision_profile = lambda api_base_url, owner_token: {
     "profile_scope": "SINGLE_USER",
     "broker_connected": False,
     "conditions": None,
@@ -154,7 +158,7 @@ page.load_decision_profile = lambda api_base_url: {
         "price_as_of_date": None,
     }],
 }
-page.load_current_holding_analysis = lambda api_base_url: {
+page.load_current_holding_analysis = lambda api_base_url, owner_token: {
     "status": "AVAILABLE", "analysis_date": "2026-08-09",
     "total_current_value": "35500",
     "unavailable_fields": [],
@@ -175,7 +179,7 @@ page.load_current_holding_analysis = lambda api_base_url: {
         "scenario_estimate": {"projection_years": 10},
     },
 }
-page.load_decision_records = lambda api_base_url: []
+page.load_decision_records = lambda api_base_url, owner_token: []
 page.render_decision_profile()
 '''
         )
@@ -237,8 +241,10 @@ render_candidate_holding_analysis_result({
         app = AppTest.from_string(
             '''
 import frontend.pages.decision_profile as page
+import streamlit as st
 
-page.load_decision_profile = lambda api_base_url: {
+st.session_state["owner_access_token"] = "test-token"
+page.load_decision_profile = lambda api_base_url, owner_token: {
     "profile_scope": "SINGLE_USER",
     "broker_connected": False,
     "conditions": None,
@@ -249,7 +255,7 @@ page.load_decision_profile = lambda api_base_url: {
         "price_as_of_date": None,
     }],
 }
-page.load_decision_records = lambda api_base_url: [{
+page.load_decision_records = lambda api_base_url, owner_token: [{
     "id": 1,
     "record_type": "CANDIDATE_HOLDING_ANALYSIS",
     "candidate_etf_code": "00878",
@@ -258,7 +264,7 @@ page.load_decision_records = lambda api_base_url: [{
     "outcome": "INELIGIBLE",
     "created_at": "2026-08-10T12:00:00",
 }]
-page.fetch_decision_record_export = lambda api_base_url, record_id: b"xlsx"
+page.fetch_decision_record_export = lambda api_base_url, record_id, owner_token: b"xlsx"
 page.render_decision_profile()
 '''
         )
