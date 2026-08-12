@@ -208,6 +208,25 @@ M10-2 may add pure models, services, tests and documentation. It does not add:
 FastAPI and Streamlit integration begin only after the pure calculation
 contract passes table-driven tests.
 
+## Tax and reinvestment component fallback
+
+Tax and reinvestment scenarios use one complete historical component event.
+Selection follows this fixed order:
+
+1. the latest complete `ACTUAL` event whose ratios total 99% through 101%;
+2. otherwise, the latest complete `ESTIMATED` event under the same ratio rule;
+3. otherwise, the dependent scenario remains unavailable.
+
+The second path is labeled `ESTIMATED_FALLBACK`. Its `EST_*` component codes
+remain unchanged and are never persisted or presented as official `54C` or
+`76W`. Each positive estimated category requires an explicit tax assumption,
+just like an official category. Therefore the fallback is usable for planning
+while its source quality and tax-treatment assumptions remain inspectable.
+
+Missing or incomplete estimated composition is not converted to zero. An
+official event always takes precedence even when a newer estimated event is
+available.
+
 ## M11-2 current-holding aggregation
 
 The saved current-holding scenario reuses the M10 target calculator with one

@@ -1500,6 +1500,36 @@ def _build_tax_rule_payload(
             "tax_credit_rate_pct": 0,
             "supplementary_premium_applicable": False,
         },
+        {
+            "component_code": "EST_DIVIDEND",
+            "income_tax_rate_pct": income_tax_rate_54c,
+            "tax_credit_rate_pct": tax_credit_rate_54c,
+            "supplementary_premium_applicable": True,
+        },
+        {
+            "component_code": "EST_INTEREST",
+            "income_tax_rate_pct": other_income_tax_rate,
+            "tax_credit_rate_pct": 0,
+            "supplementary_premium_applicable": True,
+        },
+        {
+            "component_code": "EST_REALIZED_CAPITAL_GAIN",
+            "income_tax_rate_pct": 0,
+            "tax_credit_rate_pct": 0,
+            "supplementary_premium_applicable": False,
+        },
+        {
+            "component_code": "EST_EQUALIZATION",
+            "income_tax_rate_pct": other_income_tax_rate,
+            "tax_credit_rate_pct": 0,
+            "supplementary_premium_applicable": False,
+        },
+        {
+            "component_code": "EST_OTHER",
+            "income_tax_rate_pct": other_income_tax_rate,
+            "tax_credit_rate_pct": 0,
+            "supplementary_premium_applicable": False,
+        },
     ]
     assumptions.extend(
         {
@@ -1527,6 +1557,8 @@ def _render_tax_reinvestment_result(result: dict[str, Any]) -> None:
 
     facts = result["historical_facts"]
     calculation = result["calculation"]
+    component_basis = facts.get("component_calculation_basis")
+    is_estimated_fallback = component_basis == "ESTIMATED_FALLBACK"
     if result["status"] == "PARTIAL":
         issue_text = "、".join(
             (
@@ -1547,15 +1579,28 @@ def _render_tax_reinvestment_result(result: dict[str, Any]) -> None:
     with st.container(border=True):
         st.markdown("**歷史資料事實**")
         st.caption(
-            "正式組成與歷史報酬只用來建立情境起點，"
+            "配息組成與歷史報酬只用來建立情境起點，"
             "不代表未來仍會持續。"
         )
+        if is_estimated_fallback:
+            st.warning(
+                "本次查無可用的完整正式所得組成，"
+                "已自動以 e添富預估占比作為計算替代。"
+                "這些類別不等同投信正式揭露的 54C 或 76W。"
+            )
         st.table(
             [
                 {
-                    "正式組成事件": facts.get("component_source_event_id")
+                    "組成資料層級": (
+                        "預估替代"
+                        if is_estimated_fallback
+                        else "正式 ACTUAL"
+                        if component_basis == "ACTUAL"
+                        else "尚未取得"
+                    ),
+                    "組成事件": facts.get("component_source_event_id")
                     or "尚未取得",
-                    "正式組成日期": facts.get("component_source_date")
+                    "組成日期": facts.get("component_source_date")
                     or "尚未取得",
                     "歷史年化配息率": format_shared_percentage(
                         facts.get("annual_gross_distribution_rate_pct")
@@ -1568,14 +1613,14 @@ def _render_tax_reinvestment_result(result: dict[str, Any]) -> None:
                 }
             ]
         )
-        component_mix = facts.get("actual_component_mix")
+        component_mix = facts.get("calculation_component_mix")
         if component_mix:
             st.table(
                 [
                     {
-                        "正式所得代碼": item["component_code"],
+                        "組成代碼": item["component_code"],
                         "名稱": item.get("component_name") or "—",
-                        "ACTUAL 比例": format_shared_percentage(
+                        "計算比例": format_shared_percentage(
                             item.get("ratio_pct")
                         ),
                     }

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-12 — Estimated component calculation fallback
+
+- Made tax and reinvestment scenarios prefer the latest complete official
+  `ACTUAL` component event and automatically fall back to the latest complete
+  `ESTIMATED` event when official composition is unavailable.
+- Kept estimated component codes as `EST_*` throughout calculation instead of
+  relabeling them as official `54C` or `76W`.
+- Added explicit `ACTUAL` versus `ESTIMATED_FALLBACK` basis metadata to API
+  results and a visible Streamlit warning when fallback assumptions are used.
+- Added explicit, user-adjustable tax-treatment assumptions for estimated
+  dividend, interest, realized-gain, equalization and other categories.
+
 ## 2026-08-12 — Estimated dividend component amounts
 
 - Converted e添富 estimated component ratios into per-unit amounts when the
