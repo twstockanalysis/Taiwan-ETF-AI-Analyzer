@@ -227,6 +227,24 @@ Missing or incomplete estimated composition is not converted to zero. An
 official event always takes precedence even when a newer estimated event is
 available.
 
+### Official announcement discovery boundary
+
+The Cathay issuer adapter discovers candidate documents through the issuer's
+public JSON announcement API using an explicit ETF-code keyword and bounded
+page count. Discovery does not itself create ACTUAL data. It accepts only
+official HTTPS PDF paths whose titles describe a final distribution or
+component announcement, and rejects pre-announcements and estimated notices.
+PDF content must pass the separate issuer-specific ACTUAL parser before import.
+
+Discovery can be inspected without writing snapshots:
+
+```powershell
+python -m backend.app.data_sources.cathay_actual_dividend_discovery `
+  --etf-code 00878 `
+  --max-pages 3 `
+  --allow-network
+```
+
 ## M11-2 current-holding aggregation
 
 The saved current-holding scenario reuses the M10 target calculator with one

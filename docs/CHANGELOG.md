@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-12 — Cathay actual-dividend announcement discovery
+
+- Added bounded ETF-code searches against Cathay SITE's public announcement
+  JSON API instead of scraping interactive announcement buttons.
+- Added official-domain validation for the Cathay API and uploaded-document
+  host, with explicit network permission required.
+- Added deterministic rejection of pre-announcements, estimated notices,
+  unrelated titles and non-PDF documents before ACTUAL parsing.
+- Added a JSON CLI that exposes accepted PDF candidates and rejected items with
+  reasons without persisting source snapshots.
+
 ## 2026-08-12 — Estimated component calculation fallback
 
 - Made tax and reinvestment scenarios prefer the latest complete official
