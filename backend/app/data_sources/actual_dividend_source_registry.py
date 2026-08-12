@@ -47,6 +47,37 @@ class ActualDividendSource:
     discovery_kind: SourceDiscoveryKind = SourceDiscoveryKind.NONE
     enabled: bool = True
     notes: str = ""
+    issuer_key: str | None = None
+
+
+# TWSE e添富「投資篩選器」目前列出的 ETF 發行人全集。
+# 這份清單是來源覆蓋的驗收基準；新增發行人時，測試會要求同步補上
+# 一筆 issuer_key 相符的正式配息來源設定。
+TWSE_ETF_ISSUERS: dict[str, str] = {
+    "yuanta": "元大",
+    "fubon": "富邦",
+    "sinopac": "永豐",
+    "mega": "兆豐",
+    "cathay": "國泰",
+    "first": "第一金",
+    "fuh_hwa": "復華",
+    "capital": "群益",
+    "taishin": "台新",
+    "ctbc": "中國信託",
+    "upam": "統一",
+    "jko": "街口",
+    "franklin": "富蘭克林",
+    "kgi": "凱基",
+    "uob": "大華銀",
+    "nomura": "野村",
+    "esun": "玉山",
+    "union": "聯邦",
+    "hnh": "華南永昌",
+    "allianz": "安聯",
+    "blackrock": "貝萊德投信",
+    "jpmorgan": "摩根",
+    "alliancebernstein": "聯博",
+}
 
 
 ACTUAL_DIVIDEND_SOURCES: dict[
@@ -105,6 +136,7 @@ ACTUAL_DIVIDEND_SOURCES: dict[
                 "只接受明確標示實際配發組成"
                 "的國泰投信官方公告。"
             ),
+            issuer_key="cathay",
         )
     ),
     "ctbc_latest_etf_dividend_pdf": (
@@ -125,6 +157,7 @@ ACTUAL_DIVIDEND_SOURCES: dict[
                 "依 ETF 代號探測官方 ETFLatestDividend PDF；"
                 "文件內容尚須區分預估與實際組成。"
             ),
+            issuer_key="ctbc",
         )
     ),
     "kgi_etf_dividend_announcement": (
@@ -144,6 +177,7 @@ ACTUAL_DIVIDEND_SOURCES: dict[
                 "已驗證依 ETF 代號查詢與期後／期前公告分流；"
                 "PDF 內容 Parser 尚未完成。"
             ),
+            issuer_key="kgi",
         )
     ),
     "upam_etf_dividend_document": (
@@ -162,6 +196,7 @@ ACTUAL_DIVIDEND_SOURCES: dict[
                 "已確認官方文件網域；"
                 "尚未確認可依 ETF 代號穩定查詢的公開入口。"
             ),
+            issuer_key="upam",
         )
     ),
     "twse_etfortune_dividend": (
@@ -189,6 +224,81 @@ ACTUAL_DIVIDEND_SOURCES: dict[
         )
     ),
 }
+
+
+_PENDING_ISSUER_SOURCE_SPECS: dict[
+    str,
+    tuple[str, str],
+] = {
+    "yuanta": ("元大投信", "yuanta_etf_dividend_document"),
+    "fubon": ("富邦投信", "fubon_etf_dividend_document"),
+    "sinopac": ("永豐投信", "sinopac_etf_dividend_document"),
+    "mega": ("兆豐投信", "mega_etf_dividend_document"),
+    "first": ("第一金投信", "first_etf_dividend_document"),
+    "fuh_hwa": ("復華投信", "fuh_hwa_etf_dividend_document"),
+    "capital": ("群益投信", "capital_etf_dividend_document"),
+    "taishin": ("台新投信", "taishin_etf_dividend_document"),
+    "jko": ("街口投信", "jko_etf_dividend_document"),
+    "franklin": ("富蘭克林投信", "franklin_etf_dividend_document"),
+    "uob": ("大華銀投信", "uob_etf_dividend_document"),
+    "nomura": ("野村投信", "nomura_etf_dividend_document"),
+    "esun": ("玉山投信", "esun_etf_dividend_document"),
+    "union": ("聯邦投信", "union_etf_dividend_document"),
+    "hnh": ("華南永昌投信", "hnh_etf_dividend_document"),
+    "allianz": ("安聯投信", "allianz_etf_dividend_document"),
+    "blackrock": ("貝萊德投信", "blackrock_etf_dividend_document"),
+    "jpmorgan": ("摩根投信", "jpmorgan_etf_dividend_document"),
+    "alliancebernstein": (
+        "聯博投信",
+        "alliancebernstein_etf_dividend_document",
+    ),
+}
+
+
+for _issuer_key, (
+    _issuer_name,
+    _source_id,
+) in _PENDING_ISSUER_SOURCE_SPECS.items():
+    ACTUAL_DIVIDEND_SOURCES[_source_id] = ActualDividendSource(
+        source_id=_source_id,
+        issuer_name=_issuer_name,
+        official_domains=(),
+        mode=ActualDividendSourceMode.DISCOVERY_ONLY,
+        retrieval_policy=SourceRetrievalPolicy.EXPLICIT_NETWORK,
+        priority=10,
+        discovery_kind=SourceDiscoveryKind.PENDING_VERIFICATION,
+        notes=(
+            "已納入 TWSE ETF 發行人覆蓋基準；"
+            "官方查詢入口與文件格式尚待逐家驗證。"
+        ),
+        issuer_key=_issuer_key,
+    )
+
+
+def list_etf_issuer_sources() -> list[ActualDividendSource]:
+    """列出每家 TWSE ETF 發行人的正式配息來源設定。"""
+
+    sources = [
+        source
+        for source in ACTUAL_DIVIDEND_SOURCES.values()
+        if source.issuer_key is not None
+    ]
+    return sorted(
+        sources,
+        key=lambda source: source.issuer_key or "",
+    )
+
+
+def get_missing_etf_issuer_keys() -> tuple[str, ...]:
+    """回傳尚未在正式配息 Registry 登錄的 ETF 發行人。"""
+
+    registered_keys = {
+        source.issuer_key
+        for source in list_etf_issuer_sources()
+    }
+    return tuple(
+        sorted(set(TWSE_ETF_ISSUERS) - registered_keys)
+    )
 
 
 def get_actual_dividend_source(
