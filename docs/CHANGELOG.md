@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-12 — M12-6 launch-data threshold and decision
+
+- Added an executable ACTUAL/76W/source-document launch gate with a
+  machine-readable decision and deployment-safe exit code.
+- Required named approval and a reason for any limited-coverage exception.
+- Tested the ready, no-go, limited-approved and invalid-approval paths.
+- Evaluated the current 288-event candidate as `NO_GO`: reviewed ACTUAL,
+  official 76W and traceable ACTUAL source-document counts are all zero.
+- Documented that M12-6 implementation is mergeable while public launch remains
+  blocked pending reviewed data or an explicit limited-coverage decision.
+
 ## 2026-08-12 — M12-5B native local deployment validation
 
 - Added a repeatable native FastAPI/Streamlit split-port smoke command.
