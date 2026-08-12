@@ -44,6 +44,10 @@ class TestActualDividendSourceRegistry(
             "www.cathaysite.com.tw",
             source.official_domains,
         )
+        self.assertIn(
+            "cwapi.cathaysite.com.tw",
+            source.official_domains,
+        )
 
     def test_twse_estimated_source_is_not_verified(
         self,

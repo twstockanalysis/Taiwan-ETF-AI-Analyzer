@@ -73,6 +73,7 @@ ACTUAL_DIVIDEND_SOURCES: dict[
             official_domains=(
                 "cathaysite.com.tw",
                 "www.cathaysite.com.tw",
+                "cwapi.cathaysite.com.tw",
             ),
             mode=(
                 ActualDividendSourceMode
