@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-12 — Refreshed M12 entry gate after M11-5 merge
+
+- Reconciled merged main `1e0a920` against the post-M9 confirmed direction,
+  current PRD, actual Streamlit flow, API boundaries and deployment database.
+- Recorded M11-5A1, M11-5A2 and M11-5B as complete and merged.
+- Closed the former base-target and principal-risk product gaps without adding
+  account, broker, trading, real-time or AI scope.
+- Ordered M12 from schema/migration safety through durability, scheduling,
+  owner protection, deployment and the final launch-data decision.
+
 ## 2026-08-12 — M11-5B deterministic principal-risk warnings
 
 - Added source-dated negative-total-return, persistent-decline, weak-recovery

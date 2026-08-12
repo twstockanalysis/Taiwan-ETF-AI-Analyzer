@@ -524,13 +524,13 @@ Delivered:
   automatic trading
 - Kept the M12 direction-and-function audit mandatory
 
-### M11-5 — Confirmed public cash-flow flow closure — In progress
+### M11-5 — Confirmed public cash-flow flow closure — Complete
 
 Status: scope explicitly confirmed by the user on 2026-08-10; implementation
 began after the confirmed M12 entry-audit change was merged. M11-5A1 implements
 the dynamic holding and official-close boundary, and M11-5A2 exposes the visible
 base-target output. M11-5B implements the final deterministic warning and
-direct UI regression scope; merge remains required before M12.
+direct UI regression scope. All three changes are merged on main `1e0a920`.
 
 Delivered in M11-5A1:
 
@@ -561,18 +561,18 @@ Delivered in M11-5B implementation:
   policies and monthly-combination anchoring/reasons
 - Annualized selected multi-year price returns before scenario projection
 
-Remaining: merge M11-5B before entering M12.
+Remaining: none. M12 entry still requires the refreshed audit-gate PR to merge.
 
 ## M12 — Automation and deployment
 
 Entry gate:
 
-- `docs/M12_ENTRY_AUDIT.md` was executed on 2026-08-10 against merged main
-  `f07b279`; the user explicitly confirmed its direction and amended M11-5 scope
+- `docs/M12_ENTRY_AUDIT.md` was re-executed on 2026-08-12 against merged main
+  `1e0a920`; it confirms that completed M11-5 matches the direction explicitly
+  confirmed by the user after M9
 - Use post-M9 direction commit `03a9635`, the current PRD and actual website
   behavior as the reconciliation baseline
-- Begin M11-5 only after the confirmed audit change is merged
-- Do not begin M12 until M11-5 is completed and merged
+- Begin M12 only after the refreshed 2026-08-12 audit gate is merged
 - Keep M12 authentication to an operational single-owner gate; do not expand it
   into self-service accounts or a multi-user data model
 
