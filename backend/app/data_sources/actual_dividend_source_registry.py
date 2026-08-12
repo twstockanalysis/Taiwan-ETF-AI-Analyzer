@@ -20,6 +20,16 @@ class SourceRetrievalPolicy(StrEnum):
     EXPLICIT_NETWORK = "EXPLICIT_NETWORK"
 
 
+class SourceDiscoveryKind(StrEnum):
+    """官方文件候選的自動發現方式。"""
+
+    NONE = "NONE"
+    JSON_API = "JSON_API"
+    DETERMINISTIC_URL = "DETERMINISTIC_URL"
+    HTML_LIST = "HTML_LIST"
+    PENDING_VERIFICATION = "PENDING_VERIFICATION"
+
+
 @dataclass(
     frozen=True,
     slots=True,
@@ -34,6 +44,7 @@ class ActualDividendSource:
     retrieval_policy: SourceRetrievalPolicy
     priority: int
     adapter_name: str | None = None
+    discovery_kind: SourceDiscoveryKind = SourceDiscoveryKind.NONE
     enabled: bool = True
     notes: str = ""
 
@@ -87,9 +98,68 @@ ACTUAL_DIVIDEND_SOURCES: dict[
             adapter_name=(
                 "cathay_actual_dividend_adapter"
             ),
+            discovery_kind=(
+                SourceDiscoveryKind.JSON_API
+            ),
             notes=(
                 "只接受明確標示實際配發組成"
                 "的國泰投信官方公告。"
+            ),
+        )
+    ),
+    "ctbc_latest_etf_dividend_pdf": (
+        ActualDividendSource(
+            source_id="ctbc_latest_etf_dividend_pdf",
+            issuer_name="中國信託證券投資信託股份有限公司",
+            official_domains=(
+                "ctbcinvestments.com",
+                "www.ctbcinvestments.com",
+                "ctbcinvestments.com.tw",
+                "www.ctbcinvestments.com.tw",
+            ),
+            mode=ActualDividendSourceMode.DISCOVERY_ONLY,
+            retrieval_policy=SourceRetrievalPolicy.EXPLICIT_NETWORK,
+            priority=2,
+            discovery_kind=SourceDiscoveryKind.DETERMINISTIC_URL,
+            notes=(
+                "依 ETF 代號探測官方 ETFLatestDividend PDF；"
+                "文件內容尚須區分預估與實際組成。"
+            ),
+        )
+    ),
+    "kgi_etf_dividend_announcement": (
+        ActualDividendSource(
+            source_id="kgi_etf_dividend_announcement",
+            issuer_name="凱基證券投資信託股份有限公司",
+            official_domains=(
+                "kgifund.com.tw",
+                "www.kgifund.com.tw",
+            ),
+            mode=ActualDividendSourceMode.DISCOVERY_ONLY,
+            retrieval_policy=SourceRetrievalPolicy.EXPLICIT_NETWORK,
+            priority=3,
+            discovery_kind=SourceDiscoveryKind.HTML_LIST,
+            notes=(
+                "官方 ETF 公告頁可發現 PDF；"
+                "尚需驗證分頁與正式／期前公告分流。"
+            ),
+        )
+    ),
+    "upam_etf_dividend_document": (
+        ActualDividendSource(
+            source_id="upam_etf_dividend_document",
+            issuer_name="統一證券投資信託股份有限公司",
+            official_domains=(
+                "ezmoney.com.tw",
+                "www.ezmoney.com.tw",
+            ),
+            mode=ActualDividendSourceMode.DISCOVERY_ONLY,
+            retrieval_policy=SourceRetrievalPolicy.EXPLICIT_NETWORK,
+            priority=4,
+            discovery_kind=SourceDiscoveryKind.PENDING_VERIFICATION,
+            notes=(
+                "已確認官方文件網域；"
+                "尚未確認可依 ETF 代號穩定查詢的公開入口。"
             ),
         )
     ),

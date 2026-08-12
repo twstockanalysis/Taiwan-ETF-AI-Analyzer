@@ -245,6 +245,30 @@ python -m backend.app.data_sources.cathay_actual_dividend_discovery `
   --allow-network
 ```
 
+The issuer-source registry also records discovery capabilities separately from
+parser verification:
+
+| Issuer | Discovery | Current acceptance |
+| --- | --- | --- |
+| Cathay | Public JSON announcement API | Verified HTML ACTUAL adapter; PDF parser pending |
+| CTBC | Deterministic latest-dividend PDF by ETF code | Discovery only; content basis remains `UNKNOWN` |
+| KGI | Official ETF announcement HTML/PDF list | Discovery route registered; pagination parser pending |
+| UPAM | Official document host | Stable ETF-code discovery route pending verification |
+
+CTBC discovery performs an HTTPS `HEAD` request only. It verifies the final
+domain and `application/pdf` content type, but does not download the document
+or treat it as ACTUAL:
+
+```powershell
+python -m backend.app.data_sources.ctbc_actual_dividend_discovery `
+  --etf-code 00891 `
+  --allow-network
+```
+
+The multi-issuer design deliberately separates three states: an official host,
+a discoverable official document, and a verified ACTUAL parser. Reaching an
+earlier state never implies the later one.
+
 ## M11-2 current-holding aggregation
 
 The saved current-holding scenario reuses the M10 target calculator with one
