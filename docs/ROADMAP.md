@@ -644,7 +644,7 @@ Planned:
 - Deferred accounts, roles, durable sessions, edge rate limiting and HTTPS
   binding to later scope as previously agreed
 
-### M12-5A — Reproducible production deployment package — In implementation
+### M12-5A — Reproducible production deployment package — Completed locally
 
 - Added one pinned Python runtime image shared by FastAPI and Streamlit
 - Added a Compose topology where only Caddy publishes ports and application
@@ -655,7 +655,7 @@ Planned:
 - Kept real host purchase, DNS mutation, firewall access and public certificate
   proof pending explicit external infrastructure and credentials
 
-### M12-5B — Native local deployment validation — In implementation
+### M12-5B — Native local deployment validation — Completed
 
 - Started FastAPI and Streamlit as separate hidden local processes against an
   isolated, migrated candidate database
@@ -668,6 +668,20 @@ Planned:
   localhost
 - Owner browser acceptance completed on 2026-08-12: public pages, unlock UI,
   private navigation, persisted 4,321 TWD target and relock hiding all passed
+
+### M12-6 — Launch-data threshold and decision — In implementation
+
+- Added a repeatable, machine-readable launch-data gate for reviewed ACTUAL
+  components, official ACTUAL 76W and traceable parsed source documents
+- The ordinary gate requires at least one event in each reviewed category and
+  exits non-zero when the candidate is not ready
+- A limited-coverage exception requires both a named approver and a recorded
+  reason; it cannot be enabled by an unqualified boolean switch
+- Evaluated the 2026-08-12 repository candidate: 288 dividend events exist,
+  while all three reviewed coverage counts are zero, so the current decision
+  is `NO_GO`
+- M12-6 implementation may merge, but public launch remains blocked until the
+  gate passes or the owner explicitly approves a documented limited release
 
 ## Optional external integrations — after the core website
 
