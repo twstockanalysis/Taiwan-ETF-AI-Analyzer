@@ -41,3 +41,30 @@ prove public certificate issuance without owner authorization and credentials.
 Record the chosen host, domain, deployment SHA, DNS result, certificate issuer,
 smoke output, restart evidence and rollback owner before declaring M12-5
 operationally complete.
+
+## Native local rehearsal without Docker
+
+Run FastAPI on `127.0.0.1:8000` and Streamlit on `127.0.0.1:8501` with the
+same isolated absolute `TW_ETF_DATABASE_PATH`. Set a local-only
+`TW_ETF_OWNER_TOKEN` and point Streamlit at FastAPI with
+`TW_ETF_API_URL=http://127.0.0.1:8000`. Then run:
+
+```powershell
+.venv\Scripts\python.exe deployment\local_smoke_test.py `
+  --owner-token $env:TW_ETF_OWNER_TOKEN
+```
+
+This validates both health endpoints, frontend availability, anonymous and
+wrong-token denial, and owner access. It does not validate containers, reverse
+proxy routing, TLS, DNS, public firewall behavior or certificate renewal.
+
+The 2026-08-12 native rehearsal on this workstation passed all these checks.
+It used an isolated migrated copy of the candidate database, preserved all
+eight existing-table counts, returned SQLite integrity `ok` and zero foreign-
+key violations. A test target of 4,321 TWD remained present after restarting
+FastAPI, proving native-process persistence against the isolated file.
+
+The owner then completed the browser acceptance on the same date and confirmed
+all five visible behaviors: public ETF pages rendered, the sidebar owner unlock
+was present, the test token revealed the private navigation, the persisted
+4,321 TWD monthly target was visible, and relocking removed the private entry.

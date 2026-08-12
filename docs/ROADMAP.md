@@ -655,6 +655,20 @@ Planned:
 - Kept real host purchase, DNS mutation, firewall access and public certificate
   proof pending explicit external infrastructure and credentials
 
+### M12-5B — Native local deployment validation — In implementation
+
+- Started FastAPI and Streamlit as separate hidden local processes against an
+  isolated, migrated candidate database
+- Verified public health and frontend HTTP 200, anonymous/wrong-token HTTP 401,
+  owner HTTP 200, current schema, integrity `ok` and zero foreign-key violations
+- Wrote one isolated owner condition, restarted FastAPI and confirmed the same
+  value persisted without modifying the source database
+- Added a repeatable split-port local smoke command; browser automation was not
+  available, so the owner completed the final visual interaction manually on
+  localhost
+- Owner browser acceptance completed on 2026-08-12: public pages, unlock UI,
+  private navigation, persisted 4,321 TWD target and relock hiding all passed
+
 ## Optional external integrations — after the core website
 
 Deferred until M9–M12 are complete:
