@@ -5,6 +5,8 @@ import streamlit as st
 from frontend.navigation import (
     create_navigation,
 )
+from frontend.config import get_api_base_url
+from frontend.owner_access import render_owner_access
 
 
 def main() -> None:
@@ -17,7 +19,8 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
-    navigation = create_navigation()
+    owner_unlocked = render_owner_access(get_api_base_url())
+    navigation = create_navigation(owner_unlocked=owner_unlocked)
     navigation.run()
 
 

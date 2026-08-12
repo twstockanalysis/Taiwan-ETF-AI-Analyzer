@@ -13,6 +13,12 @@ from frontend.api.transport import (
 )
 
 
+def _owner_headers(owner_token: str) -> dict[str, str]:
+    if not owner_token:
+        raise ValueError("Owner token 不可為空白")
+    return {"X-Owner-Token": owner_token}
+
+
 def validate_user_conditions(payload: object) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise APIResponseError("使用者條件回應必須是 JSON 物件")
@@ -201,6 +207,7 @@ def validate_decision_record(payload: object) -> dict[str, Any]:
 
 def fetch_decision_profile(
     api_base_url: str,
+    owner_token: str,
     timeout_seconds: float = 10.0,
 ) -> dict[str, Any]:
     result = get_json(
@@ -208,12 +215,14 @@ def fetch_decision_profile(
         endpoint_path="/api/v1/decision-profile",
         operation_name="決策條件查詢",
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
     return validate_decision_profile(result)
 
 
 def fetch_current_holding_analysis(
     api_base_url: str,
+    owner_token: str,
     timeout_seconds: float = 30.0,
 ) -> dict[str, Any]:
     result = get_json(
@@ -221,6 +230,7 @@ def fetch_current_holding_analysis(
         endpoint_path="/api/v1/decision-profile/current-holding-analysis",
         operation_name="目前持倉分析",
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
     return validate_current_holding_analysis(result)
 
@@ -229,6 +239,7 @@ def fetch_candidate_holding_analysis(
     api_base_url: str,
     etf_code: str,
     payload: dict[str, Any],
+    owner_token: str,
     timeout_seconds: float = 30.0,
 ) -> dict[str, Any]:
     normalized_code = etf_code.strip().upper()
@@ -243,6 +254,7 @@ def fetch_candidate_holding_analysis(
         operation_name=f"ETF {normalized_code} 候選持倉分析",
         payload=payload,
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
     return validate_candidate_holding_analysis(result)
 
@@ -251,6 +263,7 @@ def save_candidate_decision_record(
     api_base_url: str,
     etf_code: str,
     payload: dict[str, Any],
+    owner_token: str,
     timeout_seconds: float = 30.0,
 ) -> dict[str, Any]:
     normalized_code = etf_code.strip().upper()
@@ -265,12 +278,14 @@ def save_candidate_decision_record(
         operation_name=f"ETF {normalized_code} 決策紀錄儲存",
         payload=payload,
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
     return validate_decision_record(result)
 
 
 def fetch_decision_records(
     api_base_url: str,
+    owner_token: str,
     timeout_seconds: float = 10.0,
 ) -> list[dict[str, Any]]:
     result = get_json(
@@ -278,6 +293,7 @@ def fetch_decision_records(
         endpoint_path="/api/v1/decision-profile/decision-records",
         operation_name="決策紀錄列表查詢",
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
     if not isinstance(result, list):
         raise APIResponseError("決策紀錄列表必須是 JSON 陣列")
@@ -287,6 +303,7 @@ def fetch_decision_records(
 def fetch_decision_record_export(
     api_base_url: str,
     record_id: int,
+    owner_token: str,
     timeout_seconds: float = 30.0,
 ) -> bytes:
     if record_id <= 0:
@@ -298,12 +315,14 @@ def fetch_decision_record_export(
         ),
         operation_name=f"決策紀錄 {record_id} Excel 匯出",
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
 
 
 def save_user_conditions(
     api_base_url: str,
     payload: dict[str, Any],
+    owner_token: str,
     timeout_seconds: float = 10.0,
 ) -> dict[str, Any]:
     result = put_json(
@@ -312,6 +331,7 @@ def save_user_conditions(
         operation_name="使用者條件儲存",
         payload=payload,
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
     return validate_user_conditions(result)
 
@@ -320,6 +340,7 @@ def save_manual_holding(
     api_base_url: str,
     etf_code: str,
     payload: dict[str, Any],
+    owner_token: str,
     timeout_seconds: float = 10.0,
 ) -> dict[str, Any]:
     normalized_code = etf_code.strip().upper()
@@ -334,6 +355,7 @@ def save_manual_holding(
         operation_name=f"ETF {normalized_code} 持有部位儲存",
         payload=payload,
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
     return validate_manual_holding(result)
 
@@ -341,6 +363,7 @@ def save_manual_holding(
 def save_manual_holdings(
     api_base_url: str,
     holdings: list[dict[str, Any]],
+    owner_token: str,
     timeout_seconds: float = 10.0,
 ) -> list[dict[str, Any]]:
     """以兩欄輸入批次取代持股；價格由後端官方資料解析。"""
@@ -351,6 +374,7 @@ def save_manual_holdings(
         operation_name="全部持有部位儲存",
         payload={"holdings": holdings},
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )
     if not isinstance(result, list):
         raise APIResponseError("持有部位批次回應必須是 JSON 陣列")
@@ -360,6 +384,7 @@ def save_manual_holdings(
 def delete_manual_holding(
     api_base_url: str,
     etf_code: str,
+    owner_token: str,
     timeout_seconds: float = 10.0,
 ) -> None:
     normalized_code = etf_code.strip().upper()
@@ -373,4 +398,5 @@ def delete_manual_holding(
         ),
         operation_name=f"ETF {normalized_code} 持有部位刪除",
         timeout_seconds=timeout_seconds,
+        request_headers=_owner_headers(owner_token),
     )

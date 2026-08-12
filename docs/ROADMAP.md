@@ -614,7 +614,7 @@ Planned:
   candidate: SHA-256 and all eight table counts matched, integrity was `ok`,
   and foreign-key violations were zero
 
-### M12-3 — Scheduled pipelines and operational monitoring — In implementation
+### M12-3 — Scheduled pipelines and operational monitoring — Completed
 
 - Added a declarative sequential job runner with no-shell execution, exclusive
   overlap lock, stop-on-failure behavior, per-job logs and atomic JSON status
@@ -629,6 +629,20 @@ Planned:
   the four pre-initialization tables still missing, data observations older than
   the 168-hour threshold and absent restore-drill state while confirming SQLite
   integrity, zero foreign-key violations and available storage
+
+### M12-4 — Owner-only decision boundary — In implementation
+
+- Added one fail-closed, constant-time owner-token dependency to the complete
+  decision-profile router, covering reads, writes, analyses, immutable records
+  and Excel exports
+- Kept public ETF analysis, rankings, comparisons, quality information and
+  health endpoints anonymous
+- Added a per-browser-tab Streamlit unlock/lock control and conditionally
+  included the private page only after backend verification
+- Kept private responses out of shared Streamlit caches and passed the owner
+  header on every private frontend request
+- Deferred accounts, roles, durable sessions, edge rate limiting and HTTPS
+  binding to later scope as previously agreed
 
 ## Optional external integrations — after the core website
 

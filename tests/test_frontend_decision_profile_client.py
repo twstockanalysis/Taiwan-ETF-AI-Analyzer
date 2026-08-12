@@ -19,6 +19,7 @@ from frontend.api.errors import APIResponseError
 
 
 class TestFrontendDecisionProfileClient(unittest.TestCase):
+    OWNER_TOKEN = "test-owner-token"
     @staticmethod
     def candidate_analysis():
         return {
@@ -97,7 +98,7 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
             "holdings": [self.holding()],
         }
         mock_get.return_value = response
-        result = fetch_decision_profile("http://127.0.0.1:8000")
+        result = fetch_decision_profile("http://127.0.0.1:8000", self.OWNER_TOKEN)
         self.assertFalse(result["broker_connected"])
         self.assertEqual(result["holdings"][0]["etf_code"], "0056")
 
@@ -121,7 +122,7 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         }
         mock_get.return_value = response
 
-        result = fetch_current_holding_analysis("http://127.0.0.1:8000")
+        result = fetch_current_holding_analysis("http://127.0.0.1:8000", self.OWNER_TOKEN)
 
         self.assertEqual(result["status"], "UNAVAILABLE")
         self.assertTrue(
@@ -142,6 +143,7 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
             "http://127.0.0.1:8000",
             "00878",
             payload,
+            self.OWNER_TOKEN,
         )
 
         self.assertEqual(result["candidate_etf_code"], "00878")
@@ -161,7 +163,7 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         payload = {"proposed_units": 100, "unit_price": 20}
 
         result = save_candidate_decision_record(
-            "http://127.0.0.1:8000", "00878", payload
+            "http://127.0.0.1:8000", "00878", payload, self.OWNER_TOKEN
         )
 
         self.assertTrue(result["immutable"])
@@ -194,8 +196,8 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         binary_response.content = b"PK\x03\x04xlsx"
         mock_get.side_effect = [list_response, binary_response]
 
-        records = fetch_decision_records("http://127.0.0.1:8000")
-        exported = fetch_decision_record_export("http://127.0.0.1:8000", 1)
+        records = fetch_decision_records("http://127.0.0.1:8000", self.OWNER_TOKEN)
+        exported = fetch_decision_record_export("http://127.0.0.1:8000", 1, self.OWNER_TOKEN)
 
         self.assertEqual(records[0]["id"], 1)
         self.assertEqual(exported, b"PK\x03\x04xlsx")
@@ -210,11 +212,13 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         save_user_conditions(
             "http://127.0.0.1:8000",
             {"monthly_after_tax_target": 3000},
+            self.OWNER_TOKEN,
         )
         save_manual_holding(
             "http://127.0.0.1:8000",
             "0056",
             {"held_units": 1000, "unit_price": 35.5},
+            self.OWNER_TOKEN,
         )
         self.assertEqual(mock_put.call_count, 2)
         self.assertTrue(
@@ -233,6 +237,7 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         result = save_manual_holdings(
             "http://127.0.0.1:8000",
             [{"etf_code": "0056", "held_units": 1000}],
+            self.OWNER_TOKEN,
         )
 
         self.assertEqual(result[0]["price_source_id"], "twse_stock_day")
@@ -252,9 +257,26 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
         response.raise_for_status.return_value = None
         mock_delete.return_value = response
         result = delete_manual_holding(
-            "http://127.0.0.1:8000", "0056"
+            "http://127.0.0.1:8000", "0056", self.OWNER_TOKEN
         )
         self.assertIsNone(result)
+
+    @patch("frontend.api.transport.httpx.get")
+    def test_owner_token_is_sent_in_header(self, mock_get):
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "profile_scope": "SINGLE_USER",
+            "broker_connected": False,
+            "conditions": None,
+            "holdings": [],
+        }
+        mock_get.return_value = response
+        fetch_decision_profile("http://127.0.0.1:8000", self.OWNER_TOKEN)
+        self.assertEqual(
+            mock_get.call_args.kwargs["headers"]["X-Owner-Token"],
+            self.OWNER_TOKEN,
+        )
 
     def test_rejects_broker_connected_claim(self):
         with self.assertRaises(APIResponseError):

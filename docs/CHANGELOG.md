@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-12 — M12-4 owner-only decision boundary
+
+- Protected every decision-profile read, write, analysis, record and export
+  endpoint with a fail-closed, constant-time owner token gate.
+- Added a backend-verified Streamlit unlock flow, session-only token storage,
+  explicit relock and conditional private navigation.
+- Kept public ETF functionality anonymous and removed shared caching from
+  private profile responses.
+- Documented secret rotation, HTTPS dependency and the boundary between this
+  operational gate and a future account system.
+
 ## 2026-08-12 — M12-3 scheduling and operational monitoring
 
 - Added a locked, declarative scheduled pipeline runner with per-job logs,

@@ -11,6 +11,7 @@ from frontend.navigation import (
     build_detail_query_params,
     normalize_detail_source,
     resolve_detail_return,
+    navigation_routes,
 )
 
 
@@ -54,13 +55,15 @@ class TestFrontendNavigation(
             ETF_DETAIL_ROUTE.hidden
         )
 
-    def test_decision_profile_is_public_single_user_route(self) -> None:
+    def test_decision_profile_is_owner_only_route(self) -> None:
         self.assertIn(DECISION_PROFILE_ROUTE, ALL_ROUTES)
         self.assertFalse(DECISION_PROFILE_ROUTE.hidden)
         self.assertEqual(
             DECISION_PROFILE_ROUTE.url_path,
             "decision-profile",
         )
+        self.assertNotIn(DECISION_PROFILE_ROUTE, navigation_routes(False))
+        self.assertIn(DECISION_PROFILE_ROUTE, navigation_routes(True))
 
     def test_detail_query_preserves_search_state(
         self,
