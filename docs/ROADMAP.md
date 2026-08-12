@@ -524,12 +524,13 @@ Delivered:
   automatic trading
 - Kept the M12 direction-and-function audit mandatory
 
-### M11-5 — Confirmed public cash-flow flow closure — Next
+### M11-5 — Confirmed public cash-flow flow closure — In progress
 
 Status: scope explicitly confirmed by the user on 2026-08-10; implementation
 began after the confirmed M12 entry-audit change was merged. M11-5A1 implements
 the dynamic holding and official-close boundary, and M11-5A2 exposes the visible
-base-target output. M11-5B warnings remain before M12.
+base-target output. M11-5B implements the final deterministic warning and
+direct UI regression scope; merge remains required before M12.
 
 Delivered in M11-5A1:
 
@@ -552,12 +553,15 @@ Delivered in M11-5A2:
 - Preserved missing deduction assumptions and missing payment months as
   unavailable rather than formal zero
 
-Remaining:
+Delivered in M11-5B implementation:
 
-- Complete or explicitly reconcile persistent-decline, weak-recovery and
-  material-peer-underperformance warnings
-- Cover the cash-flow, tax/reinvestment and monthly-combination UI directly
-  with regression tests
+- Added deterministic, source-dated negative-total-return, persistent-decline,
+  weak-recovery and material-peer-underperformance warnings
+- Added direct Streamlit result tests for target risks, four tax/reinvestment
+  policies and monthly-combination anchoring/reasons
+- Annualized selected multi-year price returns before scenario projection
+
+Remaining: merge M11-5B before entering M12.
 
 ## M12 — Automation and deployment
 

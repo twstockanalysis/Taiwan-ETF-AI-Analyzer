@@ -117,6 +117,7 @@ class TestTargetAnalysisContractEnums(unittest.TestCase):
                 "NEGATIVE_TOTAL_RETURN",
                 "PERSISTENT_PRICE_DECLINE",
                 "WEAK_PRICE_RECOVERY",
+                "MATERIAL_PEER_UNDERPERFORMANCE",
                 "INSUFFICIENT_DIVIDEND_HISTORY",
                 "INSUFFICIENT_PERFORMANCE_HISTORY",
                 "STALE_DIVIDEND_DATA",

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-12 — M11-5B deterministic principal-risk warnings
+
+- Added source-dated negative-total-return, persistent-decline, weak-recovery
+  and material-peer-underperformance warnings to base-ETF target analysis.
+- Defined fixed thresholds and preserved missing risk facts without inferring a
+  safe or zero result.
+- Added visible warning evidence and direct AppTests for target-risk,
+  tax/reinvestment and monthly-combination result sections.
+- Annualized multi-year price-return inputs before scenario projection.
+
 ## 2026-08-10 — M11-5A2 visible base ETF cash-flow analysis
 
 - Added a read-only latest-close API returning the stored official price,

@@ -45,7 +45,16 @@ class TestFrontendTargetAnalysisClient(unittest.TestCase):
             "status": "AVAILABLE",
             "cash_flow": {},
             "scenario_estimate": {},
-            "warnings": [],
+            "warnings": [
+                {
+                    "code": "PERSISTENT_PRICE_DECLINE",
+                    "message": "最近三個月末收盤價連續下跌。",
+                    "affected_fields": ["ending_holding_value"],
+                    "as_of_date": "2026-08-07",
+                    "source_id": "twse_stock_day",
+                    "evidence": {"decline_pct": -12},
+                }
+            ],
             "unavailable_fields": [],
             "monthly_cash_flow": [
                 {
@@ -63,6 +72,9 @@ class TestFrontendTargetAnalysisClient(unittest.TestCase):
             "http://api", "0056", {"held_units": 0}
         )
         self.assertEqual(len(result["monthly_cash_flow"]), 12)
+        self.assertEqual(
+            result["warnings"][0]["as_of_date"], "2026-08-07"
+        )
         self.assertIn("/api/v1/etfs/0056/target-analysis", mock_post.call_args.args[0])
 
 

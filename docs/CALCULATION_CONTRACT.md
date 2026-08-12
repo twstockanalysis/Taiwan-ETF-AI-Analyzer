@@ -231,3 +231,22 @@ price return is the current-value-weighted mean
 only when every holding has a usable annualized return. Any missing component
 keeps the dependent portfolio input `None`; partial known totals are not passed
 off as complete portfolio totals.
+# M11-5B principal-risk warning rules
+
+Base-ETF target analysis emits deterministic warnings only when the required
+facts exist. Missing facts never become a safe result or a formal zero.
+
+- `NEGATIVE_TOTAL_RETURN`: the modeled after-tax total-return rate is below 0%.
+- `PERSISTENT_PRICE_DECLINE`: the latest four available calendar-month-end
+  official closes contain three consecutive declines and the cumulative change
+  is at most -10%.
+- `WEAK_PRICE_RECOVERY`: for the latest ex-dividend event with a complete
+  60-calendar-day observation window, no stored official close in that window
+  reaches the last official close before the ex-dividend date.
+- `MATERIAL_PEER_UNDERPERFORMANCE`: the ETF's latest 1Y price return trails the
+  median of at least five other ETFs with the same bond/non-bond classification
+  by at least 10 percentage points.
+
+Every emitted warning includes an observation date, source identifier and the
+numeric/date evidence used by the rule. These are historical risk flags, not
+predictions or recommendations.

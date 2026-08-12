@@ -20,6 +20,9 @@ class TargetAnalysisWarningCode(str, Enum):
     NEGATIVE_TOTAL_RETURN = "NEGATIVE_TOTAL_RETURN"
     PERSISTENT_PRICE_DECLINE = "PERSISTENT_PRICE_DECLINE"
     WEAK_PRICE_RECOVERY = "WEAK_PRICE_RECOVERY"
+    MATERIAL_PEER_UNDERPERFORMANCE = (
+        "MATERIAL_PEER_UNDERPERFORMANCE"
+    )
     INSUFFICIENT_DIVIDEND_HISTORY = (
         "INSUFFICIENT_DIVIDEND_HISTORY"
     )
@@ -57,6 +60,11 @@ class TargetAnalysisWarning(BaseModel):
     code: TargetAnalysisWarningCode
     message: str = Field(min_length=1)
     affected_fields: list[str] = Field(default_factory=list)
+    as_of_date: date | None = None
+    source_id: str | None = None
+    evidence: dict[str, str | int | Decimal | date | None] = Field(
+        default_factory=dict
+    )
 
 
 class TargetAnalysisUnavailableField(BaseModel):

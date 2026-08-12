@@ -110,6 +110,20 @@ class TestTargetAnalysisRepositoryData(unittest.TestCase):
                 "list_latest_etf_performance",
                 return_value=performance_value,
             ) as performance_mock,
+            patch(
+                "backend.app.repositories.daily_close_repository."
+                "list_daily_closes",
+                return_value=[],
+            ),
+            patch(
+                "backend.app.repositories.etf_repository.get_etf_by_code",
+                return_value={"code": "0056", "is_bond": False},
+            ),
+            patch(
+                "backend.app.repositories.performance_repository."
+                "list_latest_multi_period_performance_ranking",
+                return_value=[],
+            ),
         ):
             result = (
                 target_analysis_data

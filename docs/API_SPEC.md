@@ -91,6 +91,12 @@ result. The monthly target is applied once to the portfolio. Missing fixed
 conditions or holdings return `UNAVAILABLE`; missing market data or assumptions
 return `PARTIAL` with `null` results and explicit unavailable fields.
 
+The base `POST /api/v1/etfs/{code}/target-analysis` response includes
+source-dated principal-risk warnings. A warning may include `as_of_date`,
+`source_id` and a typed `evidence` object containing the exact threshold facts
+used by the deterministic rule. Missing facts do not produce a safe warning
+result. Multi-year price returns are annualized before scenario projection.
+
 The M11-3 candidate endpoint accepts proposed positive whole units, a positive
 TWD reference price, optional holding overlap and the existing M10-5 rules. It
 returns current and proposed portfolio snapshots, calculable deltas and the
