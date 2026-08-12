@@ -586,9 +586,30 @@ Planned:
 - Protect every decision-profile read, write, record and export boundary before
   exposing the site to anonymous users
 
+### M12-1 — Deployment database readiness — In implementation
+
+- Added explicit read-only Schema, integrity and foreign-key verification
+- Added explicit deployment initialization followed by mandatory verification
+- Added isolated SQLite-backup migration rehearsal with before/after row-count
+  preservation checks
+- Successfully rehearsed the 2026-08-01 deployment candidate on 2026-08-12;
+  all 256 ETF, 205 performance, 288 dividend, 1,430 component and 576 review
+  queue rows were preserved
+- Kept recoverable backup retention and restore drills in M12-2
+
 ## Optional external integrations — after the core website
 
 Deferred until M9–M12 are complete:
+
+Second-version priorities confirmed from the updated website requirements:
+
+1. Custom target payment months, including user-selected single-month,
+   alternating-month, quarterly, annual and arbitrary month sets
+2. Explainable AI assessment that remains subordinate to total-return,
+   principal-risk, after-tax cash-flow and data-quality gates
+
+These are post-M12 product upgrades. They must not delay or silently expand the
+first public release, and AI output must not become opaque trading advice.
 
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation

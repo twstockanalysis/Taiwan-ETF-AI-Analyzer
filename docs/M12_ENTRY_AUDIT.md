@@ -126,18 +126,19 @@ performance rows:            205
 latest performance date:     2026-07-29
 dividend rows:               288
 latest dividend event date:  2026-08-26
-component rows:               1430 (legacy schema has no ACTUAL basis column)
-source-document table:        missing
-review-queue table:            missing
+component rows:               1430 (`ESTIMATED`; `ACTUAL` rows: 0)
+source-document rows:         0
+review-queue rows:            576
 ```
 
 It predates M11-5 and lacks `decision_profile`, `manual_holding`,
-`decision_record` and `etf_daily_close`; it also predates the reviewed ACTUAL
-document/queue schema. `create_app()` still does not run `initialize_database()`,
-so the decision page and official-close flow will fail against this file until
-an explicit migration step is executed. The database and downloaded artifacts
-are intentionally ignored by Git, so deployment also needs an explicit
-build/restore and durable-storage plan.
+`decision_record` and `etf_daily_close`. The reviewed ACTUAL document and queue
+schema exists, but contains no source documents or ACTUAL component rows.
+`create_app()` still does not run `initialize_database()`, so the decision page
+and official-close flow will fail against this file until an explicit migration
+step is executed. The database and downloaded artifacts are intentionally
+ignored by Git, so deployment also needs an explicit build/restore and
+durable-storage plan.
 
 These are deployment/data-readiness gaps, not evidence that the tested schema
 or M11 services are absent.
@@ -281,3 +282,8 @@ order:
 
 Do not combine self-service accounts, broker connectivity, trading, real-time
 signals or AI decision features into M12.
+
+After M12 is complete and before the final M12 merge, refresh the second-version
+roadmap from the updated website requirements. The first two priorities are
+custom target payment months and explainable AI assessment; neither is part of
+M12 implementation.

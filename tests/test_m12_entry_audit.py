@@ -34,6 +34,8 @@ class TestM12EntryAudit(unittest.TestCase):
         self.assertIn("/target-analysis", audit)
         self.assertIn("/monthly-income", audit)
         self.assertIn("component rows:               1430", audit)
+        self.assertIn("source-document rows:         0", audit)
+        self.assertIn("review-queue rows:            576", audit)
         self.assertIn("create_app()", audit)
         self.assertIn("`PARTIAL`", audit)
         self.assertIn("True M12 scope after M11-5", audit)
