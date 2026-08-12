@@ -6,7 +6,10 @@ from backend.app.data_sources.actual_dividend_source_registry import (
     ActualDividendSourceMode,
     SourceDiscoveryKind,
     SourceRetrievalPolicy,
+    TWSE_ETF_ISSUERS,
+    get_missing_etf_issuer_keys,
     get_actual_dividend_source,
+    list_etf_issuer_sources,
     list_verified_actual_dividend_adapters,
 )
 
@@ -113,6 +116,37 @@ class TestActualDividendSourceRegistry(
         self.assertNotIn("ctbc_latest_etf_dividend_pdf", verified_ids)
         self.assertNotIn("kgi_etf_dividend_announcement", verified_ids)
         self.assertNotIn("upam_etf_dividend_document", verified_ids)
+
+    def test_every_twse_etf_issuer_has_one_source_record(self) -> None:
+        sources = list_etf_issuer_sources()
+
+        self.assertEqual(get_missing_etf_issuer_keys(), ())
+        self.assertEqual(len(TWSE_ETF_ISSUERS), 23)
+        self.assertEqual(len(sources), len(TWSE_ETF_ISSUERS))
+        self.assertEqual(
+            {source.issuer_key for source in sources},
+            set(TWSE_ETF_ISSUERS),
+        )
+
+    def test_pending_issuer_sources_are_not_actual_adapters(self) -> None:
+        verified_keys = {
+            source.issuer_key
+            for source in list_verified_actual_dividend_adapters()
+        }
+
+        self.assertEqual(verified_keys, {"cathay"})
+
+        for source in list_etf_issuer_sources():
+            with self.subTest(issuer_key=source.issuer_key):
+                self.assertEqual(
+                    source.retrieval_policy,
+                    SourceRetrievalPolicy.EXPLICIT_NETWORK,
+                )
+                if source.discovery_kind == SourceDiscoveryKind.PENDING_VERIFICATION:
+                    self.assertEqual(
+                        source.mode,
+                        ActualDividendSourceMode.DISCOVERY_ONLY,
+                    )
 
 
 if __name__ == "__main__":
