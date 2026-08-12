@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-12 — M12-5B native local deployment validation
+
+- Added a repeatable native FastAPI/Streamlit split-port smoke command.
+- Validated the public/private boundary, both service health endpoints and the
+  Streamlit root against an isolated migrated database.
+- Restarted FastAPI and proved the isolated owner condition persisted while
+  schema integrity and foreign keys remained valid.
+
 ## 2026-08-12 — M12-5A reproducible production deployment package
 
 - Added pinned Python dependencies and a non-root application container.
