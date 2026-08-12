@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-12 — M12-1 deployment database readiness
+
+- Added explicit deployment database `verify`, `initialize` and isolated
+  `rehearse` commands.
+- Added current-table and required-column checks, SQLite integrity and foreign
+  key validation, and before/after row preservation evidence.
+- Used SQLite's backup API for a transactionally consistent rehearsal copy and
+  refused in-place or pre-existing rehearsal destinations.
+- Recorded custom target months and explainable AI assessment as the first two
+  second-version priorities after M12, without expanding M12 scope.
+
 ## 2026-08-12 — Refreshed M12 entry gate after M11-5 merge
 
 - Reconciled merged main `1e0a920` against the post-M9 confirmed direction,
