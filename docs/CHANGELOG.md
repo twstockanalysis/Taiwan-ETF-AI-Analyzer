@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-12 — M12-5A reproducible production deployment package
+
+- Added pinned Python dependencies and a non-root application container.
+- Added private FastAPI/Streamlit services behind a Caddy HTTPS reverse proxy
+  with durable SQLite storage and mandatory deployment secrets.
+- Added container health checks, public/owner smoke verification, restart and
+  rollback guidance, and static deployment contract tests.
+- Recorded that this workstation has no Docker installation and no authorized
+  host/domain, so public infrastructure proof remains an external M12-5 step.
+
 ## 2026-08-12 — M12-4 owner-only decision boundary
 
 - Protected every decision-profile read, write, analysis, record and export

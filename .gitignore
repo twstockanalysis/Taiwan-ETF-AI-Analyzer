@@ -26,3 +26,6 @@ data/rejected/*
 **/*.db.*
 **/*.sqlite
 **/*.sqlite3
+
+# Deployment secrets
+deployment/.env
