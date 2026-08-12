@@ -586,7 +586,7 @@ Planned:
 - Protect every decision-profile read, write, record and export boundary before
   exposing the site to anonymous users
 
-### M12-1 — Deployment database readiness — In implementation
+### M12-1 — Deployment database readiness — Completed
 
 - Added explicit read-only Schema, integrity and foreign-key verification
 - Added explicit deployment initialization followed by mandatory verification
@@ -596,6 +596,23 @@ Planned:
   all 256 ETF, 205 performance, 288 dividend, 1,430 component and 576 review
   queue rows were preserved
 - Kept recoverable backup retention and restore drills in M12-2
+
+### M12-2 — Durable database backup and recovery — In implementation
+
+- Added `TW_ETF_DATABASE_PATH` as the production database-path contract;
+  deployments must provide an absolute path outside the release tree
+- Preserved `database/tw_etf.db` only as the no-environment local-development
+  default
+- Added transactionally consistent, no-overwrite SQLite backups with a
+  neighboring versioned manifest containing SHA-256, size, UTC timestamp,
+  schema readiness and row counts
+- Added no-overwrite restore into a new path with pre-restore artifact checks
+  and post-restore integrity, foreign-key, schema and exact row-count checks
+- Documented initial daily/weekly retention and an operator recovery runbook;
+  scheduled/off-host automation remains M12-3
+- Completed a real backup/restore drill against the legacy deployment
+  candidate: SHA-256 and all eight table counts matched, integrity was `ok`,
+  and foreign-key violations were zero
 
 ## Optional external integrations — after the core website
 

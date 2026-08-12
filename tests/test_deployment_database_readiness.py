@@ -6,8 +6,10 @@ import tempfile
 import unittest
 
 from backend.app.database.deployment_readiness import (
+    backup_database,
     initialize_deployment_database,
     rehearse_database_migration,
+    restore_database,
     verify_database_schema,
 )
 
@@ -102,6 +104,102 @@ class TestDeploymentDatabaseReadiness(unittest.TestCase):
         destination.touch()
         with self.assertRaises(FileExistsError):
             rehearse_database_migration(source, destination)
+
+    def test_backup_and_restore_verify_hash_rows_and_schema(self) -> None:
+        source = self.root / "source.db"
+        backup = self.root / "backups" / "source-20260812.db"
+        restored = self.root / "restore" / "source.db"
+        initialize_deployment_database(source)
+        connection = sqlite3.connect(source)
+        try:
+            connection.execute(
+                """
+                INSERT INTO etf_master (code, name, is_active, is_bond)
+                VALUES ('0056', '元大高股息', 1, 0);
+                """
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        backup_report = backup_database(source, backup)
+        restore_report = restore_database(backup, restored)
+
+        self.assertEqual(backup_report.row_counts["etf_master"], 1)
+        self.assertTrue(backup_report.schema_ready)
+        self.assertTrue(Path(backup_report.manifest_path).is_file())
+        self.assertTrue(restore_report.sha256_verified)
+        self.assertTrue(restore_report.row_counts_verified)
+        self.assertTrue(restore_report.schema_ready)
+        self.assertEqual(
+            verify_database_schema(restored).row_counts["etf_master"],
+            1,
+        )
+
+    def test_restore_rejects_tampered_backup_before_writing(self) -> None:
+        source = self.root / "source.db"
+        backup = self.root / "backup.db"
+        restored = self.root / "restored.db"
+        initialize_deployment_database(source)
+        backup_database(source, backup)
+        with backup.open("ab") as stream:
+            stream.write(b"tampered")
+
+        with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+            restore_database(backup, restored)
+
+        self.assertFalse(restored.exists())
+
+    def test_backup_restore_supports_integrity_clean_legacy_schema(self) -> None:
+        source = self.root / "legacy.db"
+        backup = self.root / "legacy-backup.db"
+        restored = self.root / "legacy-restored.db"
+        connection = sqlite3.connect(source)
+        try:
+            connection.execute(
+                "CREATE TABLE legacy_data (id INTEGER PRIMARY KEY, value TEXT);"
+            )
+            connection.execute(
+                "INSERT INTO legacy_data (value) VALUES ('preserve me');"
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        backup_report = backup_database(source, backup)
+        restore_report = restore_database(backup, restored)
+
+        self.assertFalse(backup_report.schema_ready)
+        self.assertFalse(restore_report.schema_ready)
+        self.assertTrue(restore_report.row_counts_verified)
+        connection = sqlite3.connect(restored)
+        try:
+            self.assertEqual(
+                connection.execute("SELECT value FROM legacy_data;").fetchone()[0],
+                "preserve me",
+            )
+        finally:
+            connection.close()
+
+    def test_backup_and_restore_refuse_overwrite(self) -> None:
+        source = self.root / "source.db"
+        initialize_deployment_database(source)
+        with self.assertRaises(ValueError):
+            backup_database(source, source)
+        conflicting_backup = self.root / "conflicting.db"
+        with self.assertRaises(ValueError):
+            backup_database(
+                source,
+                conflicting_backup,
+                manifest_path=conflicting_backup,
+            )
+        self.assertFalse(conflicting_backup.exists())
+        backup = self.root / "backup.db"
+        backup_database(source, backup)
+        restored = self.root / "restored.db"
+        restored.touch()
+        with self.assertRaises(FileExistsError):
+            restore_database(backup, restored)
 
 
 if __name__ == "__main__":
