@@ -630,7 +630,7 @@ Planned:
   the 168-hour threshold and absent restore-drill state while confirming SQLite
   integrity, zero foreign-key violations and available storage
 
-### M12-4 — Owner-only decision boundary — In implementation
+### M12-4 — Owner-only decision boundary — Completed
 
 - Added one fail-closed, constant-time owner-token dependency to the complete
   decision-profile router, covering reads, writes, analyses, immutable records
@@ -643,6 +643,17 @@ Planned:
   header on every private frontend request
 - Deferred accounts, roles, durable sessions, edge rate limiting and HTTPS
   binding to later scope as previously agreed
+
+### M12-5A — Reproducible production deployment package — In implementation
+
+- Added one pinned Python runtime image shared by FastAPI and Streamlit
+- Added a Compose topology where only Caddy publishes ports and application
+  services remain private, with durable SQLite mounted outside releases
+- Added Caddy domain routing, automatic HTTPS and baseline security headers
+- Added mandatory deployment environment placeholders, service health checks,
+  post-deployment public/private smoke checks and a restart/rollback runbook
+- Kept real host purchase, DNS mutation, firewall access and public certificate
+  proof pending explicit external infrastructure and credentials
 
 ## Optional external integrations — after the core website
 
