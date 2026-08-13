@@ -148,6 +148,12 @@ class TestActualDividendSourceRegistry(
                         ActualDividendSourceMode.DISCOVERY_ONLY,
                     )
 
+    def test_landing_page_kind_is_distinct_from_verified_discovery(self) -> None:
+        self.assertNotEqual(
+            SourceDiscoveryKind.OFFICIAL_LANDING_PAGE,
+            SourceDiscoveryKind.HTML_LIST,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
