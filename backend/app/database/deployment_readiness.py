@@ -46,6 +46,12 @@ REQUIRED_SCHEMA: dict[str, frozenset[str]] = {
     "decision_record": frozenset(
         {"id", "candidate_etf_code", "analysis_json", "created_at"}
     ),
+    "etf_constituent_snapshot": frozenset(
+        {"id", "etf_code", "as_of_date", "source_id", "total_weight_pct"}
+    ),
+    "etf_constituent_position": frozenset(
+        {"snapshot_id", "constituent_id", "constituent_name", "weight_pct"}
+    ),
 }
 
 

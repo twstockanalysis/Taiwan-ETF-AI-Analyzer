@@ -1,5 +1,14 @@
 # Database Schema
 
+## ETF constituent snapshots
+
+`etf_constituent_snapshot` preserves one immutable ETF holdings disclosure for
+an effective date and source. It stores provenance, fetch time, disclosed total
+weight and row count. `etf_constituent_position` stores constituent identifiers,
+names, disclosed weights and optional ranks. The snapshot/date/source key and
+per-snapshot constituent identifier are unique; both tables cascade from the
+ETF master record.
+
 ## M11 decision profile
 
 `decision_profile` is a singleton table whose primary key is constrained to

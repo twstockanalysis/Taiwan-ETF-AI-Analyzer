@@ -847,3 +847,48 @@ ON decision_record (
     created_at DESC,
     id DESC
 );
+
+-- ============================================================
+-- V2 ETF 成分股不可變快照
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS etf_constituent_snapshot (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    etf_code TEXT NOT NULL,
+    as_of_date TEXT NOT NULL,
+    source_id TEXT NOT NULL CHECK (length(trim(source_id)) > 0),
+    source_url TEXT CHECK (
+        source_url IS NULL OR length(trim(source_url)) > 0
+    ),
+    fetched_at TEXT NOT NULL,
+    total_weight_pct REAL NOT NULL CHECK (
+        total_weight_pct >= 0 AND total_weight_pct <= 100.5
+    ),
+    constituent_count INTEGER NOT NULL CHECK (constituent_count >= 0),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (etf_code, as_of_date, source_id),
+    FOREIGN KEY (etf_code)
+        REFERENCES etf_master (code)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_constituent_snapshot_latest
+ON etf_constituent_snapshot (etf_code, as_of_date DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS etf_constituent_position (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    snapshot_id INTEGER NOT NULL,
+    constituent_id TEXT NOT NULL CHECK (length(trim(constituent_id)) > 0),
+    constituent_name TEXT NOT NULL CHECK (length(trim(constituent_name)) > 0),
+    weight_pct REAL NOT NULL CHECK (weight_pct >= 0 AND weight_pct <= 100),
+    rank INTEGER CHECK (rank IS NULL OR rank > 0),
+    UNIQUE (snapshot_id, constituent_id),
+    FOREIGN KEY (snapshot_id)
+        REFERENCES etf_constituent_snapshot (id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_constituent_position_security
+ON etf_constituent_position (constituent_id, snapshot_id);
