@@ -94,7 +94,10 @@ class TestActualDividendSourceRegistry(
                 SourceDiscoveryKind.HTML_LIST
             ),
             "upam_etf_dividend_document": (
-                SourceDiscoveryKind.OFFICIAL_LANDING_PAGE
+                SourceDiscoveryKind.HTML_LIST
+            ),
+            "franklin_etf_dividend_document": (
+                SourceDiscoveryKind.HTML_LIST
             ),
         }
 
@@ -167,7 +170,7 @@ class TestActualDividendSourceRegistry(
         }
 
         self.assertEqual(pending, set())
-        self.assertEqual(len(landing_pages), 18)
+        self.assertEqual(len(landing_pages), 16)
 
 
 if __name__ == "__main__":

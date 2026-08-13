@@ -23,6 +23,7 @@ _ETF_CODE_PATTERN = re.compile(r"^[0-9A-Z]{4,10}$")
 _DATE_PATTERN = re.compile(r"(20\d{2})[/-](\d{1,2})[/-](\d{1,2})")
 _DIVIDEND_WORDS = ("收益分配", "配息公告", "實際配發")
 _ESTIMATED_WORDS = ("期前", "預估", "估算")
+_ONCLICK_HTTPS_URL_PATTERN = re.compile(r"https://[^'\"\s)]+")
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +61,11 @@ class _AnchorParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag.lower() == "a":
-            self._href = dict(attrs).get("href")
+            attributes = dict(attrs)
+            href = attributes.get("href")
+            onclick = attributes.get("onclick") or ""
+            onclick_url = _ONCLICK_HTTPS_URL_PATTERN.search(onclick)
+            self._href = onclick_url.group(0) if onclick_url is not None else href
             self._text = []
 
     def handle_data(self, data: str) -> None:

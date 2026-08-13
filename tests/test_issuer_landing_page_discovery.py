@@ -48,6 +48,25 @@ class TestIssuerLandingPageDiscovery(unittest.TestCase):
         self.assertEqual(result.candidates, ())
         self.assertEqual(result.rejections, ())
 
+    def test_official_onclick_document_url_is_discovered(self) -> None:
+        result = parse_issuer_landing_page(
+            issuer_key="franklin",
+            etf_code="00961",
+            html_text="""
+            <a href="#" onclick="openUrl('id',
+              'https://www.ftft.com.tw/Content/Download/pdf/actual.pdf');">
+              【00961】收益分配公告-金額公告 2026/07/14
+            </a>
+            """,
+        )
+
+        self.assertEqual(len(result.candidates), 1)
+        self.assertEqual(
+            result.candidates[0].document_url,
+            "https://www.ftft.com.tw/Content/Download/pdf/actual.pdf",
+        )
+        self.assertEqual(result.candidates[0].content_type, "application/pdf")
+
     def test_invalid_code_and_limit_are_rejected(self) -> None:
         with self.assertRaises(ValueError):
             parse_issuer_landing_page(

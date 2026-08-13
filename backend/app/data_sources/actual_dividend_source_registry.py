@@ -258,6 +258,10 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
 }
 
 
+# 已以代表 ETF 對官方入口完成即時驗證，可使用共用 HTML 公告探索器。
+_GENERIC_HTML_LIST_ISSUER_KEYS = frozenset({"upam", "franklin"})
+
+
 ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
     ActualDividendSource(
         source_id="capital_etf_dividend_document",
@@ -271,8 +275,8 @@ ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
         priority=5,
         discovery_kind=SourceDiscoveryKind.HTML_LIST,
         notes=(
-            "以官方 DividendInfo API 对应 ETF 名称，并从最新配息公告页"
-            "筛选期后实际配发公告及 PDF；目前仅覆盖最新一页。"
+            "以官方 DividendInfo API 對應 ETF 名稱，並從最新配息公告頁"
+            "篩選期後實際配發公告及 PDF；目前僅覆蓋最新一頁。"
         ),
         issuer_key="capital",
     )
@@ -327,6 +331,9 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
         and _source.discovery_kind == SourceDiscoveryKind.PENDING_VERIFICATION
     ):
         _landing_page = ISSUER_DIVIDEND_LANDING_PAGES[_source.issuer_key]
+        _supports_generic_discovery = (
+            _source.issuer_key in _GENERIC_HTML_LIST_ISSUER_KEYS
+        )
         ACTUAL_DIVIDEND_SOURCES[_source_id] = ActualDividendSource(
             source_id=_source.source_id,
             issuer_name=_source.issuer_name,
@@ -334,10 +341,20 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
             mode=_source.mode,
             retrieval_policy=_source.retrieval_policy,
             priority=_source.priority,
-            discovery_kind=SourceDiscoveryKind.OFFICIAL_LANDING_PAGE,
+            discovery_kind=(
+                SourceDiscoveryKind.HTML_LIST
+                if _supports_generic_discovery
+                else SourceDiscoveryKind.OFFICIAL_LANDING_PAGE
+            ),
             notes=(
                 f"已驗證官方 {_landing_page.page_kind} 入口："
-                f"{_landing_page.url}；尚待升級為可依 ETF 代號查詢的 Adapter。"
+                f"{_landing_page.url}；"
+                + (
+                    "已實測可由共用 HTML 探索器依 ETF 代號發現公告；"
+                    "文件內容仍須判定正式組成。"
+                    if _supports_generic_discovery
+                    else "尚待升級為可依 ETF 代號查詢的 Adapter。"
+                )
             ),
             issuer_key=_source.issuer_key,
         )
