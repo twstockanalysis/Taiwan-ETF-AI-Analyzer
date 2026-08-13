@@ -51,9 +51,14 @@ request, uses the official PCF trading date, and rejects stock-weight coverage
 below 90%. Futures, bonds and nested ETF positions are not mixed into equity
 constituent overlap.
 
-Other issuers still require independently verified official adapters. The
-published Fugle Market Data and Sinopac Shioaji endpoint sets provide ETF
+All 21 applicable non-Yuanta issuers now have independently verified complete
+official holdings or PCF responses, but they still require production adapters.
+The published Fugle Market Data and Sinopac Shioaji endpoint sets provide ETF
 identity and market/account data but not ETF constituent weights. This contract
 still does not expose a public constituent endpoint or replace the manual
 overlap field; assessment integration requires separate freshness and
-multi-issuer coverage work.
+multi-issuer automation work.
+
+The all-issuer discovery result and exact automation status are maintained in
+`ETF_CONSTITUENT_SOURCE_AUDIT.md`. A verified complete official response is
+evidence for a future adapter, not permission to mark that issuer automated.

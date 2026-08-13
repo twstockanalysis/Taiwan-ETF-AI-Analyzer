@@ -744,6 +744,10 @@ first public release, and AI output must not become opaque trading advice.
 
 ### V2-4 — First official constituent source — Completed locally
 
+- Audited all 23 issuers in the TWSE ETF issuer universe and recorded their
+  official source, locator method and automation status
+- Verified a complete official holdings or PCF response for every applicable
+  non-Yuanta issuer; JKO currently has no equity constituent portfolio
 - Added complete Yuanta stock-weight ingestion through the issuer site's
   official `PCF/Daily` bridge
 - Required matching ETF identity, a valid trading date and at least 90%
@@ -752,8 +756,10 @@ first public release, and AI output must not become opaque trading advice.
 - Audited the published Fugle Market Data and Sinopac Shioaji APIs; neither
   currently publishes ETF constituent weights, so no account or API-key
   dependency was added
-- Deferred other issuer adapters and assessment integration to separate
-  milestones
+- Identified direct-code adapters, internal-ID discovery, antiforgery and
+  short-lived system-token flows as separate follow-up implementation groups
+- Deferred remaining issuer adapters and assessment integration to separate
+  milestones without representing page discovery as completed automation
 
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation

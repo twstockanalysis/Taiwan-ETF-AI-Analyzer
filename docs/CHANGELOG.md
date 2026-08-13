@@ -2,6 +2,12 @@
 
 ## 2026-08-13 — Yuanta official constituent ingestion
 
+- Audited all 23 issuers in the TWSE ETF issuer universe and added a
+  machine-readable status registry without overstating page discovery as
+  automated support.
+- Verified complete official holdings or PCF responses for all 21 applicable
+  non-Yuanta issuers, and classified JKO outside equity-overlap scope because
+  its current products are commodity futures trusts.
 - Added complete Yuanta ETF stock weights from the same official `PCF/Daily`
   bridge used by the issuer product page.
 - Rejected mismatched ETF codes, invalid trading dates, missing rows and stock
