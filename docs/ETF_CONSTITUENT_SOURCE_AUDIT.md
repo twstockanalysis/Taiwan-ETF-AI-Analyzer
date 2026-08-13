@@ -15,29 +15,30 @@ against the TWSE `t187ap47_L` official fund master on 2026-08-13.
 
 Finding an official page is not equivalent to automation. Only `AUTOMATED`
 sources may be imported without additional issuer-specific work. The current
-registry has no entrypoint-only issuer: all 21 applicable non-Yuanta issuers
-returned a complete official holdings or PCF response during this audit.
+registry has no entrypoint-only issuer: all applicable issuers returned a
+complete official holdings or PCF response during this audit, and six sources
+now have production adapters.
 
 ## Issuer matrix
 
 | Issuer | Example | Status | Locator | Finding |
 |---|---:|---|---|---|
 | Yuanta | 0050 | `AUTOMATED` | ETF code in path | Complete official `PCF/Daily` adapter |
-| Fubon | 006208 | `FULL_DISCLOSURE_VERIFIED` | ETF-code query | Official PCF page |
-| SinoPac | 00930 | `FULL_DISCLOSURE_VERIFIED` | ETF code in path | Official PCF page |
+| Fubon | 006208 | `AUTOMATED` | ETF-code query | PCF-to-assets adapter |
+| SinoPac | 00930 | `AUTOMATED` | ETF code in path | Official PCF adapter |
 | Mega | 00932 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete holdings page |
 | Cathay | 00878 | `FULL_DISCLOSURE_VERIFIED` | Internal fund code | Official holdings tab |
 | First | 00408A | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Official asset-weight table |
 | Fuh Hwa | 00929 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete holdings page |
 | Capital | 00923 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete buyback holdings |
-| Taishin | 00987A | `FULL_DISCLOSURE_VERIFIED` | ETF code in path | Complete holdings table |
-| CTBC | 00891 | `FULL_DISCLOSURE_VERIFIED` | ETF-code query | Complete holdings table |
+| Taishin | 00987A | `AUTOMATED` | ETF code in path | Official holdings adapter |
+| CTBC | 00891 | `AUTOMATED` | ETF-code query | Official PCF adapter |
 | UPAM | 00939 | `FULL_DISCLOSURE_VERIFIED` | Internal fund code | Complete holdings table |
 | JKO | 00693U | `NOT_APPLICABLE` | Futures ETF only | Current products are commodity futures trusts |
 | Franklin Templeton SinoAm | 00905 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Official holdings tab |
 | KGI | 00915 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete holdings table |
 | UOB | 00918 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Official PCF page |
-| Nomura | 00944 | `FULL_DISCLOSURE_VERIFIED` | ETF code in request body | Official `GetFundAssets` response |
+| Nomura | 00944 | `AUTOMATED` | ETF code in request body | Official `GetFundAssets` adapter |
 | E.SUN | 009803 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Overview mapping plus official `GetFundAssets` response |
 | Union | 009804 | `FULL_DISCLOSURE_VERIFIED` | Form selection | Complete holdings table |
 | HN | 009808 | `FULL_DISCLOSURE_VERIFIED` | ETFID query plus short-lived system token | Official OpenAPI PCF response |
@@ -83,7 +84,8 @@ but they are not substitutes for issuer portfolio disclosure.
 
 ## Next implementation order
 
-1. Direct ETF-code sources: SinoPac, Taishin, CTBC, Fubon and Nomura.
+1. Direct ETF-code sources: completed for SinoPac, Taishin, CTBC, Fubon and
+   Nomura, including identity, date and minimum-coverage validation.
 2. Stable internal-ID or ISIN discovery: Mega, Cathay, First, Fuh Hwa,
    Capital, Franklin Templeton SinoAm, KGI, UOB, E.SUN, BlackRock, J.P. Morgan
    and AllianceBernstein.

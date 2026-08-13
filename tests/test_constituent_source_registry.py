@@ -35,7 +35,10 @@ class TestConstituentSourceRegistry(unittest.TestCase):
             key for key, value in CONSTITUENT_SOURCES.items()
             if value.status is ConstituentSourceStatus.NOT_APPLICABLE
         }
-        self.assertEqual(automated, {"yuanta"})
+        self.assertEqual(
+            automated,
+            {"yuanta", "fubon", "sinopac", "taishin", "ctbc", "nomura"},
+        )
         self.assertEqual(not_applicable, {"jko"})
 
         full_disclosure = {
@@ -48,7 +51,8 @@ class TestConstituentSourceRegistry(unittest.TestCase):
         }
         self.assertEqual(
             full_disclosure,
-            set(TWSE_ETF_ISSUERS) - {"yuanta", "jko"},
+            set(TWSE_ETF_ISSUERS)
+            - {"yuanta", "fubon", "sinopac", "taishin", "ctbc", "nomura", "jko"},
         )
         self.assertEqual(entrypoint_only, set())
 

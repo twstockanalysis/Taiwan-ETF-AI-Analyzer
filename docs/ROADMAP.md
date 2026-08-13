@@ -761,6 +761,18 @@ first public release, and AI output must not become opaque trading advice.
 - Deferred remaining issuer adapters and assessment integration to separate
   milestones without representing page discovery as completed automation
 
+### V2-5 — Direct-code constituent sources — Completed locally
+
+- Added official adapters for Fubon, SinoPac, Taishin, CTBC and Nomura
+- Added one issuer-dispatched import interface while retaining the original
+  Yuanta import wrapper for compatibility
+- Required matching ETF identity, a valid official data date and at least 90%
+  stock-weight coverage for every newly automated source
+- Followed Fubon's official PCF link to the dated assets page and selected only
+  stock tables from every source
+- Deferred internal-ID, ISIN, token and form-backed issuers to the next source
+  families
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation
