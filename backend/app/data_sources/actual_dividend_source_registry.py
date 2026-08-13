@@ -262,6 +262,7 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
 _HTML_LIST_ISSUER_KEYS = frozenset({
     "upam", "franklin", "jpmorgan", "taishin", "uob",
 })
+_JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein"})
 
 
 ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
@@ -335,6 +336,7 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
         _landing_page = ISSUER_DIVIDEND_LANDING_PAGES[_source.issuer_key]
         _supports_generic_discovery = (
             _source.issuer_key in _HTML_LIST_ISSUER_KEYS
+            or _source.issuer_key in _JSON_API_ISSUER_KEYS
         )
         ACTUAL_DIVIDEND_SOURCES[_source_id] = ActualDividendSource(
             source_id=_source.source_id,
@@ -344,8 +346,10 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
             retrieval_policy=_source.retrieval_policy,
             priority=_source.priority,
             discovery_kind=(
-                SourceDiscoveryKind.HTML_LIST
-                if _supports_generic_discovery
+                SourceDiscoveryKind.JSON_API
+                if _source.issuer_key in _JSON_API_ISSUER_KEYS
+                else SourceDiscoveryKind.HTML_LIST
+                if _source.issuer_key in _HTML_LIST_ISSUER_KEYS
                 else SourceDiscoveryKind.OFFICIAL_LANDING_PAGE
             ),
             notes=(
@@ -357,11 +361,16 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
                         "股息利息、資本利得、其他所得及收益平準金比例。"
                         if _source.issuer_key == "taishin"
                         else (
-                            "已實測可依 ETF 代號解析官方基金 ID、基金名稱與"
-                            "實際配息金額及日期；組成比例仍待其他官方揭露。"
-                            if _source.issuer_key == "uob"
-                            else "已實測可由官方 HTML 探索器依 ETF 代號發現公告；"
-                            "文件內容仍須判定正式組成。"
+                            "已驗證官方 distributions JSON API；尚未首次配息"
+                            "時允許回傳空歷史資料與下次預定日。"
+                            if _source.issuer_key == "alliancebernstein"
+                            else (
+                                "已實測可依 ETF 代號解析官方基金 ID、基金名稱與"
+                                "實際配息金額及日期；組成比例仍待其他官方揭露。"
+                                if _source.issuer_key == "uob"
+                                else "已實測可由官方 HTML 探索器依 ETF 代號發現公告；"
+                                "文件內容仍須判定正式組成。"
+                            )
                         )
                     )
                     if _supports_generic_discovery

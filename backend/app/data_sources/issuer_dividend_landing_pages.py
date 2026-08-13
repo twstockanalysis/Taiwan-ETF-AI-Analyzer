@@ -87,7 +87,10 @@ ISSUER_DIVIDEND_LANDING_PAGES: dict[str, IssuerDividendLandingPage] = {
     ),
     "alliancebernstein": IssuerDividendLandingPage(
         "alliancebernstein", "https://www.abfunds.com.tw/zh-tw/home.html",
-        ("abfunds.com.tw", "www.abfunds.com.tw"), "FUND_ANNOUNCEMENTS",
+        (
+            "abfunds.com.tw", "www.abfunds.com.tw",
+            "webapi.alliancebernstein.com",
+        ), "FUND_ANNOUNCEMENTS",
     ),
 }
 
