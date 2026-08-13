@@ -102,6 +102,9 @@ class TestActualDividendSourceRegistry(
             "jpmorgan_etf_dividend_document": (
                 SourceDiscoveryKind.HTML_LIST
             ),
+            "taishin_etf_dividend_document": (
+                SourceDiscoveryKind.HTML_LIST
+            ),
         }
 
         for source_id, discovery_kind in expected.items():
@@ -173,7 +176,7 @@ class TestActualDividendSourceRegistry(
         }
 
         self.assertEqual(pending, set())
-        self.assertEqual(len(landing_pages), 15)
+        self.assertEqual(len(landing_pages), 14)
 
 
 if __name__ == "__main__":
