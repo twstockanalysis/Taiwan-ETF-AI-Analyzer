@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-13 — ETF constituent snapshot foundation
+
+- Added immutable, source-dated ETF constituent snapshots and weighted
+  positions to SQLite and deployment-readiness checks.
+- Added atomic repository writes with duplicate identifier and total-weight
+  validation.
+- Added transparent pairwise overlap as the sum of smaller disclosed weights,
+  without normalizing incomplete issuer disclosures to 100%.
+- Kept manual overlap separate pending official issuer-source automation.
+
 ## 2026-08-13 — Explainable multi-score assessment baseline
 
 - Added a deterministic four-factor assessment to candidate holding analysis.

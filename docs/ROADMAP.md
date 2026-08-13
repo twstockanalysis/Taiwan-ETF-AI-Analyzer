@@ -733,6 +733,15 @@ first public release, and AI output must not become opaque trading advice.
 - Kept manually entered overlap out of scoring pending automatic constituent
   ingestion and portfolio-weighted overlap calculation
 
+### V2-3 — ETF constituent snapshot foundation — Completed locally
+
+- Added immutable, source-dated ETF constituent snapshots and positions
+- Added disclosed-weight coverage and duplicate/total-weight validation
+- Added pairwise weighted overlap using the sum of smaller disclosed weights
+- Kept incomplete snapshots unnormalized so missing coverage remains visible
+- Deferred issuer-specific automatic ingestion and assessment integration to a
+  separate data-source milestone
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation
