@@ -37,7 +37,10 @@ class TestConstituentSourceRegistry(unittest.TestCase):
         }
         self.assertEqual(
             automated,
-            {"yuanta", "fubon", "sinopac", "taishin", "ctbc", "nomura"},
+            {
+                "yuanta", "fubon", "sinopac", "taishin", "ctbc", "nomura",
+                "mega", "fuh_hwa", "uob", "esun",
+            },
         )
         self.assertEqual(not_applicable, {"jko"})
 
@@ -52,7 +55,10 @@ class TestConstituentSourceRegistry(unittest.TestCase):
         self.assertEqual(
             full_disclosure,
             set(TWSE_ETF_ISSUERS)
-            - {"yuanta", "fubon", "sinopac", "taishin", "ctbc", "nomura", "jko"},
+            - {
+                "yuanta", "fubon", "sinopac", "taishin", "ctbc", "nomura",
+                "mega", "fuh_hwa", "uob", "esun", "jko",
+            },
         )
         self.assertEqual(entrypoint_only, set())
 

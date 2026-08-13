@@ -1,0 +1,132 @@
+"""官方目錄對照型 ETF 成分股 Adapter 測試。"""
+
+import unittest
+from datetime import datetime, timezone
+from io import BytesIO
+
+from openpyxl import Workbook
+
+from backend.app.data_sources.mapped_constituent_adapters import (
+    parse_capital_constituent_html,
+    parse_capital_product_url,
+    parse_esun_constituent_payload,
+    parse_esun_mapping,
+    parse_fuh_hwa_assets_link,
+    parse_fuh_hwa_constituent_excel,
+    parse_mega_constituent_html,
+    parse_mega_product_url,
+    parse_uob_constituent_html,
+)
+
+
+FETCHED_AT = datetime(2026, 8, 14, 9, tzinfo=timezone.utc)
+
+
+class TestMappedConstituentAdapters(unittest.TestCase):
+    def test_mega_catalog_and_holdings(self):
+        catalog = """<div class="product-detail"><div class="detail-item">00932</div>
+        <div class="detail-item"><a href="etf_product.aspx?id=19">基金</a></div></div>"""
+        self.assertTrue(parse_mega_product_url(
+            etf_code="00932", catalog_html=catalog
+        ).endswith("etf_product.aspx?id=19"))
+        rows = "".join(
+            f'<div class="fund-info content-list-1"><div class="fund-content">{code}</div>'
+            f'<div class="fund-content">{name}</div><div class="fund-content">100</div>'
+            f'<div class="fund-content txt-right">{weight}%</div></div>'
+            for code, name, weight in [
+                ("2330", "台積電", "60"), ("2454", "聯發科", "30"),
+                ("2308", "台達電", "9.5"),
+            ]
+        )
+        content = f"""00932 資料來源：兆豐投信，2026/08/13
+        <div id="fund_content_list_1">{rows}</div><div id="fund-content-2"></div>"""
+        result = parse_mega_constituent_html(
+            content, etf_code="00932", source_url="https://example.test",
+            fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.source_id, "mega_official_holdings")
+        self.assertEqual(len(result.positions), 3)
+
+    def test_fuh_hwa_assets_link_and_excel(self):
+        link = parse_fuh_hwa_assets_link(
+            detail_html='<a href="/api/assetsExcel/ETF21/20260811">下載</a>',
+            internal_id="ETF21",
+        )
+        self.assertTrue(link.endswith("/api/assetsExcel/ETF21/20260811"))
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append(["復華基金（證劵代碼：00929）"])
+        sheet.append([])
+        sheet.append(["日期: 2026/08/11"])
+        sheet.append(["證券代號", "證券名稱", "股數", "金額", "權重(%)"])
+        sheet.append(["2330", "台積電", "100", "1000", "60%"])
+        sheet.append(["2454", "聯發科", "80", "900", "30%"])
+        sheet.append(["2308", "台達電", "20", "800", "9.5%"])
+        stream = BytesIO()
+        workbook.save(stream)
+        result = parse_fuh_hwa_constituent_excel(
+            stream.getvalue(), etf_code="00929", source_url=link,
+            fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.as_of_date.isoformat(), "2026-08-11")
+        self.assertEqual(result.source_id, "fuh_hwa_official_assets_excel")
+
+    def test_capital_catalog_but_partial_holdings_fail_closed(self):
+        catalog = '<a href="/etf/product/detail/365/basic">00923</a>'
+        url = parse_capital_product_url(etf_code="00923", catalog_html=catalog)
+        self.assertTrue(url.endswith("/365/buyback"))
+        content = """00923 <h6 class="date">(2026/08/13)</h6> 股票代號
+        <div class="tr show-for-medium"><div class="th">2330</div>
+        <div class="th">台積電</div><div class="td">73.94%</div></div>"""
+        with self.assertRaisesRegex(ValueError, "疑似資料不完整"):
+            parse_capital_constituent_html(
+                content, etf_code="00923", source_url=url, fetched_at=FETCHED_AT
+            )
+
+    def test_uob_stock_table(self):
+        rows = """<tr><td>2330</td><td>台積電</td><td>100</td><td>1000</td><td>60</td></tr>
+        <tr><td>2454</td><td>聯發科</td><td>80</td><td>900</td><td>30</td></tr>
+        <tr><td>2308</td><td>台達電</td><td>20</td><td>800</td><td>9.5</td></tr>"""
+        content = f"""00918 資料日期 : 2026/08/10<table><tr><th>股票代號</th>
+        <th>股票名稱</th><th>股數</th><th>金額(元)</th>
+        <th>佔基金淨資產之權重(%)</th></tr>{rows}</table>"""
+        result = parse_uob_constituent_html(
+            content, etf_code="00918", source_url="https://example.test",
+            fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.source_id, "uob_official_pcf")
+        self.assertEqual(result.positions[0].constituent_id, "2330")
+
+    def test_esun_overview_mapping_and_assets(self):
+        overview = {"StatusCode": 0, "Entries": [
+            {"StcokNo": "009803", "FundNo": "50"}
+        ]}
+        self.assertEqual(
+            parse_esun_mapping(etf_code="009803", overview_payload=overview), "50"
+        )
+        payload = {"StatusCode": 0, "Entries": {"FundID": "50", "Data": {
+            "FundAsset": {"NavDate": "2026/08/13"},
+            "Table": [{"TableTitle": "股票", "Rows": [
+                ["2330", "台積電", "100", "60"],
+                ["2454", "聯發科", "80", "30"],
+                ["2308", "台達電", "20", "9.5"],
+            ]}],
+        }}}
+        result = parse_esun_constituent_payload(
+            payload, etf_code="009803", fund_id="50",
+            source_url="https://example.test", fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.source_id, "esun_official_fund_assets")
+        self.assertEqual(len(result.positions), 3)
+
+    def test_unknown_mappings_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "找不到證券代號"):
+            parse_mega_product_url(etf_code="00932", catalog_html="")
+        with self.assertRaisesRegex(ValueError, "找不到證券代號"):
+            parse_esun_mapping(
+                etf_code="009803", overview_payload={"StatusCode": 0, "Entries": []}
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

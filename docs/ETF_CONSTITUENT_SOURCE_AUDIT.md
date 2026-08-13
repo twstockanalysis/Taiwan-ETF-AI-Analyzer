@@ -16,7 +16,7 @@ against the TWSE `t187ap47_L` official fund master on 2026-08-13.
 Finding an official page is not equivalent to automation. Only `AUTOMATED`
 sources may be imported without additional issuer-specific work. The current
 registry has no entrypoint-only issuer: all applicable issuers returned a
-complete official holdings or PCF response during this audit, and six sources
+complete official holdings or PCF response during this audit, and ten sources
 now have production adapters.
 
 ## Issuer matrix
@@ -26,20 +26,20 @@ now have production adapters.
 | Yuanta | 0050 | `AUTOMATED` | ETF code in path | Complete official `PCF/Daily` adapter |
 | Fubon | 006208 | `AUTOMATED` | ETF-code query | PCF-to-assets adapter |
 | SinoPac | 00930 | `AUTOMATED` | ETF code in path | Official PCF adapter |
-| Mega | 00932 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete holdings page |
+| Mega | 00932 | `AUTOMATED` | Internal fund ID | Catalog mapping plus holdings adapter |
 | Cathay | 00878 | `FULL_DISCLOSURE_VERIFIED` | Internal fund code | Official holdings tab |
 | First | 00408A | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Official asset-weight table |
-| Fuh Hwa | 00929 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete holdings page |
-| Capital | 00923 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete buyback holdings |
+| Fuh Hwa | 00929 | `AUTOMATED` | Internal fund ID | Catalog mapping plus asset Excel adapter |
+| Capital | 00923 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Current HTML response fails the 90% runtime completeness gate |
 | Taishin | 00987A | `AUTOMATED` | ETF code in path | Official holdings adapter |
 | CTBC | 00891 | `AUTOMATED` | ETF-code query | Official PCF adapter |
 | UPAM | 00939 | `FULL_DISCLOSURE_VERIFIED` | Internal fund code | Complete holdings table |
 | JKO | 00693U | `NOT_APPLICABLE` | Futures ETF only | Current products are commodity futures trusts |
 | Franklin Templeton SinoAm | 00905 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Official holdings tab |
 | KGI | 00915 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete holdings table |
-| UOB | 00918 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Official PCF page |
+| UOB | 00918 | `AUTOMATED` | Internal fund ID | Event mapping plus official PCF adapter |
 | Nomura | 00944 | `AUTOMATED` | ETF code in request body | Official `GetFundAssets` adapter |
-| E.SUN | 009803 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Overview mapping plus official `GetFundAssets` response |
+| E.SUN | 009803 | `AUTOMATED` | Internal fund ID | Overview mapping plus official `GetFundAssets` adapter |
 | Union | 009804 | `FULL_DISCLOSURE_VERIFIED` | Form selection | Complete holdings table |
 | HN | 009808 | `FULL_DISCLOSURE_VERIFIED` | ETFID query plus short-lived system token | Official OpenAPI PCF response |
 | Allianz | 00984A | `FULL_DISCLOSURE_VERIFIED` | Antiforgery plus internal fund ID | Official overview and `GetFundAssets` responses |
@@ -86,12 +86,14 @@ but they are not substitutes for issuer portfolio disclosure.
 
 1. Direct ETF-code sources: completed for SinoPac, Taishin, CTBC, Fubon and
    Nomura, including identity, date and minimum-coverage validation.
-2. Stable internal-ID or ISIN discovery: Mega, Cathay, First, Fuh Hwa,
-   Capital, Franklin Templeton SinoAm, KGI, UOB, E.SUN, BlackRock, J.P. Morgan
-   and AllianceBernstein.
-3. Session-aware sources: HN's short-lived public system token and Allianz's
+2. Stable internal-ID discovery: completed for Mega, Fuh Hwa, UOB and E.SUN.
+   Continue with Cathay, First, Franklin Templeton SinoAm and KGI; resolve
+   Capital's truncated server response before enabling persistence.
+3. Stable product-ID or ISIN discovery: BlackRock, J.P. Morgan and
+   AllianceBernstein.
+4. Session-aware sources: HN's short-lived public system token and Allianz's
    antiforgery cookie/header pair.
-4. Form-backed sources such as Union, followed by the remaining issuer-specific
+5. Form-backed sources such as Union, followed by the remaining issuer-specific
    parsers.
-5. Add freshness and multi-issuer coverage gates before calculated overlap is
+6. Add freshness and multi-issuer coverage gates before calculated overlap is
    allowed to affect assessment scoring.

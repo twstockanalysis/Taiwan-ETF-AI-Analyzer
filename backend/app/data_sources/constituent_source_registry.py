@@ -44,8 +44,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "mega": ConstituentSource(
         "mega", "兆豐", "00932",
         "https://www.megafunds.com.tw/MEGA/etf/etf_product.aspx?id=19",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_ID", "Complete holdings page; ETF-to-ID discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_ID", "Official catalog mapping and holdings are imported.",
     ),
     "cathay": ConstituentSource(
         "cathay", "國泰", "00878",
@@ -62,8 +62,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "fuh_hwa": ConstituentSource(
         "fuh_hwa", "復華", "00929",
         "https://www.fhtrust.com.tw/ETF/etf_detail/ETF21",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_ID", "Complete holdings page; ETF-to-ID discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_ID", "Official catalog mapping and asset Excel are imported.",
     ),
     "capital": ConstituentSource(
         "capital", "群益", "00923",
@@ -111,8 +111,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "uob": ConstituentSource(
         "uob", "大華銀", "00918",
         "https://www.uobam.com.tw/fund/etf/pcf?fundID=88281125",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_ID", "Official PCF page; ETF-to-ID discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_ID", "Official event mapping and PCF holdings are imported.",
     ),
     "nomura": ConstituentSource(
         "nomura", "野村", "00944",
@@ -124,9 +124,9 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "esun": ConstituentSource(
         "esun", "玉山", "009803",
         "https://www.esunam.com/ETF/etf-pcf",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        ConstituentSourceStatus.AUTOMATED,
         "INTERNAL_FUND_ID",
-        "Official overview maps ETF code to FundNo; GetFundAssets returns complete holdings.",
+        "Official overview mapping and GetFundAssets holdings are imported.",
     ),
     "union": ConstituentSource(
         "union", "聯邦", "009804",
