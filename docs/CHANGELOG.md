@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-08-13 — Explainable assessment baseline
+## 2026-08-13 — Explainable multi-score assessment baseline
 
 - Added a deterministic four-factor assessment to candidate holding analysis.
 - Preserved data-quality, total-return, principal-risk and after-tax cash-flow
@@ -8,6 +8,12 @@
 - Exposed factor evidence and stable reason codes without an opaque score,
   buy/sell label, external model or paid API dependency.
 - Added a Streamlit summary table with expandable evidence and explicit limits.
+- Added separate ETF-quality and current-portfolio-fit scores with total return
+  as the largest component; the UI intentionally has no confidence badge.
+- Added official ACTUAL 76W as a bounded tax-efficiency component while keeping
+  missing official data unscored rather than converting it to zero.
+- Excluded manual overlap assumptions from scoring until automatic ETF
+  constituent ingestion can calculate weighted portfolio overlap.
 
 ## 2026-08-13 — Custom target payment months
 

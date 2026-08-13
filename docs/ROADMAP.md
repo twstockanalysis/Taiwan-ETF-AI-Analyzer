@@ -727,6 +727,10 @@ first public release, and AI output must not become opaque trading advice.
   buy/sell label
 - Established a structured baseline that a future language model may explain
   but may not override
+- Added transparent ETF-quality and portfolio-fit scores led by total return;
+  the page does not display a separate confidence label
+- Kept manually entered overlap out of scoring pending automatic constituent
+  ingestion and portfolio-weighted overlap calculation
 
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation

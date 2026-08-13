@@ -192,6 +192,25 @@ class TestCandidateHoldingAnalysis(unittest.TestCase):
             body["explainable_assessment"]["outcome"],
             "GATE_ALIGNED",
         )
+        self.assertIsNotNone(
+            body["explainable_assessment"]["etf_quality_score"]
+        )
+        self.assertIsNotNone(
+            body["explainable_assessment"]["portfolio_fit_score"]
+        )
+        self.assertIn(
+            "AUTOMATED_CONSTITUENT_OVERLAP",
+            body["explainable_assessment"]["unscored_metrics"],
+        )
+        self.assertNotIn(
+            "ACTUAL_76W_RATIO",
+            {
+                item["code"]
+                for item in body["explainable_assessment"][
+                    "quality_components"
+                ]
+            },
+        )
         self.assertEqual(
             [
                 factor["category"]

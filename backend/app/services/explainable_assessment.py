@@ -1,10 +1,14 @@
 """以既有候選閘門建立可追溯、不可覆寫風險的評定基線。"""
 
+from decimal import Decimal, ROUND_HALF_UP
+
 from backend.app.models.decision_profile import (
+    CandidatePortfolioComparison,
     ExplainableAssessment,
     ExplainableAssessmentFactor,
     ExplainableAssessmentFactorStatus,
     ExplainableAssessmentOutcome,
+    ExplainableAssessmentScoreComponent,
 )
 from backend.app.models.monthly_combination import (
     CandidateReasonCode,
@@ -31,10 +35,208 @@ _FAILED_RISK_CODES = {
 }
 _MISSING_CASH_CODES = {CandidateReasonCode.MISSING_AFTER_TAX_CASH}
 _FAILED_CASH_CODES = {CandidateReasonCode.NON_POSITIVE_AFTER_TAX_CASH}
+_SCORE_QUANTUM = Decimal("0.01")
 
 
 def _percentage(value) -> str:
     return "尚未取得" if value is None else f"{value}%"
+
+
+def _clamp(value: Decimal) -> Decimal:
+    return max(Decimal("0"), min(Decimal("100"), value))
+
+
+def _linear_score(value, low: str, high: str) -> Decimal | None:
+    if value is None:
+        return None
+    observed = Decimal(str(value))
+    result = (observed - Decimal(low)) / (Decimal(high) - Decimal(low)) * 100
+    return _clamp(result).quantize(_SCORE_QUANTUM, rounding=ROUND_HALF_UP)
+
+
+def _component(
+    code: str,
+    label: str,
+    score: Decimal | None,
+    weight: str,
+    observed_value,
+    explanation: str,
+) -> ExplainableAssessmentScoreComponent | None:
+    if score is None:
+        return None
+    return ExplainableAssessmentScoreComponent(
+        code=code,
+        label=label,
+        score=score,
+        weight_pct=Decimal(weight),
+        observed_value=(
+            Decimal(str(observed_value)) if observed_value is not None else None
+        ),
+        explanation=explanation,
+    )
+
+
+def _weighted_score(
+    components: list[ExplainableAssessmentScoreComponent],
+) -> Decimal | None:
+    if not components:
+        return None
+    weight = sum(item.weight_pct for item in components)
+    return (
+        sum(item.score * item.weight_pct for item in components) / weight
+    ).quantize(_SCORE_QUANTUM, rounding=ROUND_HALF_UP)
+
+
+def _quality_score(
+    candidate: MonthlyCombinationCandidateResult,
+    actual_76w_summary: dict | None,
+) -> tuple[
+    Decimal | None,
+    list[ExplainableAssessmentScoreComponent],
+    list[str],
+]:
+    """以總報酬為主軸；高股息或高 76W 不能單獨產生高分。"""
+
+    values = [
+        _component(
+            "AFTER_TAX_TOTAL_RETURN",
+            "稅後總報酬",
+            _linear_score(
+                candidate.estimated_after_tax_total_return_pct, "-20", "40"
+            ),
+            "45",
+            candidate.estimated_after_tax_total_return_pct,
+            "以含稅後現金流的歷史情境總報酬為主要基準。",
+        ),
+        _component(
+            "DOWNSIDE_RETURN",
+            "下行表現",
+            _linear_score(candidate.downside_return_pct, "-40", "0"),
+            "20",
+            candidate.downside_return_pct,
+            "觀察期最差報酬越接近零，分數越高。",
+        ),
+        _component(
+            "AFTER_TAX_CASH_RATE",
+            "稅後股息現金率",
+            _linear_score(candidate.annual_after_tax_cash_rate_pct, "0", "8"),
+            "15",
+            candidate.annual_after_tax_cash_rate_pct,
+            "衡量現金流，但權重低於總報酬與下行表現。",
+        ),
+        _component(
+            "DISTRIBUTION_STABILITY",
+            "配息穩定度",
+            _linear_score(candidate.distribution_stability_pct, "0", "100"),
+            "10",
+            candidate.distribution_stability_pct,
+            "依歷史付款月份重複出現比例評分。",
+        ),
+    ]
+    ratio = (
+        actual_76w_summary.get("average_76w_ratio_pct")
+        if actual_76w_summary
+        and actual_76w_summary.get("actual_76w_record_count", 0) > 0
+        else None
+    )
+    values.append(
+        _component(
+            "ACTUAL_76W_RATIO",
+            "正式 76W 稅務效率",
+            _linear_score(ratio, "0", "100"),
+            "10",
+            ratio,
+            "只使用正式 ACTUAL 76W 平均比例，且不能抵銷績效不佳。",
+        )
+    )
+    components = [item for item in values if item is not None]
+    missing = [
+        code
+        for item, code in zip(
+            values,
+            [
+                "AFTER_TAX_TOTAL_RETURN",
+                "DOWNSIDE_RETURN",
+                "AFTER_TAX_CASH_RATE",
+                "DISTRIBUTION_STABILITY",
+                "ACTUAL_76W_RATIO",
+            ],
+            strict=True,
+        )
+        if item is None
+    ]
+    core = {item.code for item in components}
+    score = (
+        _weighted_score(components)
+        if {"AFTER_TAX_TOTAL_RETURN", "DOWNSIDE_RETURN"} <= core
+        else None
+    )
+    return score, components, missing
+
+
+def _fit_score(
+    quality_score: Decimal | None,
+    candidate: MonthlyCombinationCandidateResult,
+    comparison: CandidatePortfolioComparison | None,
+) -> tuple[
+    Decimal | None,
+    list[ExplainableAssessmentScoreComponent],
+    list[str],
+]:
+    values = [
+        _component(
+            "ETF_QUALITY",
+            "ETF 本身品質",
+            quality_score,
+            "70",
+            quality_score,
+            "適配度以 ETF 本身品質為主要基礎。",
+        ),
+        _component(
+            "CASH_FLOW_CONTRIBUTION",
+            "新增稅後現金流",
+            _linear_score(candidate.annual_after_tax_cash_rate_pct, "0", "8"),
+            "15",
+            candidate.annual_after_tax_cash_rate_pct,
+            "衡量新增資金帶來的年化稅後現金流。",
+        ),
+        _component(
+            "PORTFOLIO_TOTAL_RETURN_CHANGE",
+            "組合總報酬變化",
+            _linear_score(
+                comparison.after_tax_total_return_pct_delta
+                if comparison is not None
+                else None,
+                "-5",
+                "5",
+            ),
+            "15",
+            (
+                comparison.after_tax_total_return_pct_delta
+                if comparison is not None
+                else None
+            ),
+            "加入候選後的組合稅後總報酬改善越多，分數越高。",
+        ),
+    ]
+    components = [item for item in values if item is not None]
+    missing = [
+        code
+        for item, code in zip(
+            values,
+            [
+                "ETF_QUALITY",
+                "CASH_FLOW_CONTRIBUTION",
+                "PORTFOLIO_TOTAL_RETURN_CHANGE",
+            ],
+            strict=True,
+        )
+        if item is None
+    ]
+    # 現有重疊率為手動假設；在自動成分股資料完成前不得納入評分。
+    missing.append("AUTOMATED_CONSTITUENT_OVERLAP")
+    score = _weighted_score(components) if quality_score is not None else None
+    return score, components, missing
 
 
 def _factor(
@@ -67,8 +269,11 @@ def _candidate(
 def build_explainable_assessment(
     result: MonthlyCombinationCalculationResult,
     rules: MonthlyCombinationEligibilityRules,
+    *,
+    comparison: CandidatePortfolioComparison | None = None,
+    actual_76w_summary: dict | None = None,
 ) -> ExplainableAssessment:
-    """依固定優先順序彙整候選證據；不計總分也不產生買賣訊號。"""
+    """依固定優先順序彙整候選證據與量化分數，不產生買賣訊號。"""
 
     candidate = _candidate(result)
     if candidate is None:
@@ -80,6 +285,15 @@ def build_explainable_assessment(
 
     reason_codes = {reason.code for reason in candidate.reasons}
     factors: list[ExplainableAssessmentFactor] = []
+    quality_score, quality_components, quality_missing = _quality_score(
+        candidate,
+        actual_76w_summary,
+    )
+    fit_score, fit_components, fit_missing = _fit_score(
+        quality_score,
+        candidate,
+        comparison,
+    )
 
     data_status = (
         ExplainableAssessmentFactorStatus.FAIL
@@ -209,5 +423,10 @@ def build_explainable_assessment(
     return ExplainableAssessment(
         outcome=outcome,
         headline=headline,
+        etf_quality_score=quality_score,
+        portfolio_fit_score=fit_score,
+        quality_components=quality_components,
+        fit_components=fit_components,
+        unscored_metrics=sorted(set(quality_missing + fit_missing)),
         factors=factors,
     )

@@ -155,6 +155,19 @@ def validate_candidate_holding_analysis(payload: object) -> dict[str, Any]:
             raise APIResponseError("候選持倉分析可解釋評定格式不正確")
         if not isinstance(assessment.get("factors"), list):
             raise APIResponseError("候選持倉分析可解釋評定缺少因素")
+        for field in (
+            "etf_quality_score",
+            "portfolio_fit_score",
+            "quality_components",
+            "fit_components",
+            "unscored_metrics",
+        ):
+            if field not in assessment:
+                raise APIResponseError("候選持倉分析可解釋評定缺少評分欄位")
+        if not isinstance(assessment["quality_components"], list) or not isinstance(
+            assessment["fit_components"], list
+        ):
+            raise APIResponseError("候選持倉分析可解釋評定構成格式不正確")
     return payload
 
 

@@ -259,7 +259,7 @@ def build_candidate_comparison_rows(
 
 
 def render_explainable_assessment(assessment: dict[str, Any]) -> None:
-    """以原始閘門證據呈現評定，不顯示總分或買賣訊號。"""
+    """呈現雙分數與原始證據，不顯示可信度或買賣訊號。"""
 
     outcome = assessment["outcome"]
     headline = assessment["headline"]
@@ -271,6 +271,41 @@ def render_explainable_assessment(assessment: dict[str, Any]) -> None:
         st.warning(f"可解釋評定：{headline}")
     else:
         st.info(f"可解釋評定：{headline}")
+
+    with st.container(horizontal=True):
+        st.metric(
+            "ETF 品質分數",
+            _metric_value(assessment.get("etf_quality_score"), suffix=" / 100"),
+            border=True,
+        )
+        st.metric(
+            "與目前持股適配分數",
+            _metric_value(
+                assessment.get("portfolio_fit_score"), suffix=" / 100"
+            ),
+            border=True,
+        )
+    st.caption(
+        "總報酬是主要基準；高股息、高 76W 或低重複性都不能單獨形成高分。"
+    )
+
+    component_rows = []
+    for group, components in (
+        ("ETF 品質", assessment.get("quality_components", [])),
+        ("持股適配", assessment.get("fit_components", [])),
+    ):
+        component_rows.extend(
+            {
+                "分數類型": group,
+                "量化項目": item["label"],
+                "項目分數": f"{Decimal(str(item['score'])):.2f}",
+                "原始權重": f"{Decimal(str(item['weight_pct'])):.2f}%",
+                "說明": item["explanation"],
+            }
+            for item in components
+        )
+    if component_rows:
+        st.table(component_rows)
 
     status_labels = {
         "PASS": "通過",
@@ -294,6 +329,13 @@ def render_explainable_assessment(assessment: dict[str, Any]) -> None:
             st.markdown(f"**{factor['title']}**")
             for item in factor.get("evidence", []):
                 st.write(f"- {item}")
+        if "AUTOMATED_CONSTITUENT_OVERLAP" in assessment.get(
+            "unscored_metrics", []
+        ):
+            st.info(
+                "成分股重複尚未計分：目前缺少可自動更新的 ETF 成分股資料；"
+                "手動輸入的重疊率只作風險提示，不冒充自動計算結果。"
+            )
         st.caption(assessment["disclaimer"])
 
 

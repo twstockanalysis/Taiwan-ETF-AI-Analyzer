@@ -208,14 +208,32 @@ class ExplainableAssessmentFactor(DecisionProfileBaseModel):
     reason_codes: list[str] = Field(default_factory=list)
 
 
+class ExplainableAssessmentScoreComponent(DecisionProfileBaseModel):
+    code: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    score: Decimal = Field(ge=0, le=100)
+    weight_pct: Decimal = Field(gt=0, le=100)
+    observed_value: Decimal | None = None
+    explanation: str = Field(min_length=1)
+
+
 class ExplainableAssessment(DecisionProfileBaseModel):
     """由既有證據閘門產生、不可覆寫閘門的透明評定。"""
 
-    methodology: Literal["DETERMINISTIC_EVIDENCE_GATES_V1"] = (
-        "DETERMINISTIC_EVIDENCE_GATES_V1"
+    methodology: Literal["DETERMINISTIC_MULTI_SCORE_V2"] = (
+        "DETERMINISTIC_MULTI_SCORE_V2"
     )
     outcome: ExplainableAssessmentOutcome
     headline: str = Field(min_length=1)
+    etf_quality_score: Decimal | None = Field(default=None, ge=0, le=100)
+    portfolio_fit_score: Decimal | None = Field(default=None, ge=0, le=100)
+    quality_components: list[ExplainableAssessmentScoreComponent] = Field(
+        default_factory=list
+    )
+    fit_components: list[ExplainableAssessmentScoreComponent] = Field(
+        default_factory=list
+    )
+    unscored_metrics: list[str] = Field(default_factory=list)
     factors: list[ExplainableAssessmentFactor]
     disclaimer: str = (
         "此評定整理歷史資料與使用者情境，不是買賣建議、績效預測或保證。"

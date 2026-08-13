@@ -21,6 +21,9 @@ from backend.app.repositories.decision_profile_repository import (
     get_user_conditions,
     list_manual_holdings,
 )
+from backend.app.repositories.dividend_repository import (
+    build_actual_76w_summary,
+)
 from backend.app.repositories.etf_repository import get_etf_by_code
 from backend.app.repositories.monthly_income_repository import (
     build_monthly_income_distribution,
@@ -320,6 +323,11 @@ def analyze_candidate_holding(
         if unavailable_fields or eligibility.status.value != "AVAILABLE"
         else TargetAnalysisStatus.AVAILABLE
     )
+    comparison = _comparison(
+        current,
+        proposed,
+        request.unit_price * request.proposed_units,
+    )
     return CandidateHoldingAnalysisResponse(
         status=status,
         analysis_date=analysis_date,
@@ -327,15 +335,16 @@ def analyze_candidate_holding(
         candidate_name=candidate_etf["name"],
         current_portfolio=current,
         proposed_portfolio=proposed,
-        comparison=_comparison(
-            current,
-            proposed,
-            request.unit_price * request.proposed_units,
-        ),
+        comparison=comparison,
         eligibility=eligibility,
         explainable_assessment=build_explainable_assessment(
             eligibility,
             request.rules,
+            comparison=comparison,
+            actual_76w_summary=build_actual_76w_summary(
+                normalized_code,
+                database_path,
+            ),
         ),
         unavailable_fields=unavailable_fields,
     )
