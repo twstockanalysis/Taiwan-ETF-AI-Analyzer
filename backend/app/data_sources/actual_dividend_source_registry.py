@@ -260,7 +260,7 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
 
 # 已以代表 ETF 對官方入口完成即時驗證，可使用共用 HTML 公告探索器。
 _HTML_LIST_ISSUER_KEYS = frozenset({
-    "upam", "franklin", "jpmorgan", "taishin", "uob", "allianz", "mega",
+    "yuanta", "upam", "franklin", "jpmorgan", "taishin", "uob", "allianz", "mega",
     "first",
     "sinopac",
     "fuh_hwa",
