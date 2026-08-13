@@ -236,7 +236,6 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
     "mega": ("兆豐投信", "mega_etf_dividend_document"),
     "first": ("第一金投信", "first_etf_dividend_document"),
     "fuh_hwa": ("復華投信", "fuh_hwa_etf_dividend_document"),
-    "capital": ("群益投信", "capital_etf_dividend_document"),
     "taishin": ("台新投信", "taishin_etf_dividend_document"),
     "jko": ("街口投信", "jko_etf_dividend_document"),
     "franklin": ("富蘭克林投信", "franklin_etf_dividend_document"),
@@ -253,6 +252,27 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
         "alliancebernstein_etf_dividend_document",
     ),
 }
+
+
+ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
+    ActualDividendSource(
+        source_id="capital_etf_dividend_document",
+        issuer_name="群益證券投資信託股份有限公司",
+        official_domains=(
+            "capitalfund.com.tw",
+            "www.capitalfund.com.tw",
+        ),
+        mode=ActualDividendSourceMode.DISCOVERY_ONLY,
+        retrieval_policy=SourceRetrievalPolicy.EXPLICIT_NETWORK,
+        priority=5,
+        discovery_kind=SourceDiscoveryKind.HTML_LIST,
+        notes=(
+            "以官方 DividendInfo API 对应 ETF 名称，并从最新配息公告页"
+            "筛选期后实际配发公告及 PDF；目前仅覆盖最新一页。"
+        ),
+        issuer_key="capital",
+    )
+)
 
 
 for _issuer_key, (
