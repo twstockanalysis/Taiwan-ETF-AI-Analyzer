@@ -32,6 +32,15 @@ def validate_monthly_combination_result(payload: object) -> dict[str, Any]:
             raise APIResponseError("月配候選缺少納入或排除理由")
     if not isinstance(calculation.get("base_etf_code"), str):
         raise APIResponseError("月配組合缺少基準 ETF")
+    target_months = calculation.get("target_payment_months")
+    if (
+        not isinstance(target_months, list)
+        or not target_months
+        or target_months != sorted(set(target_months))
+        or any(not isinstance(month, int) or month < 1 or month > 12
+               for month in target_months)
+    ):
+        raise APIResponseError("月配組合 target_payment_months 格式不正確")
     return payload
 
 

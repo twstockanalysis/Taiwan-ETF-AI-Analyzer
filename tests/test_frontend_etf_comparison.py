@@ -7,6 +7,7 @@ from frontend.pages.etf_comparison import (
     build_completeness_rows,
     build_dividend_rows,
     build_monthly_coverage_rows,
+    build_target_payment_months,
     build_performance_rows,
     format_percentage,
 )
@@ -196,6 +197,30 @@ class TestFrontendETFComparison(
         self.assertEqual(rows[0]["估算稅後現金率"], "0.00%")
         self.assertEqual(rows[0]["持股重疊"], "尚未取得")
         self.assertIn("總報酬", rows[0]["理由"])
+
+    def test_custom_target_month_presets(self) -> None:
+        self.assertEqual(build_target_payment_months("全年每月"), list(range(1, 13)))
+        self.assertEqual(build_target_payment_months("單月", anchor_month=6), [6])
+        self.assertEqual(
+            build_target_payment_months("隔月", anchor_month=2), [2, 4, 6, 8, 10, 12]
+        )
+        self.assertEqual(
+            build_target_payment_months("每季", anchor_month=3), [3, 6, 9, 12]
+        )
+        self.assertEqual(
+            build_target_payment_months("任意月份", custom_months=[12, 3, 3]),
+            [3, 12],
+        )
+
+    def test_coverage_marks_non_target_months(self) -> None:
+        rows = build_monthly_coverage_rows({
+            "base_payment_months": [1, 4],
+            "target_payment_months": [1, 2],
+            "combined_payment_months": [1, 2],
+        })
+        self.assertEqual(rows[1]["目標"], "是")
+        self.assertEqual(rows[2]["目標"], "否")
+        self.assertEqual(rows[2]["組合情境"], "不列入目標")
 
 
 if __name__ == "__main__":

@@ -20,6 +20,13 @@ class MonthlyCombinationBaseModel(BaseModel):
     )
 
 
+def _normalize_target_months(months: list[int]) -> list[int]:
+    normalized = sorted(set(months))
+    if not normalized or any(month < 1 or month > 12 for month in normalized):
+        raise ValueError("目標付款月份必須介於 1 到 12，且至少選擇一個月份")
+    return normalized
+
+
 class MonthlyCombinationStatus(StrEnum):
     AVAILABLE = "AVAILABLE"
     PARTIAL = "PARTIAL"
@@ -105,6 +112,9 @@ class MonthlyCombinationAnalysisRequest(MonthlyCombinationBaseModel):
     cash_deduction_rate_pct: Decimal = Field(default=0, ge=0, le=100)
     max_complementary_etfs: int = Field(default=3, ge=1, le=3)
     monthly_coverage_enabled: bool = True
+    target_payment_months: list[int] = Field(
+        default_factory=lambda: list(range(1, 13)),
+    )
     rules: MonthlyCombinationEligibilityRules = Field(
         default_factory=MonthlyCombinationEligibilityRules
     )
@@ -116,6 +126,9 @@ class MonthlyCombinationAnalysisRequest(MonthlyCombinationBaseModel):
             raise ValueError("候選 ETF 代號不可重複")
         if self.max_complementary_etfs > len(codes):
             self.max_complementary_etfs = len(codes)
+        self.target_payment_months = _normalize_target_months(
+            self.target_payment_months
+        )
         return self
 
 
@@ -158,6 +171,9 @@ class MonthlyCombinationCalculationInput(MonthlyCombinationBaseModel):
     )
     max_complementary_etfs: int = Field(default=3, ge=1, le=3)
     monthly_coverage_enabled: bool = True
+    target_payment_months: list[int] = Field(
+        default_factory=lambda: list(range(1, 13)),
+    )
     rules: MonthlyCombinationEligibilityRules = Field(
         default_factory=MonthlyCombinationEligibilityRules
     )
@@ -174,6 +190,9 @@ class MonthlyCombinationCalculationInput(MonthlyCombinationBaseModel):
             if any(month < 1 or month > 12 for month in normalized):
                 raise ValueError("基準付款月份必須介於 1 到 12")
             self.base_payment_months = normalized
+        self.target_payment_months = _normalize_target_months(
+            self.target_payment_months
+        )
         return self
 
 
@@ -202,6 +221,7 @@ class MonthlyCombinationCalculationResult(MonthlyCombinationBaseModel):
     base_etf_code: str
     base_etf_name: str
     base_payment_months: list[int] | None
+    target_payment_months: list[int] = Field(min_length=1)
     initial_gap_months: list[int] | None
     selected_candidates: list[MonthlyCombinationCandidateResult]
     rejected_candidates: list[MonthlyCombinationCandidateResult]

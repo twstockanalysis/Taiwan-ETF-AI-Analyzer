@@ -18,6 +18,7 @@ class TestFrontendMonthlyCombinationClient(unittest.TestCase):
             "calculation": {
                 "status": "PARTIAL",
                 "base_etf_code": "0056",
+                "target_payment_months": [1, 4, 7, 10],
                 "selected_candidates": [{"reasons": []}],
                 "rejected_candidates": [],
             },

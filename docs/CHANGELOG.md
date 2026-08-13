@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-13 — Custom target payment months
+
+- Added backward-compatible target payment months to monthly combination requests;
+  omitted targets still mean all twelve calendar months.
+- Added single-month, alternating-month, quarterly, annual fixed-month and
+  arbitrary-month Streamlit controls in the existing batched analysis form.
+- Limited gap selection and candidate contribution to user-selected months
+  while preserving data-quality, total-return, downside-risk and overlap gates.
+- Added target-month normalization, validation, response display and tests.
+
 ## 2026-08-13 — KGI dividend announcement discovery
 
 - Added ETF-code searches against KGI SITE's official `ArticleVC` endpoint
