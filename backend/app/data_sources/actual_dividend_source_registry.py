@@ -32,6 +32,7 @@ class SourceDiscoveryKind(StrEnum):
     DETERMINISTIC_URL = "DETERMINISTIC_URL"
     HTML_LIST = "HTML_LIST"
     OFFICIAL_LANDING_PAGE = "OFFICIAL_LANDING_PAGE"
+    RESTRICTED_OFFICIAL_SOURCE = "RESTRICTED_OFFICIAL_SOURCE"
     PENDING_VERIFICATION = "PENDING_VERIFICATION"
 
 
@@ -268,6 +269,7 @@ _HTML_LIST_ISSUER_KEYS = frozenset({
     "union",
 })
 _JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein", "esun", "nomura"})
+_RESTRICTED_ISSUER_KEYS = frozenset({"blackrock", "hnh"})
 
 
 ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
@@ -348,13 +350,19 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
             issuer_name=_source.issuer_name,
             official_domains=_landing_page.official_domains,
             mode=_source.mode,
-            retrieval_policy=_source.retrieval_policy,
+            retrieval_policy=(
+                SourceRetrievalPolicy.MANUAL_ONLY
+                if _source.issuer_key in _RESTRICTED_ISSUER_KEYS
+                else _source.retrieval_policy
+            ),
             priority=_source.priority,
             discovery_kind=(
                 SourceDiscoveryKind.JSON_API
                 if _source.issuer_key in _JSON_API_ISSUER_KEYS
                 else SourceDiscoveryKind.HTML_LIST
                 if _source.issuer_key in _HTML_LIST_ISSUER_KEYS
+                else SourceDiscoveryKind.RESTRICTED_OFFICIAL_SOURCE
+                if _source.issuer_key in _RESTRICTED_ISSUER_KEYS
                 else SourceDiscoveryKind.OFFICIAL_LANDING_PAGE
             ),
             notes=(
@@ -425,6 +433,30 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
             ),
             issuer_key=_source.issuer_key,
         )
+
+
+for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
+    if _source.issuer_key not in _RESTRICTED_ISSUER_KEYS:
+        continue
+    _landing_page = ISSUER_DIVIDEND_LANDING_PAGES[_source.issuer_key]
+    _restriction = (
+        "官方 HTTPS 憑證已過期；禁止略過 TLS 驗證，待發行人更新憑證。"
+        if _landing_page.network_access == "EXPIRED_TLS"
+        else "官方 CDN 對後端程式回傳 403；保留瀏覽器可讀入口與手動流程。"
+    )
+    ACTUAL_DIVIDEND_SOURCES[_source_id] = ActualDividendSource(
+        source_id=_source.source_id,
+        issuer_name=_source.issuer_name,
+        official_domains=_source.official_domains,
+        mode=_source.mode,
+        retrieval_policy=SourceRetrievalPolicy.MANUAL_ONLY,
+        priority=_source.priority,
+        adapter_name=_source.adapter_name,
+        discovery_kind=SourceDiscoveryKind.RESTRICTED_OFFICIAL_SOURCE,
+        enabled=_source.enabled,
+        notes=f"已驗證官方入口：{_landing_page.url}；{_restriction}",
+        issuer_key=_source.issuer_key,
+    )
 
 
 def list_etf_issuer_sources() -> list[ActualDividendSource]:

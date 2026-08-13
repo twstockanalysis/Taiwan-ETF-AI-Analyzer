@@ -147,10 +147,12 @@ class TestActualDividendSourceRegistry(
             with self.subTest(source_id=source_id):
                 source = get_actual_dividend_source(source_id)
                 self.assertEqual(source.discovery_kind, discovery_kind)
-                self.assertEqual(
-                    source.retrieval_policy,
-                    SourceRetrievalPolicy.EXPLICIT_NETWORK,
+                expected_policy = (
+                    SourceRetrievalPolicy.MANUAL_ONLY
+                    if source.issuer_key in {"blackrock", "hnh"}
+                    else SourceRetrievalPolicy.EXPLICIT_NETWORK
                 )
+                self.assertEqual(source.retrieval_policy, expected_policy)
 
     def test_unverified_issuers_do_not_become_verified_adapters(self) -> None:
         verified_ids = {
@@ -185,7 +187,9 @@ class TestActualDividendSourceRegistry(
             with self.subTest(issuer_key=source.issuer_key):
                 self.assertEqual(
                     source.retrieval_policy,
-                    SourceRetrievalPolicy.EXPLICIT_NETWORK,
+                    SourceRetrievalPolicy.MANUAL_ONLY
+                    if source.issuer_key in {"blackrock", "hnh"}
+                    else SourceRetrievalPolicy.EXPLICIT_NETWORK,
                 )
                 if source.discovery_kind == SourceDiscoveryKind.PENDING_VERIFICATION:
                     self.assertEqual(
@@ -198,6 +202,23 @@ class TestActualDividendSourceRegistry(
             SourceDiscoveryKind.OFFICIAL_LANDING_PAGE,
             SourceDiscoveryKind.HTML_LIST,
         )
+
+    def test_restricted_official_sources_are_explicit(self) -> None:
+        restricted = {
+            source.issuer_key
+            for source in list_etf_issuer_sources()
+            if source.discovery_kind
+            == SourceDiscoveryKind.RESTRICTED_OFFICIAL_SOURCE
+        }
+        self.assertEqual(restricted, {"blackrock", "hnh"})
+        for issuer_key in restricted:
+            source = next(
+                item for item in list_etf_issuer_sources()
+                if item.issuer_key == issuer_key
+            )
+            self.assertEqual(
+                source.retrieval_policy, SourceRetrievalPolicy.MANUAL_ONLY,
+            )
 
     def test_no_issuer_remains_pending_without_official_entrypoint(self) -> None:
         pending = {
@@ -212,7 +233,7 @@ class TestActualDividendSourceRegistry(
         }
 
         self.assertEqual(pending, set())
-        self.assertEqual(len(landing_pages), 2)
+        self.assertEqual(landing_pages, set())
 
 
 if __name__ == "__main__":

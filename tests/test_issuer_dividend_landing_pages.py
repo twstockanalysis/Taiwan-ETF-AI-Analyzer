@@ -19,12 +19,21 @@ class TestIssuerDividendLandingPages(unittest.TestCase):
                 self.assertIn(parsed.hostname, page.official_domains)
                 self.assertEqual(page.issuer_key, issuer_key)
                 self.assertTrue(page.page_kind)
-                self.assertIn(page.network_access, {"DIRECT", "PROTECTED"})
+                self.assertIn(
+                    page.network_access,
+                    {"DIRECT", "PROTECTED", "EXPIRED_TLS"},
+                )
 
     def test_blackrock_records_automated_access_protection(self) -> None:
         self.assertEqual(
             ISSUER_DIVIDEND_LANDING_PAGES["blackrock"].network_access,
             "PROTECTED",
+        )
+
+    def test_hnh_records_expired_tls_certificate(self) -> None:
+        self.assertEqual(
+            ISSUER_DIVIDEND_LANDING_PAGES["hnh"].network_access,
+            "EXPIRED_TLS",
         )
 
     def test_lookup_normalizes_issuer_key(self) -> None:

@@ -71,7 +71,7 @@ ISSUER_DIVIDEND_LANDING_PAGES: dict[str, IssuerDividendLandingPage] = {
             "hnitc.com.tw", "www.hnitc.com.tw",
             "hnfunds.com.tw", "www.hnfunds.com.tw",
         ),
-        "FUND_ANNOUNCEMENTS",
+        "FUND_ANNOUNCEMENTS", "EXPIRED_TLS",
     ),
     "allianz": IssuerDividendLandingPage(
         "allianz", "https://tw.allianzgi.com/zh-tw/announcement/product-announcement",
