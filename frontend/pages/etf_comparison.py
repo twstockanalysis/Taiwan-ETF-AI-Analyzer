@@ -54,15 +54,21 @@ def build_monthly_coverage_rows(
 
     base_months = calculation.get("base_payment_months")
     combined_months = calculation.get("combined_payment_months")
+    target_months = set(
+        calculation.get("target_payment_months") or range(1, 13)
+    )
     return [
         {
             "月份": f"{month} 月",
+            "目標": "是" if month in target_months else "否",
             "基準 ETF": (
                 "有歷史付款" if base_months is not None and month in base_months
                 else "未覆蓋" if base_months is not None else "資料不足"
             ),
             "組合情境": (
-                "有歷史付款"
+                "不列入目標"
+                if month not in target_months
+                else "有歷史付款"
                 if combined_months is not None and month in combined_months
                 else "未覆蓋"
                 if combined_months is not None
@@ -71,6 +77,32 @@ def build_monthly_coverage_rows(
         }
         for month in range(1, 13)
     ]
+
+
+def build_target_payment_months(
+    mode: str,
+    *,
+    anchor_month: int = 1,
+    custom_months: list[int] | None = None,
+) -> list[int]:
+    """將 UI 目標模式轉成排序且不重複的月份集合。"""
+
+    if anchor_month < 1 or anchor_month > 12:
+        raise ValueError("起始月份必須介於 1 到 12")
+    if mode == "全年每月":
+        return list(range(1, 13))
+    if mode in {"單月", "每年固定月"}:
+        return [anchor_month]
+    if mode == "隔月":
+        return list(range(1 if anchor_month % 2 else 2, 13, 2))
+    if mode == "每季":
+        return list(range((anchor_month - 1) % 3 + 1, 13, 3))
+    if mode == "任意月份":
+        normalized = sorted(set(custom_months or []))
+        if not normalized or any(month < 1 or month > 12 for month in normalized):
+            raise ValueError("任意月份至少選擇一個 1 到 12 月的月份")
+        return normalized
+    raise ValueError("不支援的付款月份模式")
 
 
 def build_candidate_result_rows(
@@ -185,6 +217,36 @@ def render_monthly_combination_analysis(
             options=["補足月配缺口", "只檢查候選資格"],
             default="補足月配缺口",
         )
+        month_mode = st.selectbox(
+            "希望收到現金流的月份模式",
+            ["全年每月", "單月", "隔月", "每季", "每年固定月", "任意月份"],
+            help="只補足指定的目標月份；未選月份不會被視為缺口。",
+        )
+        anchor_month = 1
+        custom_months: list[int] | None = None
+        if month_mode in {"單月", "每年固定月"}:
+            anchor_month = st.selectbox(
+                "目標月份", list(range(1, 13)),
+                format_func=lambda month: f"{month} 月",
+            )
+        elif month_mode == "隔月":
+            anchor_month = st.segmented_control(
+                "隔月起始", [1, 2], default=1,
+                format_func=lambda month: f"{month} 月起",
+            )
+        elif month_mode == "每季":
+            anchor_month = st.segmented_control(
+                "季度月份組", [1, 2, 3], default=1,
+                format_func=lambda month: "、".join(
+                    f"{value}月" for value in range(month, 13, 3)
+                ),
+            )
+        elif month_mode == "任意月份":
+            custom_months = st.pills(
+                "選擇目標月份", list(range(1, 13)),
+                default=list(range(1, 13)), selection_mode="multi",
+                format_func=lambda month: f"{month} 月",
+            )
         settings = st.columns(4)
         with settings[0]:
             lookback_years = st.number_input(
@@ -256,12 +318,22 @@ def render_monthly_combination_analysis(
         f"monthly_combination_result_{base_code}_{'_'.join(labels)}"
     )
     if submitted:
+        try:
+            target_payment_months = build_target_payment_months(
+                month_mode,
+                anchor_month=int(anchor_month),
+                custom_months=custom_months,
+            )
+        except ValueError as error:
+            st.error(str(error))
+            return
         payload = {
             "candidates": assumptions,
             "lookback_years": int(lookback_years),
             "cash_deduction_rate_pct": deduction_rate,
             "max_complementary_etfs": int(max_additions),
             "monthly_coverage_enabled": goal == "補足月配缺口",
+            "target_payment_months": target_payment_months,
         }
         try:
             with loading_state("正在分析候選 ETF 與付款缺口..."):

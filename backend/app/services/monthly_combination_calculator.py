@@ -14,9 +14,6 @@ from backend.app.models.monthly_combination import (
 )
 
 
-ALL_MONTHS = set(range(1, 13))
-
-
 def _percentage(value: Decimal | None) -> str:
     return "尚未取得" if value is None else f"{value}%"
 
@@ -219,6 +216,7 @@ def calculate_monthly_payment_combination(
             base_etf_code=value.base_etf_code,
             base_etf_name=value.base_etf_name,
             base_payment_months=None,
+            target_payment_months=value.target_payment_months,
             initial_gap_months=None,
             selected_candidates=[],
             rejected_candidates=[
@@ -236,7 +234,8 @@ def calculate_monthly_payment_combination(
         )
 
     base_months = set(value.base_payment_months)
-    initial_gaps = sorted(ALL_MONTHS - base_months)
+    target_months = set(value.target_payment_months)
+    initial_gaps = sorted(target_months - base_months)
     if not value.monthly_coverage_enabled:
         disabled = _reason(
             CandidateReasonKind.EXCLUDE,
@@ -248,6 +247,7 @@ def calculate_monthly_payment_combination(
             base_etf_code=value.base_etf_code,
             base_etf_name=value.base_etf_name,
             base_payment_months=sorted(base_months),
+            target_payment_months=sorted(target_months),
             initial_gap_months=initial_gaps,
             selected_candidates=[],
             rejected_candidates=[
@@ -259,7 +259,7 @@ def calculate_monthly_payment_combination(
                 )
                 for candidate in value.candidates
             ],
-            combined_payment_months=sorted(base_months),
+            combined_payment_months=sorted(target_months & base_months),
             remaining_gap_months=initial_gaps,
         )
 
@@ -382,7 +382,7 @@ def calculate_monthly_payment_combination(
         for reason in result.reasons
         if reason.kind == CandidateReasonKind.TRADEOFF
     ]
-    combined = ALL_MONTHS - remaining_gaps
+    combined = target_months - remaining_gaps
     return MonthlyCombinationCalculationResult(
         status=(
             MonthlyCombinationStatus.PARTIAL
@@ -392,6 +392,7 @@ def calculate_monthly_payment_combination(
         base_etf_code=value.base_etf_code,
         base_etf_name=value.base_etf_name,
         base_payment_months=sorted(base_months),
+        target_payment_months=sorted(target_months),
         initial_gap_months=initial_gaps,
         selected_candidates=selected_results,
         rejected_candidates=rejected_results,

@@ -709,6 +709,15 @@ Second-version priorities confirmed from the updated website requirements:
 These are post-M12 product upgrades. They must not delay or silently expand the
 first public release, and AI output must not become opaque trading advice.
 
+### V2-1 — Custom target payment months — Completed locally
+
+- Kept the existing all-month target as the backward-compatible API default
+- Added single-month, alternating-month, quarterly, annual fixed-month and
+  arbitrary month-set goals to the monthly combination UI
+- Restricted gap filling to the selected target months without weakening the
+  existing total-return, principal-risk, data-quality or overlap gates
+- Kept explainable AI assessment as the next separate second-version upgrade
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation

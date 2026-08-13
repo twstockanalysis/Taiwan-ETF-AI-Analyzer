@@ -81,6 +81,7 @@ def analyze_monthly_payment_combination(
             candidates=loaded.candidates,
             max_complementary_etfs=request.max_complementary_etfs,
             monthly_coverage_enabled=request.monthly_coverage_enabled,
+            target_payment_months=request.target_payment_months,
             rules=request.rules,
         )
     )

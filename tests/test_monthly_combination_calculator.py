@@ -183,6 +183,33 @@ class TestMonthlyCombinationCalculator(unittest.TestCase):
             ["00878", "00919"],
         )
 
+    def test_custom_target_months_only_fill_requested_gaps(self) -> None:
+        requested = self.candidate("00878", [2, 5, 8, 11])
+        outside = self.candidate("00900", [3, 6, 9, 12])
+        result = calculate_monthly_payment_combination(
+            self.build_input(
+                [outside, requested],
+                target_payment_months=[1, 2, 4, 5],
+            )
+        )
+        self.assertEqual(result.target_payment_months, [1, 2, 4, 5])
+        self.assertEqual(result.initial_gap_months, [2, 5])
+        self.assertEqual(
+            [item.etf_code for item in result.selected_candidates], ["00878"]
+        )
+        self.assertEqual(result.combined_payment_months, [1, 2, 4, 5])
+        self.assertEqual(result.remaining_gap_months, [])
+
+    def test_target_months_are_normalized_and_cannot_be_empty(self) -> None:
+        value = self.build_input(
+            [self.candidate("00878", [2])], target_payment_months=[5, 2, 5]
+        )
+        self.assertEqual(value.target_payment_months, [2, 5])
+        with self.assertRaisesRegex(ValueError, "至少選擇一個月份"):
+            self.build_input(
+                [self.candidate("00878", [2])], target_payment_months=[]
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
