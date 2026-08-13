@@ -43,7 +43,7 @@ ISSUER_DIVIDEND_LANDING_PAGES: dict[str, IssuerDividendLandingPage] = {
     ),
     "jko": IssuerDividendLandingPage(
         "jko", "https://jkoam.com/",
-        ("jkoam.com", "www.jkoam.com"), "ETF_HOME",
+        ("jkoam.com", "www.jkoam.com", "ec.jkoam.com"), "ETF_HOME",
     ),
     "franklin": IssuerDividendLandingPage(
         "franklin", "https://www.ftft.com.tw/WebMobile/News/Index",

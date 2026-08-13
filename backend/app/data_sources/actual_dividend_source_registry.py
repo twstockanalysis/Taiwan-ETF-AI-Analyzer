@@ -264,6 +264,7 @@ _HTML_LIST_ISSUER_KEYS = frozenset({
     "first",
     "sinopac",
     "fuh_hwa",
+    "jko",
 })
 _JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein"})
 
@@ -391,8 +392,13 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
                                                     "已實測可由官方 ETF 選單映射內部 ID，"
                                                     "解析歷史配息並建立月份化組成 PDF 網址。"
                                                     if _source.issuer_key == "fuh_hwa"
+                                                    else (
+                                                        "已逐檔驗證現有街口期貨 ETF 官方產品頁"
+                                                        "均明示收益分配為無；未知新代號不得推定。"
+                                                        if _source.issuer_key == "jko"
                                 else "已實測可由官方 HTML 探索器依 ETF 代號發現公告；"
                                 "文件內容仍須判定正式組成。"
+                                                    )
                                                 )
                                             )
                                         )
