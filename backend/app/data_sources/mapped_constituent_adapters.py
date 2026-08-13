@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from typing import Any, Callable
 from urllib.parse import urljoin
+from zoneinfo import ZoneInfo
 
 import httpx
 from openpyxl import load_workbook
@@ -37,6 +38,8 @@ UOB_EVENT_URL = "https://www.uobam.com.tw/Events/{etf_code}ETF/"
 UOB_BASE_URL = "https://www.uobam.com.tw"
 ESUN_API_BASE_URL = "https://www.esunam.com/ETFAPI"
 ESUN_SOURCE_URL = "https://www.esunam.com/ETF/etf-pcf"
+FRANKLIN_API_BASE_URL = "https://www.ftft.com.tw/official/api"
+FRANKLIN_SOURCE_URL = "https://www.ftft.com.tw/etf/product/details/"
 MAX_RESPONSE_BYTES = 5_000_000
 
 
@@ -251,6 +254,77 @@ def parse_esun_constituent_payload(
     )
 
 
+def parse_franklin_mapping(*, etf_code: str, catalog_payload: Any) -> str:
+    """由富蘭克林官方 ETF 清單解析證券代號對應的基金 ID。"""
+
+    code = _normalize_code(etf_code)
+    if not isinstance(catalog_payload, list):
+        raise ValueError("富蘭克林官方 ETF 清單回應格式錯誤")
+    fund = next(
+        (row for row in catalog_payload if isinstance(row, dict)
+         and str(row.get("StockCode", "")).strip().upper() == code),
+        None,
+    )
+    if not isinstance(fund, dict) or not str(fund.get("FundID", "")).strip():
+        raise ValueError(f"富蘭克林官方 ETF 清單找不到證券代號：{code}")
+    return str(fund["FundID"]).strip()
+
+
+def parse_franklin_latest_query_date(date_payload: Any) -> str:
+    """將官方 UTC 可選日期轉成台灣頁面實際查詢的 YYYYMMDD。"""
+
+    if not isinstance(date_payload, list) or not date_payload:
+        raise ValueError("富蘭克林官方持股缺少可用日期")
+    try:
+        values = [
+            datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            for value in date_payload
+        ]
+    except ValueError as error:
+        raise ValueError("富蘭克林官方持股包含無效日期") from error
+    latest = max(values).astimezone(ZoneInfo("Asia/Taipei"))
+    return latest.strftime("%Y%m%d")
+
+
+def parse_franklin_constituent_payload(
+    payload: Any, *, etf_code: str, fund_id: str,
+    source_url: str, fetched_at: datetime,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    if not isinstance(payload, dict):
+        raise ValueError("富蘭克林官方持股 API 回應格式錯誤")
+    if str(payload.get("FundID", "")) != fund_id:
+        raise ValueError("富蘭克林官方持股回傳基金 ID 不符")
+    if str(payload.get("StockCode", "")).strip().upper() != code:
+        raise ValueError(f"富蘭克林官方持股回應與要求的 {code} 不符")
+    rows = payload.get("Secs")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("富蘭克林官方持股缺少股票權重")
+    table = [["股票代號", "股票名稱", "權重(%)"]]
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("富蘭克林官方持股包含無效股票資料列")
+        table.append([
+            str(row.get("SecuritiesCode", "")).strip(),
+            str(row.get("SecuritiesName", "")).strip(),
+            str(row.get("WeightingPercentage", "")).strip(),
+        ])
+    asset_date = str(payload.get("AssetDate", ""))
+    try:
+        as_of_date = datetime.fromisoformat(
+            asset_date.replace("Z", "+00:00")
+        ).astimezone(ZoneInfo("Asia/Taipei")).date()
+    except ValueError as error:
+        raise ValueError("富蘭克林官方持股缺少有效資料日期") from error
+    return _snapshot(
+        code, "富蘭克林", "franklin_official_holdings_api", source_url,
+        as_of_date,
+        _positions(
+            table, code_index=0, name_index=1, weight_index=2,
+            issuer="富蘭克林",
+        ),
+        fetched_at,
+    )
 def fetch_mega_constituent_snapshot(etf_code: str, *, timeout_seconds: float = 30,
                                     fetched_at: datetime | None = None):
     code = _normalize_code(etf_code)
@@ -324,9 +398,33 @@ def fetch_esun_constituent_snapshot(etf_code: str, *, timeout_seconds: float = 3
     )
 
 
+def fetch_franklin_constituent_snapshot(
+    etf_code: str, *, timeout_seconds: float = 30,
+    fetched_at: datetime | None = None,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    catalog = _get(f"{FRANKLIN_API_BASE_URL}/etf", timeout_seconds=timeout_seconds)
+    fund_id = parse_franklin_mapping(
+        etf_code=code, catalog_payload=catalog.json()
+    )
+    dates = _get(
+        f"{FRANKLIN_API_BASE_URL}/etf/share-dates/{fund_id}",
+        timeout_seconds=timeout_seconds,
+    )
+    query_date = parse_franklin_latest_query_date(dates.json())
+    holdings = _get(
+        f"{FRANKLIN_API_BASE_URL}/etf/shares/{fund_id}?date={query_date}",
+        timeout_seconds=timeout_seconds,
+    )
+    return parse_franklin_constituent_payload(
+        holdings.json(), etf_code=code, fund_id=fund_id,
+        source_url=f"{FRANKLIN_SOURCE_URL}?id={fund_id}&tab=holdings",
+        fetched_at=fetched_at or datetime.now(timezone.utc),
+    )
 MAPPED_CONSTITUENT_FETCHERS: dict[str, Callable[..., ETFConstituentSnapshotCreate]] = {
     "mega": fetch_mega_constituent_snapshot,
     "fuh_hwa": fetch_fuh_hwa_constituent_snapshot,
     "uob": fetch_uob_constituent_snapshot,
     "esun": fetch_esun_constituent_snapshot,
+    "franklin": fetch_franklin_constituent_snapshot,
 }

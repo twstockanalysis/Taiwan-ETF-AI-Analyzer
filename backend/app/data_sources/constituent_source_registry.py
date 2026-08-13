@@ -99,8 +99,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "franklin": ConstituentSource(
         "franklin", "富蘭克林", "00905",
         "https://www.ftft.com.tw/etf/product/details/?id=131&tab=profile",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_ID", "Official holdings tab; ETF-to-ID discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_ID", "Official ETF catalog and holdings API are imported.",
     ),
     "kgi": ConstituentSource(
         "kgi", "凱基", "00915",

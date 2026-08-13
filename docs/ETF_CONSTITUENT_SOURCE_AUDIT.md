@@ -16,7 +16,7 @@ against the TWSE `t187ap47_L` official fund master on 2026-08-13.
 Finding an official page is not equivalent to automation. Only `AUTOMATED`
 sources may be imported without additional issuer-specific work. The current
 registry has no entrypoint-only issuer: all applicable issuers returned a
-complete official holdings or PCF response during this audit, and ten sources
+complete official holdings or PCF response during this audit, and eleven sources
 now have production adapters.
 
 ## Issuer matrix
@@ -35,7 +35,7 @@ now have production adapters.
 | CTBC | 00891 | `AUTOMATED` | ETF-code query | Official PCF adapter |
 | UPAM | 00939 | `FULL_DISCLOSURE_VERIFIED` | Internal fund code | Complete holdings table |
 | JKO | 00693U | `NOT_APPLICABLE` | Futures ETF only | Current products are commodity futures trusts |
-| Franklin Templeton SinoAm | 00905 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Official holdings tab |
+| Franklin Templeton SinoAm | 00905 | `AUTOMATED` | Internal fund ID | Official catalog and holdings API adapter |
 | KGI | 00915 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete holdings table |
 | UOB | 00918 | `AUTOMATED` | Internal fund ID | Event mapping plus official PCF adapter |
 | Nomura | 00944 | `AUTOMATED` | ETF code in request body | Official `GetFundAssets` adapter |
@@ -87,7 +87,8 @@ but they are not substitutes for issuer portfolio disclosure.
 1. Direct ETF-code sources: completed for SinoPac, Taishin, CTBC, Fubon and
    Nomura, including identity, date and minimum-coverage validation.
 2. Stable internal-ID discovery: completed for Mega, Fuh Hwa, UOB and E.SUN.
-   Continue with Cathay, First, Franklin Templeton SinoAm and KGI; resolve
+   Franklin Templeton SinoAm is also complete. Revisit Cathay, First and KGI
+   when their application responses expose complete stock rows; resolve
    Capital's truncated server response before enabling persistence.
 3. Stable product-ID or ISIN discovery: BlackRock, J.P. Morgan and
    AllianceBernstein.

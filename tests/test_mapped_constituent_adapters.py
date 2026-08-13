@@ -11,6 +11,9 @@ from backend.app.data_sources.mapped_constituent_adapters import (
     parse_capital_product_url,
     parse_esun_constituent_payload,
     parse_esun_mapping,
+    parse_franklin_constituent_payload,
+    parse_franklin_latest_query_date,
+    parse_franklin_mapping,
     parse_fuh_hwa_assets_link,
     parse_fuh_hwa_constituent_excel,
     parse_mega_constituent_html,
@@ -125,6 +128,61 @@ class TestMappedConstituentAdapters(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "找不到證券代號"):
             parse_esun_mapping(
                 etf_code="009803", overview_payload={"StatusCode": 0, "Entries": []}
+            )
+
+    def test_franklin_catalog_date_and_holdings(self):
+        catalog = [
+            {"FundID": "130", "StockCode": "00899"},
+            {"FundID": "131", "StockCode": "00905"},
+        ]
+        self.assertEqual(
+            parse_franklin_mapping(etf_code="00905", catalog_payload=catalog),
+            "131",
+        )
+        self.assertEqual(
+            parse_franklin_latest_query_date([
+                "2026-08-11T16:00:00Z", "2026-08-12T16:00:00Z",
+            ]),
+            "20260813",
+        )
+        payload = {
+            "FundID": "131",
+            "StockCode": "00905",
+            "AssetDate": "2026-08-12T16:00:00Z",
+            "Secs": [
+                {"SecuritiesCode": "2330", "SecuritiesName": "台積電",
+                 "WeightingPercentage": "60%"},
+                {"SecuritiesCode": "2454", "SecuritiesName": "聯發科",
+                 "WeightingPercentage": "30%"},
+                {"SecuritiesCode": "2308", "SecuritiesName": "台達電",
+                 "WeightingPercentage": "9.5%"},
+            ],
+        }
+        result = parse_franklin_constituent_payload(
+            payload, etf_code="00905", fund_id="131",
+            source_url="https://example.test", fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.as_of_date.isoformat(), "2026-08-13")
+        self.assertEqual(result.source_id, "franklin_official_holdings_api")
+
+    def test_franklin_wrong_identity_and_partial_rows_are_rejected(self):
+        payload = {
+            "FundID": "131", "StockCode": "00906",
+            "AssetDate": "2026-08-12T16:00:00Z", "Secs": [
+                {"SecuritiesCode": "2330", "SecuritiesName": "台積電",
+                 "WeightingPercentage": "60%"},
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "與要求的 00905 不符"):
+            parse_franklin_constituent_payload(
+                payload, etf_code="00905", fund_id="131",
+                source_url="https://example.test", fetched_at=FETCHED_AT,
+            )
+        payload["StockCode"] = "00905"
+        with self.assertRaisesRegex(ValueError, "疑似資料不完整"):
+            parse_franklin_constituent_payload(
+                payload, etf_code="00905", fund_id="131",
+                source_url="https://example.test", fetched_at=FETCHED_AT,
             )
 
 

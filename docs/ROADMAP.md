@@ -786,6 +786,18 @@ first public release, and AI output must not become opaque trading advice.
 - Deferred the remaining internal-ID, product-ID and ISIN sources to subsequent
   source-family batches
 
+### V2-7 — Remaining internal-ID sources, batch two — Completed locally
+
+- Added Franklin official ETF catalog mapping, available-date discovery and
+  complete stock holdings ingestion
+- Converted UTC disclosure timestamps to Taiwan dates and verified 00905 with
+  139 stock rows totaling 97.59%
+- Rechecked Cathay, First and KGI without enabling them: Cathay maps 00878 to
+  its current fund code but the stock endpoint returns no data; First returns
+  empty stock rows for the representative fund; KGI does not expose complete
+  stock rows in its current server response
+- Kept all three sources fail-closed pending a complete official payload
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation
