@@ -1,0 +1,178 @@
+"""Official ETF constituent-source coverage for every TWSE-listed issuer."""
+
+from dataclasses import dataclass
+from enum import StrEnum
+
+
+class ConstituentSourceStatus(StrEnum):
+    AUTOMATED = "AUTOMATED"
+    FULL_DISCLOSURE_VERIFIED = "FULL_DISCLOSURE_VERIFIED"
+    ENTRYPOINT_VERIFIED = "ENTRYPOINT_VERIFIED"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+
+@dataclass(frozen=True, slots=True)
+class ConstituentSource:
+    issuer_key: str
+    issuer_name: str
+    representative_etf_code: str
+    official_url: str
+    status: ConstituentSourceStatus
+    locator: str
+    note: str
+
+
+CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
+    "yuanta": ConstituentSource(
+        "yuanta", "元大", "0050",
+        "https://www.yuantaetfs.com/product/detail/0050/ratio",
+        ConstituentSourceStatus.AUTOMATED, "ETF_CODE_IN_PATH",
+        "Complete PCF/Daily stock weights are imported by the active adapter.",
+    ),
+    "fubon": ConstituentSource(
+        "fubon", "富邦", "006208",
+        "https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ETF_CODE_QUERY", "Official PCF page; adapter not implemented.",
+    ),
+    "sinopac": ConstituentSource(
+        "sinopac", "永豐", "00930",
+        "https://sitc.sinopac.com/SinopacEtfs/Etfs/Pcf/00930",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ETF_CODE_IN_PATH", "Official PCF page; adapter not implemented.",
+    ),
+    "mega": ConstituentSource(
+        "mega", "兆豐", "00932",
+        "https://www.megafunds.com.tw/MEGA/etf/etf_product.aspx?id=19",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_ID", "Complete holdings page; ETF-to-ID discovery is required.",
+    ),
+    "cathay": ConstituentSource(
+        "cathay", "國泰", "00878",
+        "https://www.cathaysite.com.tw/ETF/detail/ECN?tab=etf3",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_CODE", "Official holdings tab; ETF-to-code discovery is required.",
+    ),
+    "first": ConstituentSource(
+        "first", "第一金", "00408A",
+        "https://www.fsitc.com.tw/FundDetail.aspx?ID=183",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_ID", "Official asset-weight table; ETF-to-ID discovery is required.",
+    ),
+    "fuh_hwa": ConstituentSource(
+        "fuh_hwa", "復華", "00929",
+        "https://www.fhtrust.com.tw/ETF/etf_detail/ETF21",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_ID", "Complete holdings page; ETF-to-ID discovery is required.",
+    ),
+    "capital": ConstituentSource(
+        "capital", "群益", "00923",
+        "https://www.capitalfund.com.tw/etf/product/detail/365/buyback",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_ID", "Complete buyback holdings; ETF-to-ID discovery is required.",
+    ),
+    "taishin": ConstituentSource(
+        "taishin", "台新", "00987A",
+        "https://www.tsit.com.tw/ETF/Home/ETFSeriesDetail/00987A",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ETF_CODE_IN_PATH", "Complete holdings table; adapter not implemented.",
+    ),
+    "ctbc": ConstituentSource(
+        "ctbc", "中國信託", "00891",
+        "https://www.ctbcinvestments.com.tw/CTWEB/Content/ETF/pcd.aspx?ETF_ID=00891",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ETF_CODE_QUERY", "Complete holdings table; adapter not implemented.",
+    ),
+    "upam": ConstituentSource(
+        "upam", "統一", "00939",
+        "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=46YTW",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_CODE", "Complete holdings table; ETF-to-code discovery is required.",
+    ),
+    "jko": ConstituentSource(
+        "jko", "街口", "00693U",
+        "https://ec.jkoam.com/EventArea/classroom.php",
+        ConstituentSourceStatus.NOT_APPLICABLE,
+        "FUTURES_ETF_ONLY",
+        "Current TWSE products are commodity futures trusts, not equity portfolios.",
+    ),
+    "franklin": ConstituentSource(
+        "franklin", "富蘭克林", "00905",
+        "https://www.ftft.com.tw/etf/product/details/?id=131&tab=profile",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_ID", "Official holdings tab; ETF-to-ID discovery is required.",
+    ),
+    "kgi": ConstituentSource(
+        "kgi", "凱基", "00915",
+        "https://www.kgifund.com.tw/Fund/Detail?fundID=J015",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_ID", "Complete holdings table; ETF-to-ID discovery is required.",
+    ),
+    "uob": ConstituentSource(
+        "uob", "大華銀", "00918",
+        "https://www.uobam.com.tw/fund/etf/pcf?fundID=88281125",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_ID", "Official PCF page; ETF-to-ID discovery is required.",
+    ),
+    "nomura": ConstituentSource(
+        "nomura", "野村", "00944",
+        "https://www.nomurafunds.com.tw/ETFWEB/pcf",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ETF_CODE_BODY",
+        "Official GetFundAssets API returns complete holdings by ETF code.",
+    ),
+    "esun": ConstituentSource(
+        "esun", "玉山", "009803",
+        "https://www.esunam.com/ETF/etf-pcf",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_FUND_ID",
+        "Official overview maps ETF code to FundNo; GetFundAssets returns complete holdings.",
+    ),
+    "union": ConstituentSource(
+        "union", "聯邦", "009804",
+        "https://www.usitc.com.tw/CustCenter/BuyBackList",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "FORM_SELECTION", "Complete holdings table; selection request needs an adapter.",
+    ),
+    "hnh": ConstituentSource(
+        "hnh", "華南永昌", "009808",
+        "https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/swagger/index.html",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ETFID_QUERY_WITH_SYSTEM_TOKEN",
+        "Official OpenAPI PCF endpoint returns complete holdings by ETFID.",
+    ),
+    "allianz": ConstituentSource(
+        "allianz", "安聯", "00984A",
+        "https://etf.allianzgi.com.tw/etf-info/E0001?tab=4",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ANTIFORGERY_INTERNAL_FUND_ID",
+        "Official overview and GetFundAssets APIs return complete holdings after antiforgery setup.",
+    ),
+    "blackrock": ConstituentSource(
+        "blackrock", "貝萊德投信", "009813",
+        "https://www.blackrock.com/tw/products/345655/blackrock-ishares-s-p-500-top-50-etf",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "INTERNAL_PRODUCT_ID", "Complete holdings table; ETF-to-product discovery is required.",
+    ),
+    "jpmorgan": ConstituentSource(
+        "jpmorgan", "摩根", "00989A",
+        "https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-us-tech-leaders-active-etf-tw00000989a5",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ISIN_SLUG", "Complete multi-page holdings table; adapter not implemented.",
+    ),
+    "alliancebernstein": ConstituentSource(
+        "alliancebernstein", "聯博", "00404A",
+        "https://www.abfunds.com.tw/zh-tw/etfs/pcf.TW00000404A5.html",
+        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        "ISIN_PATH",
+        "Official holdings and basket APIs return complete data by share-class ISIN.",
+    ),
+}
+
+
+def get_constituent_source(issuer_key: str) -> ConstituentSource:
+    normalized = issuer_key.strip().lower()
+    try:
+        return CONSTITUENT_SOURCES[normalized]
+    except KeyError as error:
+        raise KeyError(f"找不到 ETF 成分股來源：{normalized}") from error
