@@ -111,6 +111,9 @@ class TestActualDividendSourceRegistry(
             "alliancebernstein_etf_dividend_document": (
                 SourceDiscoveryKind.JSON_API
             ),
+            "allianz_etf_dividend_document": (
+                SourceDiscoveryKind.HTML_LIST
+            ),
         }
 
         for source_id, discovery_kind in expected.items():
@@ -182,7 +185,7 @@ class TestActualDividendSourceRegistry(
         }
 
         self.assertEqual(pending, set())
-        self.assertEqual(len(landing_pages), 12)
+        self.assertEqual(len(landing_pages), 11)
 
 
 if __name__ == "__main__":
