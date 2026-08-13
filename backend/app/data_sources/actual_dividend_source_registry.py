@@ -3,6 +3,10 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from backend.app.data_sources.issuer_dividend_landing_pages import (
+    ISSUER_DIVIDEND_LANDING_PAGES,
+)
+
 
 class ActualDividendSourceMode(StrEnum):
     """正式配息來源目前的導入狀態。"""
@@ -27,6 +31,8 @@ class SourceDiscoveryKind(StrEnum):
     JSON_API = "JSON_API"
     DETERMINISTIC_URL = "DETERMINISTIC_URL"
     HTML_LIST = "HTML_LIST"
+    OFFICIAL_LANDING_PAGE = "OFFICIAL_LANDING_PAGE"
+    RESTRICTED_OFFICIAL_SOURCE = "RESTRICTED_OFFICIAL_SOURCE"
     PENDING_VERIFICATION = "PENDING_VERIFICATION"
 
 
@@ -231,7 +237,6 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
     tuple[str, str],
 ] = {
     "yuanta": ("元大投信", "yuanta_etf_dividend_document"),
-    "fubon": ("富邦投信", "fubon_etf_dividend_document"),
     "sinopac": ("永豐投信", "sinopac_etf_dividend_document"),
     "mega": ("兆豐投信", "mega_etf_dividend_document"),
     "first": ("第一金投信", "first_etf_dividend_document"),
@@ -254,6 +259,19 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
 }
 
 
+# 已以代表 ETF 對官方入口完成即時驗證，可使用共用 HTML 公告探索器。
+_HTML_LIST_ISSUER_KEYS = frozenset({
+    "yuanta", "upam", "franklin", "jpmorgan", "taishin", "uob", "allianz", "mega",
+    "first",
+    "sinopac",
+    "fuh_hwa",
+    "jko",
+    "union",
+})
+_JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein", "esun", "nomura"})
+_RESTRICTED_ISSUER_KEYS = frozenset({"blackrock", "hnh"})
+
+
 ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
     ActualDividendSource(
         source_id="capital_etf_dividend_document",
@@ -267,10 +285,32 @@ ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
         priority=5,
         discovery_kind=SourceDiscoveryKind.HTML_LIST,
         notes=(
-            "以官方 DividendInfo API 对应 ETF 名称，并从最新配息公告页"
-            "筛选期后实际配发公告及 PDF；目前仅覆盖最新一页。"
+            "以官方 DividendInfo API 對應 ETF 名稱，並從最新配息公告頁"
+            "篩選期後實際配發公告及 PDF；目前僅覆蓋最新一頁。"
         ),
         issuer_key="capital",
+    )
+)
+
+
+ACTUAL_DIVIDEND_SOURCES["fubon_etf_dividend_document"] = (
+    ActualDividendSource(
+        source_id="fubon_etf_dividend_document",
+        issuer_name="富邦證券投資信託股份有限公司",
+        official_domains=(
+            "fubon.com",
+            "www.fubon.com",
+            "etrade.fsit.com.tw",
+        ),
+        mode=ActualDividendSourceMode.DISCOVERY_ONLY,
+        retrieval_policy=SourceRetrievalPolicy.EXPLICIT_NETWORK,
+        priority=6,
+        discovery_kind=SourceDiscoveryKind.HTML_LIST,
+        notes=(
+            "從官方基金總覽映射證券代號與 Fd，再發現基金頁中的"
+            "收益分配 PDF；公告標題不足以判定期前或期後。"
+        ),
+        issuer_key="fubon",
     )
 )
 
@@ -292,6 +332,130 @@ for _issuer_key, (
             "官方查詢入口與文件格式尚待逐家驗證。"
         ),
         issuer_key=_issuer_key,
+    )
+
+
+for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
+    if (
+        _source.issuer_key in ISSUER_DIVIDEND_LANDING_PAGES
+        and _source.discovery_kind == SourceDiscoveryKind.PENDING_VERIFICATION
+    ):
+        _landing_page = ISSUER_DIVIDEND_LANDING_PAGES[_source.issuer_key]
+        _supports_generic_discovery = (
+            _source.issuer_key in _HTML_LIST_ISSUER_KEYS
+            or _source.issuer_key in _JSON_API_ISSUER_KEYS
+        )
+        ACTUAL_DIVIDEND_SOURCES[_source_id] = ActualDividendSource(
+            source_id=_source.source_id,
+            issuer_name=_source.issuer_name,
+            official_domains=_landing_page.official_domains,
+            mode=_source.mode,
+            retrieval_policy=(
+                SourceRetrievalPolicy.MANUAL_ONLY
+                if _source.issuer_key in _RESTRICTED_ISSUER_KEYS
+                else _source.retrieval_policy
+            ),
+            priority=_source.priority,
+            discovery_kind=(
+                SourceDiscoveryKind.JSON_API
+                if _source.issuer_key in _JSON_API_ISSUER_KEYS
+                else SourceDiscoveryKind.HTML_LIST
+                if _source.issuer_key in _HTML_LIST_ISSUER_KEYS
+                else SourceDiscoveryKind.RESTRICTED_OFFICIAL_SOURCE
+                if _source.issuer_key in _RESTRICTED_ISSUER_KEYS
+                else SourceDiscoveryKind.OFFICIAL_LANDING_PAGE
+            ),
+            notes=(
+                f"已驗證官方 {_landing_page.page_kind} 入口："
+                f"{_landing_page.url}；"
+                + (
+                    (
+                        "已實測可依 ETF 代號解析官方歷史配息金額、日期與"
+                        "股息利息、資本利得、其他所得及收益平準金比例。"
+                        if _source.issuer_key == "taishin"
+                        else (
+                            "已驗證官方 distributions JSON API；尚未首次配息"
+                            "時允許回傳空歷史資料與下次預定日。"
+                            if _source.issuer_key == "alliancebernstein"
+                            else (
+                                "已驗證官方 GetETFOverview 與 "
+                                "GetETFFundYieldList JSON API；可對照上市代號並"
+                                "取得歷史配息金額及日期。"
+                                if _source.issuer_key == "esun"
+                                else (
+                                "已驗證官方 GetFundYield JSON API；可依 ETF 代號"
+                                "取得歷史配息金額、評價日、除息日及發放日。"
+                                if _source.issuer_key == "nomura"
+                            else (
+                                "已實測可依 ETF 代號解析官方基金 ID、基金名稱與"
+                                "實際配息金額及日期；組成比例仍待其他官方揭露。"
+                                if _source.issuer_key == "uob"
+                                else (
+                                    "已驗證官方產品公告卡片解析；只接受實際配發或"
+                                    "期後收益分配公告，首次配息前允許回傳空結果。"
+                                    if _source.issuer_key == "allianz"
+                                    else (
+                                        "已實測可用官方基金名稱連接證券代號與內部 ID，"
+                                        "並解析歷史配息金額、日期、殖利率及明示所得欄位。"
+                                        if _source.issuer_key == "mega"
+                                        else (
+                                            "已實測可用官方內嵌基金資料映射 ETF 代號與"
+                                            "基金名稱，並篩選配息金額公告、拒絕期前公告。"
+                                            if _source.issuer_key == "first"
+                                            else (
+                                                "已實測可由官方 PCF 頁解析 ETF 對應 fund ID，"
+                                                "並取得配息金額、日期、可分配淨利益與本金比例。"
+                                                if _source.issuer_key == "sinopac"
+                                                else (
+                                                    "已實測可由官方 ETF 選單映射內部 ID，"
+                                                    "解析歷史配息並建立月份化組成 PDF 網址。"
+                                                    if _source.issuer_key == "fuh_hwa"
+                                                    else (
+                                                        "已逐檔驗證現有街口期貨 ETF 官方產品頁"
+                                                        "均明示收益分配為無；未知新代號不得推定。"
+                                                        if _source.issuer_key == "jko"
+                                else "已實測可由官方 HTML 探索器依 ETF 代號發現公告；"
+                                "文件內容仍須判定正式組成。"
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                            )
+                            )
+                        )
+                    )
+                    if _supports_generic_discovery
+                    else "尚待升級為可依 ETF 代號查詢的 Adapter。"
+                )
+            ),
+            issuer_key=_source.issuer_key,
+        )
+
+
+for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
+    if _source.issuer_key not in _RESTRICTED_ISSUER_KEYS:
+        continue
+    _landing_page = ISSUER_DIVIDEND_LANDING_PAGES[_source.issuer_key]
+    _restriction = (
+        "官方 HTTPS 憑證已過期；禁止略過 TLS 驗證，待發行人更新憑證。"
+        if _landing_page.network_access == "EXPIRED_TLS"
+        else "官方 CDN 對後端程式回傳 403；保留瀏覽器可讀入口與手動流程。"
+    )
+    ACTUAL_DIVIDEND_SOURCES[_source_id] = ActualDividendSource(
+        source_id=_source.source_id,
+        issuer_name=_source.issuer_name,
+        official_domains=_source.official_domains,
+        mode=_source.mode,
+        retrieval_policy=SourceRetrievalPolicy.MANUAL_ONLY,
+        priority=_source.priority,
+        adapter_name=_source.adapter_name,
+        discovery_kind=SourceDiscoveryKind.RESTRICTED_OFFICIAL_SOURCE,
+        enabled=_source.enabled,
+        notes=f"已驗證官方入口：{_landing_page.url}；{_restriction}",
+        issuer_key=_source.issuer_key,
     )
 
 
