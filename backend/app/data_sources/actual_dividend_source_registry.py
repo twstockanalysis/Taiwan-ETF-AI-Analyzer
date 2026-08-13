@@ -260,7 +260,7 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
 
 # 已以代表 ETF 對官方入口完成即時驗證，可使用共用 HTML 公告探索器。
 _HTML_LIST_ISSUER_KEYS = frozenset({
-    "upam", "franklin", "jpmorgan", "taishin", "uob", "allianz",
+    "upam", "franklin", "jpmorgan", "taishin", "uob", "allianz", "mega",
 })
 _JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein"})
 
@@ -372,8 +372,13 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
                                     "已驗證官方產品公告卡片解析；只接受實際配發或"
                                     "期後收益分配公告，首次配息前允許回傳空結果。"
                                     if _source.issuer_key == "allianz"
+                                    else (
+                                        "已實測可用官方基金名稱連接證券代號與內部 ID，"
+                                        "並解析歷史配息金額、日期、殖利率及明示所得欄位。"
+                                        if _source.issuer_key == "mega"
                                 else "已實測可由官方 HTML 探索器依 ETF 代號發現公告；"
                                 "文件內容仍須判定正式組成。"
+                                    )
                                 )
                             )
                         )
