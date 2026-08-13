@@ -122,6 +122,7 @@ def validate_candidate_holding_analysis(payload: object) -> dict[str, Any]:
         "proposed_portfolio",
         "comparison",
         "eligibility",
+        "explainable_assessment",
         "decision_priority",
         "unavailable_fields",
     }
@@ -143,6 +144,17 @@ def validate_candidate_holding_analysis(payload: object) -> dict[str, Any]:
                 for item in items
             ):
                 raise APIResponseError("候選持倉分析缺少納入或排除理由")
+    assessment = payload.get("explainable_assessment")
+    if assessment is not None:
+        if not isinstance(assessment, dict) or assessment.get("outcome") not in {
+            "INSUFFICIENT_DATA",
+            "BLOCKED_BY_GATE",
+            "NEEDS_REVIEW",
+            "GATE_ALIGNED",
+        }:
+            raise APIResponseError("候選持倉分析可解釋評定格式不正確")
+        if not isinstance(assessment.get("factors"), list):
+            raise APIResponseError("候選持倉分析可解釋評定缺少因素")
     return payload
 
 

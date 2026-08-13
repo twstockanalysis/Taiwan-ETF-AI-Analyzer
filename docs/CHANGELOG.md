@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-13 — Explainable assessment baseline
+
+- Added a deterministic four-factor assessment to candidate holding analysis.
+- Preserved data-quality, total-return, principal-risk and after-tax cash-flow
+  gates ahead of optional payment-month coverage.
+- Exposed factor evidence and stable reason codes without an opaque score,
+  buy/sell label, external model or paid API dependency.
+- Added a Streamlit summary table with expandable evidence and explicit limits.
+
 ## 2026-08-13 — Custom target payment months
 
 - Added backward-compatible target payment months to monthly combination requests;

@@ -31,6 +31,9 @@ from backend.app.repositories.performance_repository import (
 from backend.app.services.current_holding_analysis import (
     analyze_holding_snapshot,
 )
+from backend.app.services.explainable_assessment import (
+    build_explainable_assessment,
+)
 from backend.app.services.monthly_combination_calculator import (
     calculate_monthly_payment_combination,
 )
@@ -330,5 +333,9 @@ def analyze_candidate_holding(
             request.unit_price * request.proposed_units,
         ),
         eligibility=eligibility,
+        explainable_assessment=build_explainable_assessment(
+            eligibility,
+            request.rules,
+        ),
         unavailable_fields=unavailable_fields,
     )

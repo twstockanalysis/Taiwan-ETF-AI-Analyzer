@@ -258,6 +258,45 @@ def build_candidate_comparison_rows(
     ]
 
 
+def render_explainable_assessment(assessment: dict[str, Any]) -> None:
+    """以原始閘門證據呈現評定，不顯示總分或買賣訊號。"""
+
+    outcome = assessment["outcome"]
+    headline = assessment["headline"]
+    if outcome == "GATE_ALIGNED":
+        st.success(f"可解釋評定：{headline}")
+    elif outcome == "BLOCKED_BY_GATE":
+        st.error(f"可解釋評定：{headline}")
+    elif outcome == "INSUFFICIENT_DATA":
+        st.warning(f"可解釋評定：{headline}")
+    else:
+        st.info(f"可解釋評定：{headline}")
+
+    status_labels = {
+        "PASS": "通過",
+        "FAIL": "未通過",
+        "REVIEW": "需確認",
+        "UNAVAILABLE": "資料不足",
+        "NOT_EVALUATED": "未評估",
+    }
+    st.table(
+        [
+            {
+                "評定面向": factor["title"],
+                "狀態": status_labels[factor["status"]],
+                "判定原則": factor["summary"],
+            }
+            for factor in assessment["factors"]
+        ]
+    )
+    with st.expander("查看評定證據與限制"):
+        for factor in assessment["factors"]:
+            st.markdown(f"**{factor['title']}**")
+            for item in factor.get("evidence", []):
+                st.write(f"- {item}")
+        st.caption(assessment["disclaimer"])
+
+
 def render_candidate_holding_analysis_result(
     analysis: dict[str, Any],
 ) -> None:
@@ -299,6 +338,10 @@ def render_candidate_holding_analysis_result(
             border=True,
         )
     st.table(build_candidate_comparison_rows(comparison))
+
+    assessment = analysis.get("explainable_assessment")
+    if assessment is not None:
+        render_explainable_assessment(assessment)
 
     eligibility = analysis["eligibility"]
     selected = eligibility["selected_candidates"]

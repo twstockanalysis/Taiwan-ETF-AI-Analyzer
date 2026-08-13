@@ -36,6 +36,10 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
                 "selected_candidates": [{"reasons": []}],
                 "rejected_candidates": [],
             },
+            "explainable_assessment": {
+                "outcome": "GATE_ALIGNED",
+                "factors": [],
+            },
             "decision_priority": ["TOTAL_RETURN_AND_PRINCIPAL_RISK"],
             "unavailable_fields": [],
         }

@@ -103,6 +103,13 @@ returns current and proposed portfolio snapshots, calculable deltas and the
 M10-5 selected/rejected candidate result with stable reasons. The scenario is
 read-only and never updates the saved holding.
 
+The same response includes `explainable_assessment` when eligibility can be
+evaluated. Its deterministic `DETERMINISTIC_EVIDENCE_GATES_V1` methodology
+returns one outcome plus ordered data-quality, total-return/principal-risk,
+after-tax cash-flow and optional payment-month factors. Each factor preserves
+observed evidence and stable reason codes. It is not an opaque score, buy/sell
+signal, performance forecast or gate override.
+
 M11-4 reruns the candidate analysis on the server before saving an immutable
 record. Records preserve the original request, full analysis snapshot,
 rationale, exclusions, deterministic alternatives and risk notes. The record

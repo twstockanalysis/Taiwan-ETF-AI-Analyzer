@@ -227,6 +227,17 @@ render_candidate_holding_analysis_result({
         }],
         "rejected_candidates": [],
     },
+    "explainable_assessment": {
+        "outcome": "GATE_ALIGNED",
+        "headline": "核心閘門均通過。",
+        "factors": [{
+            "title": "資料品質",
+            "status": "PASS",
+            "summary": "資料完整。",
+            "evidence": ["完整度 100%"],
+        }],
+        "disclaimer": "不是投資建議。",
+    },
 })
 '''
         )
@@ -236,6 +247,7 @@ render_candidate_holding_analysis_result({
         self.assertEqual(metric_values["目標覆蓋率變化"], "4.00%")
         successes = " ".join(item.value for item in app.success)
         self.assertIn("通過資料品質與風險門檻", successes)
+        self.assertIn("核心閘門均通過", successes)
 
     def test_saved_record_can_prepare_excel_download(self):
         app = AppTest.from_string(
