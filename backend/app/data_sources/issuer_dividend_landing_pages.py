@@ -9,12 +9,17 @@ class IssuerDividendLandingPage:
     url: str
     official_domains: tuple[str, ...]
     page_kind: str
+    network_access: str = "DIRECT"
 
 
 ISSUER_DIVIDEND_LANDING_PAGES: dict[str, IssuerDividendLandingPage] = {
     "yuanta": IssuerDividendLandingPage(
         "yuanta", "https://www.yuantaetfs.com/News/announcement",
         ("yuantaetfs.com", "www.yuantaetfs.com"), "ETF_ANNOUNCEMENTS",
+    ),
+    "upam": IssuerDividendLandingPage(
+        "upam", "https://www.ezmoney.com.tw/ETF/",
+        ("ezmoney.com.tw", "www.ezmoney.com.tw"), "ETF_HOME",
     ),
     "sinopac": IssuerDividendLandingPage(
         "sinopac", "https://sitc.sinopac.com/newweb/index.html",
@@ -45,8 +50,8 @@ ISSUER_DIVIDEND_LANDING_PAGES: dict[str, IssuerDividendLandingPage] = {
         ("ftft.com.tw", "www.ftft.com.tw"), "FUND_ANNOUNCEMENTS",
     ),
     "uob": IssuerDividendLandingPage(
-        "uob", "https://www.uobam.com.tw/ETFlandingpage",
-        ("uobam.com.tw", "www.uobam.com.tw"), "ETF_ANNOUNCEMENTS",
+        "uob", "https://www.uobam.com.tw/",
+        ("uobam.com.tw", "www.uobam.com.tw"), "ETF_HOME",
     ),
     "nomura": IssuerDividendLandingPage(
         "nomura", "https://www.nomurafunds.com.tw/ETFWEB/announcements/24",
@@ -62,7 +67,11 @@ ISSUER_DIVIDEND_LANDING_PAGES: dict[str, IssuerDividendLandingPage] = {
     ),
     "hnh": IssuerDividendLandingPage(
         "hnh", "https://www.hnitc.com.tw/www3/news/",
-        ("hnitc.com.tw", "www.hnitc.com.tw"), "FUND_ANNOUNCEMENTS",
+        (
+            "hnitc.com.tw", "www.hnitc.com.tw",
+            "hnfunds.com.tw", "www.hnfunds.com.tw",
+        ),
+        "FUND_ANNOUNCEMENTS",
     ),
     "allianz": IssuerDividendLandingPage(
         "allianz", "https://tw.allianzgi.com/zh-tw/announcement/product-announcement",
@@ -70,7 +79,7 @@ ISSUER_DIVIDEND_LANDING_PAGES: dict[str, IssuerDividendLandingPage] = {
     ),
     "blackrock": IssuerDividendLandingPage(
         "blackrock", "https://www.blackrock.com/tw/literature/fund-announcement",
-        ("blackrock.com", "www.blackrock.com"), "FUND_DOCUMENTS",
+        ("blackrock.com", "www.blackrock.com"), "FUND_DOCUMENTS", "PROTECTED",
     ),
     "jpmorgan": IssuerDividendLandingPage(
         "jpmorgan", "https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/announcements/",

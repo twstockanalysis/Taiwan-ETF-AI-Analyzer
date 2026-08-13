@@ -3,6 +3,10 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from backend.app.data_sources.issuer_dividend_landing_pages import (
+    ISSUER_DIVIDEND_LANDING_PAGES,
+)
+
 
 class ActualDividendSourceMode(StrEnum):
     """正式配息來源目前的導入狀態。"""
@@ -315,6 +319,28 @@ for _issuer_key, (
         ),
         issuer_key=_issuer_key,
     )
+
+
+for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
+    if (
+        _source.issuer_key in ISSUER_DIVIDEND_LANDING_PAGES
+        and _source.discovery_kind == SourceDiscoveryKind.PENDING_VERIFICATION
+    ):
+        _landing_page = ISSUER_DIVIDEND_LANDING_PAGES[_source.issuer_key]
+        ACTUAL_DIVIDEND_SOURCES[_source_id] = ActualDividendSource(
+            source_id=_source.source_id,
+            issuer_name=_source.issuer_name,
+            official_domains=_landing_page.official_domains,
+            mode=_source.mode,
+            retrieval_policy=_source.retrieval_policy,
+            priority=_source.priority,
+            discovery_kind=SourceDiscoveryKind.OFFICIAL_LANDING_PAGE,
+            notes=(
+                f"已驗證官方 {_landing_page.page_kind} 入口："
+                f"{_landing_page.url}；尚待升級為可依 ETF 代號查詢的 Adapter。"
+            ),
+            issuer_key=_source.issuer_key,
+        )
 
 
 def list_etf_issuer_sources() -> list[ActualDividendSource]:

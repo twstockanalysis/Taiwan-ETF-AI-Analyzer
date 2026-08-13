@@ -94,7 +94,7 @@ class TestActualDividendSourceRegistry(
                 SourceDiscoveryKind.HTML_LIST
             ),
             "upam_etf_dividend_document": (
-                SourceDiscoveryKind.PENDING_VERIFICATION
+                SourceDiscoveryKind.OFFICIAL_LANDING_PAGE
             ),
         }
 
@@ -153,6 +153,21 @@ class TestActualDividendSourceRegistry(
             SourceDiscoveryKind.OFFICIAL_LANDING_PAGE,
             SourceDiscoveryKind.HTML_LIST,
         )
+
+    def test_no_issuer_remains_pending_without_official_entrypoint(self) -> None:
+        pending = {
+            source.issuer_key
+            for source in list_etf_issuer_sources()
+            if source.discovery_kind == SourceDiscoveryKind.PENDING_VERIFICATION
+        }
+        landing_pages = {
+            source.issuer_key
+            for source in list_etf_issuer_sources()
+            if source.discovery_kind == SourceDiscoveryKind.OFFICIAL_LANDING_PAGE
+        }
+
+        self.assertEqual(pending, set())
+        self.assertEqual(len(landing_pages), 18)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ from backend.app.data_sources.issuer_dividend_landing_pages import (
 
 class TestIssuerDividendLandingPages(unittest.TestCase):
     def test_all_remaining_issuers_have_https_official_entrypoints(self) -> None:
-        self.assertEqual(len(ISSUER_DIVIDEND_LANDING_PAGES), 17)
+        self.assertEqual(len(ISSUER_DIVIDEND_LANDING_PAGES), 18)
         for issuer_key, page in ISSUER_DIVIDEND_LANDING_PAGES.items():
             with self.subTest(issuer_key=issuer_key):
                 parsed = urlsplit(page.url)
@@ -19,6 +19,13 @@ class TestIssuerDividendLandingPages(unittest.TestCase):
                 self.assertIn(parsed.hostname, page.official_domains)
                 self.assertEqual(page.issuer_key, issuer_key)
                 self.assertTrue(page.page_kind)
+                self.assertIn(page.network_access, {"DIRECT", "PROTECTED"})
+
+    def test_blackrock_records_automated_access_protection(self) -> None:
+        self.assertEqual(
+            ISSUER_DIVIDEND_LANDING_PAGES["blackrock"].network_access,
+            "PROTECTED",
+        )
 
     def test_lookup_normalizes_issuer_key(self) -> None:
         self.assertEqual(
