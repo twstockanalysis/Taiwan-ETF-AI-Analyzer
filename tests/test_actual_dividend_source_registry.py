@@ -129,6 +129,9 @@ class TestActualDividendSourceRegistry(
             "jko_etf_dividend_document": (
                 SourceDiscoveryKind.HTML_LIST
             ),
+            "nomura_etf_dividend_document": (
+                SourceDiscoveryKind.JSON_API
+            ),
         }
 
         for source_id, discovery_kind in expected.items():
@@ -200,7 +203,7 @@ class TestActualDividendSourceRegistry(
         }
 
         self.assertEqual(pending, set())
-        self.assertEqual(len(landing_pages), 6)
+        self.assertEqual(len(landing_pages), 5)
 
 
 if __name__ == "__main__":
