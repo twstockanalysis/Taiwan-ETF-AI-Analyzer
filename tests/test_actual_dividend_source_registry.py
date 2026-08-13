@@ -135,6 +135,9 @@ class TestActualDividendSourceRegistry(
             "esun_etf_dividend_document": (
                 SourceDiscoveryKind.JSON_API
             ),
+            "union_etf_dividend_document": (
+                SourceDiscoveryKind.HTML_LIST
+            ),
         }
 
         for source_id, discovery_kind in expected.items():
@@ -206,7 +209,7 @@ class TestActualDividendSourceRegistry(
         }
 
         self.assertEqual(pending, set())
-        self.assertEqual(len(landing_pages), 4)
+        self.assertEqual(len(landing_pages), 3)
 
 
 if __name__ == "__main__":

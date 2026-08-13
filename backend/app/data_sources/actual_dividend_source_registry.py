@@ -265,6 +265,7 @@ _HTML_LIST_ISSUER_KEYS = frozenset({
     "sinopac",
     "fuh_hwa",
     "jko",
+    "union",
 })
 _JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein", "esun", "nomura"})
 
