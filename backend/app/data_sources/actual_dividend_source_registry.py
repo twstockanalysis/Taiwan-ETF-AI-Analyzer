@@ -262,6 +262,7 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
 _HTML_LIST_ISSUER_KEYS = frozenset({
     "upam", "franklin", "jpmorgan", "taishin", "uob", "allianz", "mega",
     "first",
+    "sinopac",
 })
 _JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein"})
 
@@ -381,8 +382,13 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
                                             "已實測可用官方內嵌基金資料映射 ETF 代號與"
                                             "基金名稱，並篩選配息金額公告、拒絕期前公告。"
                                             if _source.issuer_key == "first"
+                                            else (
+                                                "已實測可由官方 PCF 頁解析 ETF 對應 fund ID，"
+                                                "並取得配息金額、日期、可分配淨利益與本金比例。"
+                                                if _source.issuer_key == "sinopac"
                                 else "已實測可由官方 HTML 探索器依 ETF 代號發現公告；"
                                 "文件內容仍須判定正式組成。"
+                                            )
                                         )
                                     )
                                 )
