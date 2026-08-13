@@ -1,0 +1,17 @@
+{
+  "PCF": {
+    "markcd": "0050",
+    "trandate": "20260813",
+    "anndate": "20260814"
+  },
+  "FundWeights": {
+    "StockWeights": [
+      {"code": "2330", "name": "台積電", "weights": 57.85, "qty": 570283656},
+      {"code": "2454", "name": "聯發科", "weights": 30.00, "qty": 34355943},
+      {"code": "2308", "name": "台達電", "weights": 11.86, "qty": 45076487}
+    ],
+    "FutureWeights": [
+      {"code": "TX", "name": "臺股期貨", "weights": 0.29, "qty": 648}
+    ]
+  }
+}

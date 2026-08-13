@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-13 — Yuanta official constituent ingestion
+
+- Added complete Yuanta ETF stock weights from the same official `PCF/Daily`
+  bridge used by the issuer product page.
+- Rejected mismatched ETF codes, invalid trading dates, missing rows and stock
+  weight coverage below 90% before creating an immutable snapshot.
+- Excluded futures, bonds and ETF positions from stock-overlap inputs while
+  preserving the official product page as source provenance.
+- Confirmed that the documented Fugle Market Data and Sinopac Shioaji APIs
+  identify and quote ETFs but do not expose ETF constituent weights.
+
 ## 2026-08-13 — ETF constituent snapshot foundation
 
 - Added immutable, source-dated ETF constituent snapshots and weighted

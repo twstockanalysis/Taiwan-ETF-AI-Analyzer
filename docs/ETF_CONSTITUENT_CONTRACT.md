@@ -45,7 +45,15 @@ and freshness gate before using overlap as a scored metric.
 
 ## Current scope
 
-This foundation does not yet fetch issuer files, expose a public endpoint or
-replace the manual overlap field. The next data-source milestone must identify
-official, automatable constituent sources and preserve their original dates and
-provenance before candidate analysis consumes the calculated result.
+Yuanta ETF stock weights are fetched from the official `PCF/Daily` bridge used
+by its product page. The adapter requires the returned ETF code to match the
+request, uses the official PCF trading date, and rejects stock-weight coverage
+below 90%. Futures, bonds and nested ETF positions are not mixed into equity
+constituent overlap.
+
+Other issuers still require independently verified official adapters. The
+published Fugle Market Data and Sinopac Shioaji endpoint sets provide ETF
+identity and market/account data but not ETF constituent weights. This contract
+still does not expose a public constituent endpoint or replace the manual
+overlap field; assessment integration requires separate freshness and
+multi-issuer coverage work.
