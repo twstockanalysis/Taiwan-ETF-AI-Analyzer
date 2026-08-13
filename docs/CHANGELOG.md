@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-14 — Direct-code official constituent adapters
+
+- Added official constituent ingestion for Fubon, SinoPac, Taishin, CTBC and
+  Nomura through one issuer-dispatched import interface.
+- Enforced ETF identity, official data date, stock-table selection and at least
+  90% disclosed stock-weight coverage before snapshots can be persisted.
+- Kept futures, cash and other non-stock rows outside constituent overlap data.
+
 ## 2026-08-13 — Yuanta official constituent ingestion
 
 - Audited all 23 issuers in the TWSE ETF issuer universe and added a

@@ -32,14 +32,14 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "fubon": ConstituentSource(
         "fubon", "富邦", "006208",
         "https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "ETF_CODE_QUERY", "Official PCF page; adapter not implemented.",
+        ConstituentSourceStatus.AUTOMATED,
+        "ETF_CODE_QUERY", "Official PCF assets are imported by the active adapter.",
     ),
     "sinopac": ConstituentSource(
         "sinopac", "永豐", "00930",
         "https://sitc.sinopac.com/SinopacEtfs/Etfs/Pcf/00930",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "ETF_CODE_IN_PATH", "Official PCF page; adapter not implemented.",
+        ConstituentSourceStatus.AUTOMATED,
+        "ETF_CODE_IN_PATH", "Official PCF stock weights are imported by the active adapter.",
     ),
     "mega": ConstituentSource(
         "mega", "兆豐", "00932",
@@ -74,14 +74,14 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "taishin": ConstituentSource(
         "taishin", "台新", "00987A",
         "https://www.tsit.com.tw/ETF/Home/ETFSeriesDetail/00987A",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "ETF_CODE_IN_PATH", "Complete holdings table; adapter not implemented.",
+        ConstituentSourceStatus.AUTOMATED,
+        "ETF_CODE_IN_PATH", "Official holdings are imported by the active adapter.",
     ),
     "ctbc": ConstituentSource(
         "ctbc", "中國信託", "00891",
         "https://www.ctbcinvestments.com.tw/CTWEB/Content/ETF/pcd.aspx?ETF_ID=00891",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "ETF_CODE_QUERY", "Complete holdings table; adapter not implemented.",
+        ConstituentSourceStatus.AUTOMATED,
+        "ETF_CODE_QUERY", "Official PCF stock weights are imported by the active adapter.",
     ),
     "upam": ConstituentSource(
         "upam", "統一", "00939",
@@ -117,9 +117,9 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "nomura": ConstituentSource(
         "nomura", "野村", "00944",
         "https://www.nomurafunds.com.tw/ETFWEB/pcf",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        ConstituentSourceStatus.AUTOMATED,
         "ETF_CODE_BODY",
-        "Official GetFundAssets API returns complete holdings by ETF code.",
+        "Official GetFundAssets holdings are imported by the active adapter.",
     ),
     "esun": ConstituentSource(
         "esun", "玉山", "009803",

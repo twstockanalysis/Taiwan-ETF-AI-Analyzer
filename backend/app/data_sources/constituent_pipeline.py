@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+from backend.app.data_sources.direct_constituent_adapters import (
+    DIRECT_CONSTITUENT_FETCHERS,
+)
 from backend.app.data_sources.yuanta_constituent_adapter import (
     fetch_yuanta_constituent_snapshot,
 )
@@ -22,4 +25,26 @@ def import_yuanta_constituents(
     if get_etf_by_code(normalized_code, database_path) is None:
         raise ValueError(f"找不到 ETF：{normalized_code}")
     value = fetch_yuanta_constituent_snapshot(normalized_code)
+    return save_constituent_snapshot(value, database_path)
+
+
+def import_official_constituents(
+    issuer_key: str,
+    etf_code: str,
+    database_path: str | Path,
+) -> ETFConstituentSnapshot:
+    """以統一介面匯入已自動化投信的官方成分股。"""
+
+    normalized_issuer = issuer_key.strip().lower()
+    normalized_code = etf_code.strip().upper()
+    if get_etf_by_code(normalized_code, database_path) is None:
+        raise ValueError(f"找不到 ETF：{normalized_code}")
+    if normalized_issuer == "yuanta":
+        value = fetch_yuanta_constituent_snapshot(normalized_code)
+    else:
+        try:
+            fetcher = DIRECT_CONSTITUENT_FETCHERS[normalized_issuer]
+        except KeyError as error:
+            raise ValueError(f"尚未支援投信成分股自動匯入：{normalized_issuer}") from error
+        value = fetcher(normalized_code)
     return save_constituent_snapshot(value, database_path)
