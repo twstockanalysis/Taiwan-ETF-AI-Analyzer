@@ -773,6 +773,19 @@ first public release, and AI output must not become opaque trading advice.
 - Deferred internal-ID, ISIN, token and form-backed issuers to the next source
   families
 
+### V2-6 — Mapped constituent sources, batch one — Completed locally
+
+- Added automatic official-directory mapping and holdings ingestion for Mega,
+  Fuh Hwa, UOB and E.SUN
+- Added official XLSX parsing for Fuh Hwa and reused the immutable snapshot
+  contract for HTML, JSON and workbook sources
+- Confirmed live stock coverage of 97.12%, 95.658%, 98.59% and 98.33%
+  respectively before marking these sources automated
+- Kept Capital fail-closed because its current server-rendered response exposes
+  only ten rows totaling 73.94%; incomplete rows are not persisted
+- Deferred the remaining internal-ID, product-ID and ISIN sources to subsequent
+  source-family batches
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation

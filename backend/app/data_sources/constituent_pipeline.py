@@ -5,6 +5,9 @@ from pathlib import Path
 from backend.app.data_sources.direct_constituent_adapters import (
     DIRECT_CONSTITUENT_FETCHERS,
 )
+from backend.app.data_sources.mapped_constituent_adapters import (
+    MAPPED_CONSTITUENT_FETCHERS,
+)
 from backend.app.data_sources.yuanta_constituent_adapter import (
     fetch_yuanta_constituent_snapshot,
 )
@@ -42,9 +45,11 @@ def import_official_constituents(
     if normalized_issuer == "yuanta":
         value = fetch_yuanta_constituent_snapshot(normalized_code)
     else:
-        try:
-            fetcher = DIRECT_CONSTITUENT_FETCHERS[normalized_issuer]
-        except KeyError as error:
-            raise ValueError(f"尚未支援投信成分股自動匯入：{normalized_issuer}") from error
+        fetcher = (
+            DIRECT_CONSTITUENT_FETCHERS.get(normalized_issuer)
+            or MAPPED_CONSTITUENT_FETCHERS.get(normalized_issuer)
+        )
+        if fetcher is None:
+            raise ValueError(f"尚未支援投信成分股自動匯入：{normalized_issuer}")
         value = fetcher(normalized_code)
     return save_constituent_snapshot(value, database_path)

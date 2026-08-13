@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-14 — Mapped official constituent adapters
+
+- Added automatic ETF-code-to-fund-ID discovery and official constituent
+  ingestion for Mega, Fuh Hwa, UOB and E.SUN.
+- Added support for Fuh Hwa's official asset Excel while keeping the same
+  identity, date and 90% stock-weight validation as HTML and JSON sources.
+- Kept Capital in verified-only status because its current server-rendered
+  response exposes ten stock rows totaling 73.94%, which fails the completeness
+  gate and must not be persisted as a full snapshot.
+
 ## 2026-08-14 — Direct-code official constituent adapters
 
 - Added official constituent ingestion for Fubon, SinoPac, Taishin, CTBC and
