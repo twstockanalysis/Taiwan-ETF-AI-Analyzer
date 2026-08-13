@@ -259,7 +259,9 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
 
 
 # 已以代表 ETF 對官方入口完成即時驗證，可使用共用 HTML 公告探索器。
-_GENERIC_HTML_LIST_ISSUER_KEYS = frozenset({"upam", "franklin"})
+_HTML_LIST_ISSUER_KEYS = frozenset({
+    "upam", "franklin", "jpmorgan",
+})
 
 
 ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
@@ -332,7 +334,7 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
     ):
         _landing_page = ISSUER_DIVIDEND_LANDING_PAGES[_source.issuer_key]
         _supports_generic_discovery = (
-            _source.issuer_key in _GENERIC_HTML_LIST_ISSUER_KEYS
+            _source.issuer_key in _HTML_LIST_ISSUER_KEYS
         )
         ACTUAL_DIVIDEND_SOURCES[_source_id] = ActualDividendSource(
             source_id=_source.source_id,
@@ -350,7 +352,7 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
                 f"已驗證官方 {_landing_page.page_kind} 入口："
                 f"{_landing_page.url}；"
                 + (
-                    "已實測可由共用 HTML 探索器依 ETF 代號發現公告；"
+                    "已實測可由官方 HTML 探索器依 ETF 代號發現公告；"
                     "文件內容仍須判定正式組成。"
                     if _supports_generic_discovery
                     else "尚待升級為可依 ETF 代號查詢的 Adapter。"

@@ -19,10 +19,13 @@ from backend.app.data_sources.openapi import create_ssl_context
 
 MAX_DOCUMENTS = 50
 MAX_RESPONSE_BYTES = 3_000_000
+MAX_ETF_PAGES = 5
 _ETF_CODE_PATTERN = re.compile(r"^[0-9A-Z]{4,10}$")
 _DATE_PATTERN = re.compile(r"(20\d{2})[/-](\d{1,2})[/-](\d{1,2})")
 _DIVIDEND_WORDS = ("收益分配", "配息公告", "實際配發")
 _ESTIMATED_WORDS = ("期前", "預估", "估算")
+_NON_DOCUMENT_WORDS = ("電子服務", "日程表", "歷史配息")
+_NON_DOCUMENT_TITLES = ("ETF基金配息",)
 _ONCLICK_HTTPS_URL_PATTERN = re.compile(r"https://[^'\"\s)]+")
 
 
@@ -82,9 +85,42 @@ class _AnchorParser(HTMLParser):
             self._text = []
 
 
+def find_official_etf_page_urls(
+    *, issuer_key: str, etf_code: str, html_text: str,
+) -> tuple[str, ...]:
+    """從官方入口找出含目標證券代號的官方基金頁。"""
+
+    page = get_issuer_dividend_landing_page(issuer_key)
+    normalized_code = etf_code.strip().upper()
+    if not _ETF_CODE_PATTERN.fullmatch(normalized_code):
+        raise ValueError("ETF 代號格式錯誤")
+    parser = _AnchorParser()
+    parser.feed(html_text)
+    urls: list[str] = []
+    seen: set[str] = set()
+    for href, title in parser.links:
+        if normalized_code not in f"{title} {href}".upper():
+            continue
+        url = urljoin(page.url, href.strip())
+        parsed = urlsplit(url)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname not in page.official_domains
+            or parsed.path.lower().endswith(".pdf")
+            or url in seen
+        ):
+            continue
+        seen.add(url)
+        urls.append(url)
+        if len(urls) >= MAX_ETF_PAGES:
+            break
+    return tuple(urls)
+
+
 def parse_issuer_landing_page(
     *, issuer_key: str, etf_code: str, html_text: str,
     max_documents: int = MAX_DOCUMENTS,
+    require_etf_code: bool = True,
 ) -> IssuerLandingPageDiscoveryResult:
     """從已驗證的投信官方入口擷取目標 ETF 配息連結。"""
 
@@ -104,9 +140,13 @@ def parse_issuer_landing_page(
     seen: set[str] = set()
     for href, title in parser.links:
         searchable = f"{title} {href}".upper()
-        if normalized_code not in searchable:
+        if require_etf_code and normalized_code not in searchable:
             continue
-        if not any(word in title for word in _DIVIDEND_WORDS):
+        if (
+            not any(word in title for word in _DIVIDEND_WORDS)
+            or any(word in title for word in _NON_DOCUMENT_WORDS)
+            or title.replace(" ", "") in _NON_DOCUMENT_TITLES
+        ):
             continue
         if any(word in title for word in _ESTIMATED_WORDS):
             rejections.append(
@@ -175,9 +215,57 @@ def discover_issuer_landing_page_documents(
     content_type = response.headers.get("content-type", "").lower()
     if "text/html" not in content_type:
         raise ValueError("投信官方入口未回傳 HTML")
-    return parse_issuer_landing_page(
+    landing_result = parse_issuer_landing_page(
         issuer_key=page.issuer_key,
         etf_code=etf_code,
         html_text=response.text,
         max_documents=max_documents,
+    )
+    candidates = list(landing_result.candidates)
+    rejections = list(landing_result.rejections)
+    seen_urls = {candidate.document_url for candidate in candidates}
+    for etf_page_url in find_official_etf_page_urls(
+        issuer_key=page.issuer_key,
+        etf_code=etf_code,
+        html_text=response.text,
+    ):
+        if len(candidates) >= max_documents:
+            break
+        if etf_page_url in seen_urls:
+            continue
+        detail_response = httpx.get(
+            etf_page_url,
+            timeout=30.0,
+            follow_redirects=True,
+            verify=create_ssl_context(),
+            headers={"User-Agent": "TW-ETF-AI-Analyzer/0.1 (official-discovery)"},
+        )
+        detail_response.raise_for_status()
+        detail_url = urlsplit(str(detail_response.url))
+        if (
+            detail_url.scheme != "https"
+            or detail_url.hostname not in page.official_domains
+            or len(detail_response.content) > MAX_RESPONSE_BYTES
+            or "text/html" not in detail_response.headers.get(
+                "content-type", ""
+            ).lower()
+        ):
+            continue
+        detail_result = parse_issuer_landing_page(
+            issuer_key=page.issuer_key,
+            etf_code=etf_code,
+            html_text=detail_response.text,
+            max_documents=max_documents - len(candidates),
+            require_etf_code=False,
+        )
+        for candidate in detail_result.candidates:
+            if candidate.document_url not in seen_urls:
+                candidates.append(candidate)
+                seen_urls.add(candidate.document_url)
+        rejections.extend(detail_result.rejections)
+    return IssuerLandingPageDiscoveryResult(
+        page.issuer_key,
+        etf_code.strip().upper(),
+        tuple(candidates),
+        tuple(rejections),
     )
