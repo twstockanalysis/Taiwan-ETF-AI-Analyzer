@@ -266,7 +266,7 @@ _HTML_LIST_ISSUER_KEYS = frozenset({
     "fuh_hwa",
     "jko",
 })
-_JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein", "nomura"})
+_JSON_API_ISSUER_KEYS = frozenset({"alliancebernstein", "esun", "nomura"})
 
 
 ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
@@ -369,6 +369,11 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
                             "時允許回傳空歷史資料與下次預定日。"
                             if _source.issuer_key == "alliancebernstein"
                             else (
+                                "已驗證官方 GetETFOverview 與 "
+                                "GetETFFundYieldList JSON API；可對照上市代號並"
+                                "取得歷史配息金額及日期。"
+                                if _source.issuer_key == "esun"
+                                else (
                                 "已驗證官方 GetFundYield JSON API；可依 ETF 代號"
                                 "取得歷史配息金額、評價日、除息日及發放日。"
                                 if _source.issuer_key == "nomura"
@@ -408,6 +413,7 @@ for _source_id, _source in tuple(ACTUAL_DIVIDEND_SOURCES.items()):
                                         )
                                     )
                                 )
+                            )
                             )
                             )
                         )
