@@ -51,9 +51,11 @@ overlap must never compensate for weak performance, and high overlap must be
 evaluated together with portfolio performance rather than receiving an
 automatic fixed penalty.
 
-The UI displays the two scores, their components and missing metrics. It does
-not display a separate assessment-confidence label; missing evidence remains
-visible through omitted components, unscored metrics and gate explanations.
+The API and immutable decision snapshot preserve both scores and their
+components. The UI only displays the final portfolio-fit score; ETF quality is
+an internal input and is not shown as a separate score or component. The UI
+also does not display an assessment-confidence label. Missing evidence remains
+visible through unscored metrics and gate explanations.
 
 ## Outcomes
 

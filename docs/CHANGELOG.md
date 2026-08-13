@@ -14,6 +14,8 @@
   missing official data unscored rather than converting it to zero.
 - Excluded manual overlap assumptions from scoring until automatic ETF
   constituent ingestion can calculate weighted portfolio overlap.
+- Kept ETF-quality scores and components in the backend while showing only the
+  final portfolio-fit score on the page.
 
 ## 2026-08-13 — Custom target payment months
 

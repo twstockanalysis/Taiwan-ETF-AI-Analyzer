@@ -272,38 +272,26 @@ def render_explainable_assessment(assessment: dict[str, Any]) -> None:
     else:
         st.info(f"可解釋評定：{headline}")
 
-    with st.container(horizontal=True):
-        st.metric(
-            "ETF 品質分數",
-            _metric_value(assessment.get("etf_quality_score"), suffix=" / 100"),
-            border=True,
-        )
-        st.metric(
-            "與目前持股適配分數",
-            _metric_value(
-                assessment.get("portfolio_fit_score"), suffix=" / 100"
-            ),
-            border=True,
-        )
+    st.metric(
+        "與目前持股適配分數",
+        _metric_value(assessment.get("portfolio_fit_score"), suffix=" / 100"),
+        border=True,
+    )
     st.caption(
-        "總報酬是主要基準；高股息、高 76W 或低重複性都不能單獨形成高分。"
+        "後端以 ETF 品質作為主要計算基礎；頁面只顯示最終適配分數。"
+        "高股息、高 76W 或低重複性都不能單獨形成高分。"
     )
 
-    component_rows = []
-    for group, components in (
-        ("ETF 品質", assessment.get("quality_components", [])),
-        ("持股適配", assessment.get("fit_components", [])),
-    ):
-        component_rows.extend(
-            {
-                "分數類型": group,
-                "量化項目": item["label"],
-                "項目分數": f"{Decimal(str(item['score'])):.2f}",
-                "原始權重": f"{Decimal(str(item['weight_pct'])):.2f}%",
-                "說明": item["explanation"],
-            }
-            for item in components
-        )
+    component_rows = [
+        {
+            "適配項目": item["label"],
+            "項目分數": f"{Decimal(str(item['score'])):.2f}",
+            "原始權重": f"{Decimal(str(item['weight_pct'])):.2f}%",
+            "說明": item["explanation"],
+        }
+        for item in assessment.get("fit_components", [])
+        if item.get("code") != "ETF_QUALITY"
+    ]
     if component_rows:
         st.table(component_rows)
 

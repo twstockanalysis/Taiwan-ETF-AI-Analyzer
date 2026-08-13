@@ -259,7 +259,7 @@ render_candidate_holding_analysis_result({
         self.assertIn("通過資料品質與風險門檻", successes)
         self.assertIn("核心閘門均通過", successes)
         metric_values = {item.label: item.value for item in app.metric}
-        self.assertEqual(metric_values["ETF 品質分數"], "78.50 / 100")
+        self.assertNotIn("ETF 品質分數", metric_values)
         self.assertEqual(
             metric_values["與目前持股適配分數"], "74.25 / 100"
         )

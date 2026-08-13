@@ -110,8 +110,10 @@ factors. Total return is the largest quality component; dividend cash, official
 ACTUAL 76W and overlap cannot independently determine a high score. Missing
 official 76W remains unscored. User-entered overlap remains a risk assumption
 and is excluded from scoring until automatic constituent data is available.
-The UI does not expose a separate confidence label. The response remains free
-of buy/sell signals, performance forecasts and gate overrides.
+The UI exposes only the final portfolio-fit score. ETF quality and its
+components remain backend data, and no separate confidence label is shown.
+The response remains free of buy/sell signals, performance forecasts and gate
+overrides.
 
 M11-4 reruns the candidate analysis on the server before saving an immutable
 record. Records preserve the original request, full analysis snapshot,

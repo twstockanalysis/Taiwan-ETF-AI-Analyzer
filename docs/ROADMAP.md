@@ -728,7 +728,8 @@ first public release, and AI output must not become opaque trading advice.
 - Established a structured baseline that a future language model may explain
   but may not override
 - Added transparent ETF-quality and portfolio-fit scores led by total return;
-  the page does not display a separate confidence label
+  the page displays only portfolio fit, with ETF quality and confidence kept
+  out of the user-facing score cards
 - Kept manually entered overlap out of scoring pending automatic constituent
   ingestion and portfolio-weighted overlap calculation
 
