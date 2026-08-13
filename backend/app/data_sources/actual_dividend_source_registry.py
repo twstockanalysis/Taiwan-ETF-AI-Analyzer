@@ -231,7 +231,6 @@ _PENDING_ISSUER_SOURCE_SPECS: dict[
     tuple[str, str],
 ] = {
     "yuanta": ("元大投信", "yuanta_etf_dividend_document"),
-    "fubon": ("富邦投信", "fubon_etf_dividend_document"),
     "sinopac": ("永豐投信", "sinopac_etf_dividend_document"),
     "mega": ("兆豐投信", "mega_etf_dividend_document"),
     "first": ("第一金投信", "first_etf_dividend_document"),
@@ -271,6 +270,28 @@ ACTUAL_DIVIDEND_SOURCES["capital_etf_dividend_document"] = (
             "筛选期后实际配发公告及 PDF；目前仅覆盖最新一页。"
         ),
         issuer_key="capital",
+    )
+)
+
+
+ACTUAL_DIVIDEND_SOURCES["fubon_etf_dividend_document"] = (
+    ActualDividendSource(
+        source_id="fubon_etf_dividend_document",
+        issuer_name="富邦證券投資信託股份有限公司",
+        official_domains=(
+            "fubon.com",
+            "www.fubon.com",
+            "etrade.fsit.com.tw",
+        ),
+        mode=ActualDividendSourceMode.DISCOVERY_ONLY,
+        retrieval_policy=SourceRetrievalPolicy.EXPLICIT_NETWORK,
+        priority=6,
+        discovery_kind=SourceDiscoveryKind.HTML_LIST,
+        notes=(
+            "從官方基金總覽映射證券代號與 Fd，再發現基金頁中的"
+            "收益分配 PDF；公告標題不足以判定期前或期後。"
+        ),
+        issuer_key="fubon",
     )
 )
 
