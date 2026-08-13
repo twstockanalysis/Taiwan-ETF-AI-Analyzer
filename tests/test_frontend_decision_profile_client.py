@@ -36,6 +36,15 @@ class TestFrontendDecisionProfileClient(unittest.TestCase):
                 "selected_candidates": [{"reasons": []}],
                 "rejected_candidates": [],
             },
+            "explainable_assessment": {
+                "outcome": "GATE_ALIGNED",
+                "etf_quality_score": "70",
+                "portfolio_fit_score": "72",
+                "quality_components": [],
+                "fit_components": [],
+                "unscored_metrics": ["AUTOMATED_CONSTITUENT_OVERLAP"],
+                "factors": [],
+            },
             "decision_priority": ["TOTAL_RETURN_AND_PRINCIPAL_RISK"],
             "unavailable_fields": [],
         }

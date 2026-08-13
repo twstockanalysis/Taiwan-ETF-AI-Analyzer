@@ -103,6 +103,18 @@ returns current and proposed portfolio snapshots, calculable deltas and the
 M10-5 selected/rejected candidate result with stable reasons. The scenario is
 read-only and never updates the saved holding.
 
+The same response includes `explainable_assessment` when eligibility can be
+evaluated. Its deterministic `DETERMINISTIC_MULTI_SCORE_V2` methodology returns
+an ETF quality score, a current-portfolio fit score and ordered evidence
+factors. Total return is the largest quality component; dividend cash, official
+ACTUAL 76W and overlap cannot independently determine a high score. Missing
+official 76W remains unscored. User-entered overlap remains a risk assumption
+and is excluded from scoring until automatic constituent data is available.
+The UI exposes only the final portfolio-fit score. ETF quality and its
+components remain backend data, and no separate confidence label is shown.
+The response remains free of buy/sell signals, performance forecasts and gate
+overrides.
+
 M11-4 reruns the candidate analysis on the server before saving an immutable
 record. Records preserve the original request, full analysis snapshot,
 rationale, exclusions, deterministic alternatives and risk notes. The record

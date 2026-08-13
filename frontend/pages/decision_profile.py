@@ -258,6 +258,75 @@ def build_candidate_comparison_rows(
     ]
 
 
+def render_explainable_assessment(assessment: dict[str, Any]) -> None:
+    """呈現雙分數與原始證據，不顯示可信度或買賣訊號。"""
+
+    outcome = assessment["outcome"]
+    headline = assessment["headline"]
+    if outcome == "GATE_ALIGNED":
+        st.success(f"可解釋評定：{headline}")
+    elif outcome == "BLOCKED_BY_GATE":
+        st.error(f"可解釋評定：{headline}")
+    elif outcome == "INSUFFICIENT_DATA":
+        st.warning(f"可解釋評定：{headline}")
+    else:
+        st.info(f"可解釋評定：{headline}")
+
+    st.metric(
+        "與目前持股適配分數",
+        _metric_value(assessment.get("portfolio_fit_score"), suffix=" / 100"),
+        border=True,
+    )
+    st.caption(
+        "後端以 ETF 品質作為主要計算基礎；頁面只顯示最終適配分數。"
+        "高股息、高 76W 或低重複性都不能單獨形成高分。"
+    )
+
+    component_rows = [
+        {
+            "適配項目": item["label"],
+            "項目分數": f"{Decimal(str(item['score'])):.2f}",
+            "原始權重": f"{Decimal(str(item['weight_pct'])):.2f}%",
+            "說明": item["explanation"],
+        }
+        for item in assessment.get("fit_components", [])
+        if item.get("code") != "ETF_QUALITY"
+    ]
+    if component_rows:
+        st.table(component_rows)
+
+    status_labels = {
+        "PASS": "通過",
+        "FAIL": "未通過",
+        "REVIEW": "需確認",
+        "UNAVAILABLE": "資料不足",
+        "NOT_EVALUATED": "未評估",
+    }
+    st.table(
+        [
+            {
+                "評定面向": factor["title"],
+                "狀態": status_labels[factor["status"]],
+                "判定原則": factor["summary"],
+            }
+            for factor in assessment["factors"]
+        ]
+    )
+    with st.expander("查看評定證據與限制"):
+        for factor in assessment["factors"]:
+            st.markdown(f"**{factor['title']}**")
+            for item in factor.get("evidence", []):
+                st.write(f"- {item}")
+        if "AUTOMATED_CONSTITUENT_OVERLAP" in assessment.get(
+            "unscored_metrics", []
+        ):
+            st.info(
+                "成分股重複尚未計分：目前缺少可自動更新的 ETF 成分股資料；"
+                "手動輸入的重疊率只作風險提示，不冒充自動計算結果。"
+            )
+        st.caption(assessment["disclaimer"])
+
+
 def render_candidate_holding_analysis_result(
     analysis: dict[str, Any],
 ) -> None:
@@ -299,6 +368,10 @@ def render_candidate_holding_analysis_result(
             border=True,
         )
     st.table(build_candidate_comparison_rows(comparison))
+
+    assessment = analysis.get("explainable_assessment")
+    if assessment is not None:
+        render_explainable_assessment(assessment)
 
     eligibility = analysis["eligibility"]
     selected = eligibility["selected_candidates"]

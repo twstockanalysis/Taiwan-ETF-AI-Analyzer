@@ -227,6 +227,27 @@ render_candidate_holding_analysis_result({
         }],
         "rejected_candidates": [],
     },
+    "explainable_assessment": {
+        "outcome": "GATE_ALIGNED",
+        "headline": "核心閘門均通過。",
+        "etf_quality_score": "78.5",
+        "portfolio_fit_score": "74.25",
+        "quality_components": [{
+            "label": "稅後總報酬",
+            "score": "80",
+            "weight_pct": "45",
+            "explanation": "總報酬是主要基準。",
+        }],
+        "fit_components": [],
+        "unscored_metrics": ["AUTOMATED_CONSTITUENT_OVERLAP"],
+        "factors": [{
+            "title": "資料品質",
+            "status": "PASS",
+            "summary": "資料完整。",
+            "evidence": ["完整度 100%"],
+        }],
+        "disclaimer": "不是投資建議。",
+    },
 })
 '''
         )
@@ -236,6 +257,14 @@ render_candidate_holding_analysis_result({
         self.assertEqual(metric_values["目標覆蓋率變化"], "4.00%")
         successes = " ".join(item.value for item in app.success)
         self.assertIn("通過資料品質與風險門檻", successes)
+        self.assertIn("核心閘門均通過", successes)
+        metric_values = {item.label: item.value for item in app.metric}
+        self.assertNotIn("ETF 品質分數", metric_values)
+        self.assertEqual(
+            metric_values["與目前持股適配分數"], "74.25 / 100"
+        )
+        info_text = " ".join(item.value for item in app.info)
+        self.assertIn("成分股重複尚未計分", info_text)
 
     def test_saved_record_can_prepare_excel_download(self):
         app = AppTest.from_string(

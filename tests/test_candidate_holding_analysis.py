@@ -188,6 +188,41 @@ class TestCandidateHoldingAnalysis(unittest.TestCase):
             body["eligibility"]["selected_candidates"][0]["etf_code"],
             "00878",
         )
+        self.assertEqual(
+            body["explainable_assessment"]["outcome"],
+            "GATE_ALIGNED",
+        )
+        self.assertIsNotNone(
+            body["explainable_assessment"]["etf_quality_score"]
+        )
+        self.assertIsNotNone(
+            body["explainable_assessment"]["portfolio_fit_score"]
+        )
+        self.assertIn(
+            "AUTOMATED_CONSTITUENT_OVERLAP",
+            body["explainable_assessment"]["unscored_metrics"],
+        )
+        self.assertNotIn(
+            "ACTUAL_76W_RATIO",
+            {
+                item["code"]
+                for item in body["explainable_assessment"][
+                    "quality_components"
+                ]
+            },
+        )
+        self.assertEqual(
+            [
+                factor["category"]
+                for factor in body["explainable_assessment"]["factors"]
+            ],
+            [
+                "DATA_QUALITY",
+                "TOTAL_RETURN_AND_PRINCIPAL_RISK",
+                "AFTER_TAX_CASH_FLOW",
+                "OPTIONAL_PAYMENT_MONTH_COVERAGE",
+            ],
+        )
         profile = self.client.get("/api/v1/decision-profile").json()
         self.assertEqual(
             [item["etf_code"] for item in profile["holdings"]],
@@ -212,9 +247,35 @@ class TestCandidateHoldingAnalysis(unittest.TestCase):
             "MISSING_AFTER_TAX_CASH",
             {item["code"] for item in rejected["reasons"]},
         )
+        self.assertEqual(
+            body["explainable_assessment"]["outcome"],
+            "INSUFFICIENT_DATA",
+        )
         self.assertIsNone(
             body["comparison"]["annual_after_tax_cash_delta"]
         )
+
+    def test_failed_core_gate_cannot_be_offset_by_payment_months(self):
+        self._save_profile()
+        self._insert_market_history()
+        payload = self.request_payload()
+        payload["rules"] = {"min_after_tax_total_return_pct": 99}
+
+        response = self.client.post(
+            "/api/v1/decision-profile/candidate-analysis/00878",
+            json=payload,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        assessment = response.json()["explainable_assessment"]
+        self.assertEqual(assessment["outcome"], "BLOCKED_BY_GATE")
+        risk = next(
+            factor
+            for factor in assessment["factors"]
+            if factor["category"] == "TOTAL_RETURN_AND_PRINCIPAL_RISK"
+        )
+        self.assertEqual(risk["status"], "FAIL")
+        self.assertIn("WEAK_TOTAL_RETURN", risk["reason_codes"])
 
     def test_missing_current_close_blocks_candidate_value_comparison(self):
         self.client.put(

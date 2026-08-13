@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -176,6 +177,69 @@ class CandidatePortfolioComparison(DecisionProfileBaseModel):
     after_tax_total_return_pct_delta: Decimal | None = None
 
 
+class ExplainableAssessmentOutcome(StrEnum):
+    """不等同買賣建議的候選情境分層結論。"""
+
+    INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
+    BLOCKED_BY_GATE = "BLOCKED_BY_GATE"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+    GATE_ALIGNED = "GATE_ALIGNED"
+
+
+class ExplainableAssessmentFactorStatus(StrEnum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+    REVIEW = "REVIEW"
+    UNAVAILABLE = "UNAVAILABLE"
+    NOT_EVALUATED = "NOT_EVALUATED"
+
+
+class ExplainableAssessmentFactor(DecisionProfileBaseModel):
+    category: Literal[
+        "DATA_QUALITY",
+        "TOTAL_RETURN_AND_PRINCIPAL_RISK",
+        "AFTER_TAX_CASH_FLOW",
+        "OPTIONAL_PAYMENT_MONTH_COVERAGE",
+    ]
+    status: ExplainableAssessmentFactorStatus
+    title: str = Field(min_length=1)
+    summary: str = Field(min_length=1)
+    evidence: list[str] = Field(default_factory=list)
+    reason_codes: list[str] = Field(default_factory=list)
+
+
+class ExplainableAssessmentScoreComponent(DecisionProfileBaseModel):
+    code: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    score: Decimal = Field(ge=0, le=100)
+    weight_pct: Decimal = Field(gt=0, le=100)
+    observed_value: Decimal | None = None
+    explanation: str = Field(min_length=1)
+
+
+class ExplainableAssessment(DecisionProfileBaseModel):
+    """由既有證據閘門產生、不可覆寫閘門的透明評定。"""
+
+    methodology: Literal["DETERMINISTIC_MULTI_SCORE_V2"] = (
+        "DETERMINISTIC_MULTI_SCORE_V2"
+    )
+    outcome: ExplainableAssessmentOutcome
+    headline: str = Field(min_length=1)
+    etf_quality_score: Decimal | None = Field(default=None, ge=0, le=100)
+    portfolio_fit_score: Decimal | None = Field(default=None, ge=0, le=100)
+    quality_components: list[ExplainableAssessmentScoreComponent] = Field(
+        default_factory=list
+    )
+    fit_components: list[ExplainableAssessmentScoreComponent] = Field(
+        default_factory=list
+    )
+    unscored_metrics: list[str] = Field(default_factory=list)
+    factors: list[ExplainableAssessmentFactor]
+    disclaimer: str = (
+        "此評定整理歷史資料與使用者情境，不是買賣建議、績效預測或保證。"
+    )
+
+
 class CandidateHoldingAnalysisResponse(DecisionProfileBaseModel):
     """M11-3 候選 ETF 對目前持倉的唯讀情境比較。"""
 
@@ -190,6 +254,7 @@ class CandidateHoldingAnalysisResponse(DecisionProfileBaseModel):
     proposed_portfolio: CurrentHoldingAnalysisResponse | None = None
     comparison: CandidatePortfolioComparison | None = None
     eligibility: MonthlyCombinationCalculationResult | None = None
+    explainable_assessment: ExplainableAssessment | None = None
     decision_priority: list[str] = Field(
         default_factory=lambda: [
             "TOTAL_RETURN_AND_PRINCIPAL_RISK",

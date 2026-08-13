@@ -718,6 +718,21 @@ first public release, and AI output must not become opaque trading advice.
   existing total-return, principal-risk, data-quality or overlap gates
 - Kept explainable AI assessment as the next separate second-version upgrade
 
+### V2-2 — Explainable assessment baseline — Completed locally
+
+- Added a deterministic four-factor assessment to candidate holding analysis
+- Kept data quality, total return, principal risk and after-tax cash flow ahead
+  of optional payment-month coverage
+- Exposed observed evidence and stable reason codes without an opaque score or
+  buy/sell label
+- Established a structured baseline that a future language model may explain
+  but may not override
+- Added transparent ETF-quality and portfolio-fit scores led by total return;
+  the page displays only portfolio fit, with ETF quality and confidence kept
+  out of the user-facing score cards
+- Kept manually entered overlap out of scoring pending automatic constituent
+  ingestion and portfolio-weighted overlap calculation
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation
