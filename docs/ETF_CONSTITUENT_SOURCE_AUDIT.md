@@ -16,7 +16,7 @@ against the TWSE `t187ap47_L` official fund master on 2026-08-13.
 Finding an official page is not equivalent to automation. Only `AUTOMATED`
 sources may be imported without additional issuer-specific work. The current
 registry has no entrypoint-only issuer: all applicable issuers returned a
-complete official holdings or PCF response during this audit, and eleven sources
+complete official holdings or PCF response during this audit, and thirteen sources
 now have production adapters.
 
 ## Issuer matrix
@@ -43,9 +43,9 @@ now have production adapters.
 | Union | 009804 | `FULL_DISCLOSURE_VERIFIED` | Form selection | Complete holdings table |
 | HN | 009808 | `FULL_DISCLOSURE_VERIFIED` | ETFID query plus short-lived system token | Official OpenAPI PCF response |
 | Allianz | 00984A | `FULL_DISCLOSURE_VERIFIED` | Antiforgery plus internal fund ID | Official overview and `GetFundAssets` responses |
-| BlackRock | 009813 | `FULL_DISCLOSURE_VERIFIED` | Internal product ID | Complete holdings table |
-| J.P. Morgan | 00989A | `FULL_DISCLOSURE_VERIFIED` | ISIN slug | Complete multi-page holdings |
-| AllianceBernstein | 00404A | `FULL_DISCLOSURE_VERIFIED` | Share-class ISIN | Official holdings and basket responses |
+| BlackRock | 009813 | `FULL_DISCLOSURE_VERIFIED` | Internal product ID | Complete holdings verified; official automation is access-protected |
+| J.P. Morgan | 00989A | `AUTOMATED` | ISIN slug | Autocomplete mapping plus official product-data PCF adapter |
+| AllianceBernstein | 00404A | `AUTOMATED` | Share-class ISIN | ETF catalog mapping plus reconciled holdings adapter |
 
 Canonical URLs and machine-readable notes live in
 `backend/app/data_sources/constituent_source_registry.py`.
@@ -53,7 +53,7 @@ Canonical URLs and machine-readable notes live in
 ## Live API validation evidence
 
 The dynamic sources that required request discovery were exercised against
-their official production endpoints on 2026-08-13:
+their official production endpoints on 2026-08-13 and 2026-08-14:
 
 - Nomura `Fund/GetFundAssets` returned 50 stock rows for `00944` and a
   `2026/08/13` data date.
@@ -66,8 +66,17 @@ their official production endpoints on 2026-08-13:
   `POST /api/Fund/GetFundAssets`. The overview mapped `00984A` to `E0001`;
   the holdings response returned 122 stock rows plus one futures row for
   `2026/08/13`.
-- AllianceBernstein's official API returned complete domestic holdings for
-  share-class ISIN `TW00000404A5`, plus the matching `2026-08-13` basket.
+- AllianceBernstein's ETF catalog mapped `00404A` to `TW00000404A5`; its
+  holdings API returned 54 equities totaling `89.487277%`. This exactly matched
+  the official equity asset total, while the same response separately reported
+  futures and options exposure.
+- J.P. Morgan's official autocomplete response mapped both current Taiwan ETFs
+  to their ISINs. Its product-data response returned 64 equity rows each for
+  `00401A` (`92.4829%`) and `00989A` (`98.3042%`), dated `2026-08-13`.
+- BlackRock's previously verified complete product holdings remain visible to
+  interactive users, but the product page and tested official CSV variants
+  returned HTTP 403 on `2026-08-14`. No adapter is enabled while automated
+  access remains protected.
 
 These observations prove source availability and request mapping. They are not
 runtime guarantees: production adapters must still enforce schema, identity,
@@ -90,8 +99,10 @@ but they are not substitutes for issuer portfolio disclosure.
    Franklin Templeton SinoAm is also complete. Revisit Cathay, First and KGI
    when their application responses expose complete stock rows; resolve
    Capital's truncated server response before enabling persistence.
-3. Stable product-ID or ISIN discovery: BlackRock, J.P. Morgan and
-   AllianceBernstein.
+3. Stable product-ID or ISIN discovery: completed for J.P. Morgan and
+   AllianceBernstein. Revisit BlackRock only when an officially accessible
+   catalog and complete holdings response can be verified without bypassing
+   access protection.
 4. Session-aware sources: HN's short-lived public system token and Allianz's
    antiforgery cookie/header pair.
 5. Form-backed sources such as Union, followed by the remaining issuer-specific

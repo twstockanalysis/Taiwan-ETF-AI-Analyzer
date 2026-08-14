@@ -7,6 +7,8 @@ from io import BytesIO
 from openpyxl import Workbook
 
 from backend.app.data_sources.mapped_constituent_adapters import (
+    parse_alliancebernstein_constituent_payload,
+    parse_alliancebernstein_mapping,
     parse_capital_constituent_html,
     parse_capital_product_url,
     parse_esun_constituent_payload,
@@ -18,6 +20,8 @@ from backend.app.data_sources.mapped_constituent_adapters import (
     parse_fuh_hwa_constituent_excel,
     parse_mega_constituent_html,
     parse_mega_product_url,
+    parse_jpmorgan_constituent_payload,
+    parse_jpmorgan_mapping,
     parse_uob_constituent_html,
 )
 
@@ -26,6 +30,136 @@ FETCHED_AT = datetime(2026, 8, 14, 9, tzinfo=timezone.utc)
 
 
 class TestMappedConstituentAdapters(unittest.TestCase):
+    def test_jpmorgan_catalog_and_product_data_holdings(self):
+        catalog = [
+            {"cusip": "TW00000401A1", "ticker": "00401A", "fundType": "etf"},
+            {"cusip": "TW00000989A5", "ticker": "00989A", "fundType": "etf"},
+        ]
+        self.assertEqual(
+            parse_jpmorgan_mapping(
+                etf_code="00989a", catalog_payload=catalog
+            ),
+            "TW00000989A5",
+        )
+        payload = {"fundData": {
+            "shareClass": {"exchangeTicker": "00989A"},
+            "holdings": {"pcfEquityHoldings": {
+                "effectiveDate": "2026-08-13",
+                "data": [
+                    {"securityTicker": "PANW", "securityIsin": "US6974351057",
+                     "securityDescription": "PALO ALTO NETWORKS INC",
+                     "marketValuePercent": "60"},
+                    {"securityTicker": "GOOG", "securityIsin": "US02079K1079",
+                     "securityDescription": "ALPHABET INC-CL C",
+                     "marketValuePercent": "30"},
+                    {"securityTicker": "NVDA", "securityIsin": "US67066G1040",
+                     "securityDescription": "NVIDIA CORP",
+                     "marketValuePercent": "9.5"},
+                ],
+            }},
+        }}
+        result = parse_jpmorgan_constituent_payload(
+            payload, etf_code="00989A", isin="TW00000989A5",
+            source_url="https://example.test", fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.as_of_date.isoformat(), "2026-08-13")
+        self.assertEqual(result.source_id, "jpmorgan_official_product_data")
+        self.assertEqual(result.positions[0].constituent_id, "PANW")
+
+    def test_jpmorgan_wrong_identity_and_partial_rows_are_rejected(self):
+        payload = {"fundData": {
+            "shareClass": {"exchangeTicker": "00401A"},
+            "holdings": {"pcfEquityHoldings": {
+                "effectiveDate": "2026-08-13",
+                "data": [{
+                    "securityTicker": "PANW",
+                    "securityDescription": "PALO ALTO NETWORKS INC",
+                    "marketValuePercent": "60",
+                }],
+            }},
+        }}
+        with self.assertRaisesRegex(ValueError, "與要求的 00989A 不符"):
+            parse_jpmorgan_constituent_payload(
+                payload, etf_code="00989A", isin="TW00000989A5",
+                source_url="https://example.test", fetched_at=FETCHED_AT,
+            )
+        payload["fundData"]["shareClass"]["exchangeTicker"] = "00989A"
+        with self.assertRaisesRegex(ValueError, "疑似資料不完整"):
+            parse_jpmorgan_constituent_payload(
+                payload, etf_code="00989A", isin="TW00000989A5",
+                source_url="https://example.test", fetched_at=FETCHED_AT,
+            )
+
+    def test_alliancebernstein_catalog_and_reconciled_equity_holdings(self):
+        catalog = {"etfs": [{"fundInfo": {
+            "fundNumber": "00404A", "isin": "TW00000404A5",
+        }}]}
+        self.assertEqual(
+            parse_alliancebernstein_mapping(
+                etf_code="00404a", catalog_payload=catalog
+            ),
+            "TW00000404A5",
+        )
+        payload = {
+            "domesticHoldings": [{
+                "asOfDate": "08/13/2026",
+                "holdingCategory": "holdings-section-equity",
+                "isAllocation": True,
+                "holdings": [
+                    {"holdingCode": "2330", "holding": "台積電",
+                     "holdingPerc": "60"},
+                    {"holdingCode": "2454", "holding": "聯發科",
+                     "holdingPerc": "29.487277"},
+                ],
+            }],
+            "fundAssetTotal": {
+                "secID": "00404A",
+                "allocationObjSecType": [{
+                    "allocationObjSecType": "holdings-section-equity",
+                    "percentageUnderlyingSecurities": "89.487277",
+                }],
+            },
+        }
+        result = parse_alliancebernstein_constituent_payload(
+            payload, etf_code="00404A", isin="TW00000404A5",
+            source_url="https://example.test", fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.as_of_date.isoformat(), "2026-08-13")
+        self.assertEqual(
+            result.source_id, "alliancebernstein_official_holdings_api"
+        )
+        self.assertEqual(len(result.positions), 2)
+
+    def test_alliancebernstein_identity_and_equity_total_are_required(self):
+        payload = {
+            "domesticHoldings": [{
+                "asOfDate": "08/13/2026",
+                "holdingCategory": "holdings-section-equity",
+                "holdings": [{
+                    "holdingCode": "2330", "holding": "台積電",
+                    "holdingPerc": "89.4",
+                }],
+            }],
+            "fundAssetTotal": {
+                "secID": "00404A",
+                "allocationObjSecType": [{
+                    "allocationObjSecType": "holdings-section-equity",
+                    "percentageUnderlyingSecurities": "89.5",
+                }],
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "股票資產合計不符"):
+            parse_alliancebernstein_constituent_payload(
+                payload, etf_code="00404A", isin="TW00000404A5",
+                source_url="https://example.test", fetched_at=FETCHED_AT,
+            )
+        payload["fundAssetTotal"]["secID"] = "00980D"
+        with self.assertRaisesRegex(ValueError, "與要求的 00404A 不符"):
+            parse_alliancebernstein_constituent_payload(
+                payload, etf_code="00404A", isin="TW00000404A5",
+                source_url="https://example.test", fetched_at=FETCHED_AT,
+            )
+
     def test_mega_catalog_and_holdings(self):
         catalog = """<div class="product-detail"><div class="detail-item">00932</div>
         <div class="detail-item"><a href="etf_product.aspx?id=19">基金</a></div></div>"""
