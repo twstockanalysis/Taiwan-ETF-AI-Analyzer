@@ -40,7 +40,7 @@ class TestConstituentSourceRegistry(unittest.TestCase):
             {
                 "yuanta", "fubon", "sinopac", "taishin", "ctbc", "nomura",
                 "mega", "fuh_hwa", "uob", "esun",
-                "franklin", "jpmorgan", "alliancebernstein",
+                "franklin", "jpmorgan", "alliancebernstein", "hnh", "allianz",
             },
         )
         self.assertEqual(not_applicable, {"jko"})
@@ -59,7 +59,7 @@ class TestConstituentSourceRegistry(unittest.TestCase):
             - {
                 "yuanta", "fubon", "sinopac", "taishin", "ctbc", "nomura",
                 "mega", "fuh_hwa", "uob", "esun", "jko",
-                "franklin", "jpmorgan", "alliancebernstein",
+                "franklin", "jpmorgan", "alliancebernstein", "hnh", "allianz",
             },
         )
         self.assertEqual(entrypoint_only, set())

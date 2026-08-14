@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-14 — Session-aware official constituent adapters
+
+- Added automatic HN constituent ingestion through its official public short-
+  lived system-token and ETFID-based PCF flow.
+- Added automatic Allianz fund mapping and constituent ingestion through its
+  official antiforgery cookie/header session.
+- Enforced response size, identity, date, stock-weight coverage and declared-
+  total reconciliation before persistence; unavailable Allianz assets remain
+  fail-closed.
+
 ## 2026-08-14 — Franklin official constituent adapter
 
 - Added automatic Franklin ETF-code-to-fund-ID discovery through the official

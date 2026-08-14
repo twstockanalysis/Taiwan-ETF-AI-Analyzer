@@ -798,6 +798,18 @@ first public release, and AI output must not become opaque trading advice.
   stock rows in its current server response
 - Kept all three sources fail-closed pending a complete official payload
 
+### V2-8 — Session-aware official constituent sources — Completed locally
+
+- Added HN's official public short-lived system-token login and ETFID-based PCF
+  ingestion with fractional-weight conversion and complete-stock validation
+- Added Allianz's official antiforgery session, ETF overview mapping and fund-
+  asset ingestion for current products with available holdings
+- Verified HN `009808` and Allianz `00984A`, `00993A` and `00402A` against live
+  official responses; `00412A` remains fail-closed until its fund-asset table
+  becomes available
+- Kept tokens and cookies ephemeral and persisted only validated source-dated
+  constituent snapshots
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation

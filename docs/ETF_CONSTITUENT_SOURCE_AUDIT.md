@@ -16,7 +16,7 @@ against the TWSE `t187ap47_L` official fund master on 2026-08-13.
 Finding an official page is not equivalent to automation. Only `AUTOMATED`
 sources may be imported without additional issuer-specific work. The current
 registry has no entrypoint-only issuer: all applicable issuers returned a
-complete official holdings or PCF response during this audit, and thirteen sources
+complete official holdings or PCF response during this audit, and fifteen sources
 now have production adapters.
 
 ## Issuer matrix
@@ -41,8 +41,8 @@ now have production adapters.
 | Nomura | 00944 | `AUTOMATED` | ETF code in request body | Official `GetFundAssets` adapter |
 | E.SUN | 009803 | `AUTOMATED` | Internal fund ID | Overview mapping plus official `GetFundAssets` adapter |
 | Union | 009804 | `FULL_DISCLOSURE_VERIFIED` | Form selection | Complete holdings table |
-| HN | 009808 | `FULL_DISCLOSURE_VERIFIED` | ETFID query plus short-lived system token | Official OpenAPI PCF response |
-| Allianz | 00984A | `FULL_DISCLOSURE_VERIFIED` | Antiforgery plus internal fund ID | Official overview and `GetFundAssets` responses |
+| HN | 009808 | `AUTOMATED` | ETFID query plus short-lived system token | Public system-token login plus official PCF adapter |
+| Allianz | 00984A | `AUTOMATED` | Antiforgery plus internal fund ID | Antiforgery session, overview mapping and `GetFundAssets` adapter |
 | BlackRock | 009813 | `FULL_DISCLOSURE_VERIFIED` | Internal product ID | Complete holdings verified; official automation is access-protected |
 | J.P. Morgan | 00989A | `AUTOMATED` | ISIN slug | Autocomplete mapping plus official product-data PCF adapter |
 | AllianceBernstein | 00404A | `AUTOMATED` | Share-class ISIN | ETF catalog mapping plus reconciled holdings adapter |
@@ -61,11 +61,13 @@ their official production endpoints on 2026-08-13 and 2026-08-14:
   `GetFundAssets` returned 50 stock rows for `2026/08/13`.
 - HN's official OpenAPI defines `GET /Stk/PcfData` with the `ETFID` query.
   Its public short-lived system-token flow returned 60 stock rows plus one
-  futures row for `009808`, dated `2026-08-13`.
+  futures row for `009808`, dated `2026-08-13`; the active adapter converts
+  fractional weights to percentages and persists only the stock table.
 - Allianz's official OpenAPI defines the antiforgery flow and
   `POST /api/Fund/GetFundAssets`. The overview mapped `00984A` to `E0001`;
   the holdings response returned 122 stock rows plus one futures row for
-  `2026/08/13`.
+  `2026/08/13`. The same flow returned complete tables for `00993A` and
+  `00402A`; `00412A` currently has no fund-asset table and remains fail-closed.
 - AllianceBernstein's ETF catalog mapped `00404A` to `TW00000404A5`; its
   holdings API returned 54 equities totaling `89.487277%`. This exactly matched
   the official equity asset total, while the same response separately reported
@@ -103,8 +105,8 @@ but they are not substitutes for issuer portfolio disclosure.
    AllianceBernstein. Revisit BlackRock only when an officially accessible
    catalog and complete holdings response can be verified without bypassing
    access protection.
-4. Session-aware sources: HN's short-lived public system token and Allianz's
-   antiforgery cookie/header pair.
+4. Session-aware sources: completed for HN's short-lived public system token
+   and Allianz's antiforgery cookie/header pair.
 5. Form-backed sources such as Union, followed by the remaining issuer-specific
    parsers.
 6. Add freshness and multi-issuer coverage gates before calculated overlap is
