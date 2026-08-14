@@ -820,6 +820,61 @@ first public release, and AI output must not become opaque trading advice.
   stock rows totaling `99.5039%` against the official production form
 - Kept unknown ETF codes and changed or incomplete form responses fail-closed
 
+### V2-10 — Constituent batch ingestion and calculation-data gates — Completed locally
+
+- Added a repeatable full-market batch plan based on the stored 6M
+  `PRICE_RETURN` calculation baseline
+- Excluded bond, leveraged, inverse, futures and multi-asset products from
+  stock-only overlap while keeping missing performance and unsupported issuer
+  states visible
+- Added official batch import with bounded ETF selection, explicit network
+  permission and machine-readable output
+- Made same-date, same-content imports idempotent while continuing to reject a
+  changed payload for an immutable source identity
+- Required ETF coverage, issuer coverage, freshness, disclosed stock weight
+  and complete issuer mapping before constituent data can be marked `READY`
+- Verified an isolated live fixture for `0050` and `00918`: 80 positions were
+  imported from two issuers, both data dates passed the seven-day freshness
+  gate, and the rerun returned two `UNCHANGED` results
+- Kept full-market readiness honest: the current calculation universe contains
+  132 automated-source ETFs and 22 Cathay/BlackRock ETFs whose official
+  automation remains unavailable, so the default 90% ETF gate remains
+  `NO_GO` until coverage improves
+
+Next V2 milestone: refresh the multi-period performance and dividend
+calculation candidate, populate its eligible constituent universe, and replace
+manual overlap with calculated overlap only for ETF sets that pass V2-10.
+
+## Security validation — Required after V2 and before V3
+
+Security work is an independent release gate after V2; it must not be treated
+as an informal code review or folded silently into a feature PR. Security PR
+titles use the `SEC-X` prefix. Any later third product version uses `V3-X`.
+
+### SEC-1 — Secret exposure and repository history
+
+- Scan tracked files, ignored deployment material, generated reports, logs and
+  complete Git history for credentials, owner tokens, API keys and private URLs
+- Verify `.env`, Streamlit secrets, database copies, backups and source
+  snapshots cannot be committed or served publicly
+- Rotate and invalidate any exposed credential; deleting only the current file
+  is not sufficient when a secret exists in history
+
+### SEC-2 — Authentication and API boundary testing
+
+- Test owner-token comparison, missing/wrong token behavior, private response
+  caching, direct API access and export/record endpoints
+- Test input validation, injection, path traversal, unsafe redirects, oversized
+  upstream payloads, error-detail leakage and denial-of-service boundaries
+
+### SEC-3 — Dependency, container and runtime hardening
+
+- Scan pinned Python and container dependencies for known vulnerabilities
+- Verify non-root containers, file permissions, Caddy headers, HTTPS-only
+  behavior, rate limits, firewall exposure and least-privilege mounts
+- Run automated static, dependency and dynamic tests against an isolated
+  deployment candidate before public launch or any V3 work
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation

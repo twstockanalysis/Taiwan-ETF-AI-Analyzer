@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-14 — V2-10 constituent data gates
+
+- Added full-market and bounded official constituent batch ingestion.
+- Added calculation-universe mapping, freshness, disclosed-weight, ETF and
+  multi-issuer coverage gates with machine-readable `READY`/`NO_GO` output.
+- Made identical immutable snapshot imports safely repeatable and documented
+  the post-V2 security validation milestones.
+
 ## 2026-08-14 — Union official constituent adapter
 
 - Added automatic discovery of current Union ETF codes and official form-

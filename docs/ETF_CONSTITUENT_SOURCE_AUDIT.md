@@ -127,4 +127,5 @@ but they are not substitutes for issuer portfolio disclosure.
 5. Form-backed sources: completed for Union with live form discovery, identity
    checks and complete stock-table validation.
 6. Add freshness and multi-issuer coverage gates before calculated overlap is
-   allowed to affect assessment scoring.
+   allowed to affect assessment scoring: completed in V2-10. Assessment
+   integration remains separate.

@@ -51,13 +51,16 @@ request, uses the official PCF trading date, and rejects stock-weight coverage
 below 90%. Futures, bonds and nested ETF positions are not mixed into equity
 constituent overlap.
 
-All 21 applicable non-Yuanta issuers now have independently verified complete
-official holdings or PCF responses, but they still require production adapters.
+Twenty issuers now have production adapters. Cathay and BlackRock keep their
+verified disclosure status but remain fail-closed because the tested official
+automation paths do not currently return a reproducible usable response. JKO
+has no current equity constituent portfolio.
 The published Fugle Market Data and Sinopac Shioaji endpoint sets provide ETF
-identity and market/account data but not ETF constituent weights. This contract
-still does not expose a public constituent endpoint or replace the manual
-overlap field; assessment integration requires separate freshness and
-multi-issuer automation work.
+identity and market/account data but not ETF constituent weights. V2-10 adds
+batch ingestion plus reusable freshness, disclosed-weight, ETF and issuer
+coverage gates. This contract still does not expose a public constituent
+endpoint or replace the manual overlap field; assessment integration remains a
+separate milestone and must consume the gate result.
 
 The all-issuer discovery result and exact automation status are maintained in
 `ETF_CONSTITUENT_SOURCE_AUDIT.md`. A verified complete official response is
