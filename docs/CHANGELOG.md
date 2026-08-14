@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-14 — Union official constituent adapter
+
+- Added automatic discovery of current Union ETF codes and official form-
+  backed constituent ingestion.
+- Added support for both 009804 and the newly listed 009825 without a hard-
+  coded product mapping.
+- Enforced the official POST contract, response domain, content type, size,
+  identity, date and minimum stock-weight coverage before persistence.
+
 ## 2026-08-14 — Session-aware official constituent adapters
 
 - Added automatic HN constituent ingestion through its official public short-

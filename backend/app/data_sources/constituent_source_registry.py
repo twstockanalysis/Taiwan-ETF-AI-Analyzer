@@ -131,8 +131,9 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "union": ConstituentSource(
         "union", "聯邦", "009804",
         "https://www.usitc.com.tw/CustCenter/BuyBackList",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "FORM_SELECTION", "Complete holdings table; selection request needs an adapter.",
+        ConstituentSourceStatus.AUTOMATED,
+        "FORM_SELECTION",
+        "Official form discovery and complete holdings are imported.",
     ),
     "hnh": ConstituentSource(
         "hnh", "華南永昌", "009808",
