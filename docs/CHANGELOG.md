@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-14 — Franklin official constituent adapter
+
+- Added automatic Franklin ETF-code-to-fund-ID discovery through the official
+  ETF catalog and complete holdings ingestion through the official API.
+- Converted the official UTC disclosure timestamps to Taiwan calendar dates
+  before selecting and persisting a snapshot.
+- Kept Cathay, First and KGI fail-closed after live checks returned no complete
+  stock payload through their currently exposed application responses.
+
 ## 2026-08-14 — Mapped official constituent adapters
 
 - Added automatic ETF-code-to-fund-ID discovery and official constituent

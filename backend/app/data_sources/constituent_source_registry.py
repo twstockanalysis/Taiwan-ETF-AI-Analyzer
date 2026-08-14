@@ -99,8 +99,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "franklin": ConstituentSource(
         "franklin", "富蘭克林", "00905",
         "https://www.ftft.com.tw/etf/product/details/?id=131&tab=profile",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_ID", "Official holdings tab; ETF-to-ID discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_ID", "Official ETF catalog and holdings API are imported.",
     ),
     "kgi": ConstituentSource(
         "kgi", "凱基", "00915",
@@ -152,20 +152,22 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
         "blackrock", "貝萊德投信", "009813",
         "https://www.blackrock.com/tw/products/345655/blackrock-ishares-s-p-500-top-50-etf",
         ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_PRODUCT_ID", "Complete holdings table; ETF-to-product discovery is required.",
+        "INTERNAL_PRODUCT_ID",
+        "Complete holdings were verified, but official page and CSV automation are access-protected.",
     ),
     "jpmorgan": ConstituentSource(
         "jpmorgan", "摩根", "00989A",
         "https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-us-tech-leaders-active-etf-tw00000989a5",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "ISIN_SLUG", "Complete multi-page holdings table; adapter not implemented.",
+        ConstituentSourceStatus.AUTOMATED,
+        "ISIN_SLUG",
+        "Official autocomplete mapping and product-data PCF holdings are imported.",
     ),
     "alliancebernstein": ConstituentSource(
         "alliancebernstein", "聯博", "00404A",
         "https://www.abfunds.com.tw/zh-tw/etfs/pcf.TW00000404A5.html",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        ConstituentSourceStatus.AUTOMATED,
         "ISIN_PATH",
-        "Official holdings and basket APIs return complete data by share-class ISIN.",
+        "Official ETF catalog mapping and reconciled equity holdings are imported.",
     ),
 }
 

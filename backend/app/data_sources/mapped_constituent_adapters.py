@@ -2,9 +2,11 @@
 
 import re
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from typing import Any, Callable
 from urllib.parse import urljoin
+from zoneinfo import ZoneInfo
 
 import httpx
 from openpyxl import load_workbook
@@ -37,7 +39,17 @@ UOB_EVENT_URL = "https://www.uobam.com.tw/Events/{etf_code}ETF/"
 UOB_BASE_URL = "https://www.uobam.com.tw"
 ESUN_API_BASE_URL = "https://www.esunam.com/ETFAPI"
 ESUN_SOURCE_URL = "https://www.esunam.com/ETF/etf-pcf"
+FRANKLIN_API_BASE_URL = "https://www.ftft.com.tw/official/api"
+FRANKLIN_SOURCE_URL = "https://www.ftft.com.tw/etf/product/details/"
+ALLIANCEBERNSTEIN_API_BASE_URL = (
+    "https://webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor"
+)
+ALLIANCEBERNSTEIN_SOURCE_URL = (
+    "https://www.abfunds.com.tw/zh-tw/etfs/pcf.{isin}.html"
+)
+JPMORGAN_API_BASE_URL = "https://am.jpmorgan.com/FundsMarketingHandler"
 MAX_RESPONSE_BYTES = 5_000_000
+_TAIWAN_ISIN_PATTERN = re.compile(r"^TW[0-9A-Z]{10}$")
 
 
 def _get(url: str, *, timeout_seconds: float = 30) -> httpx.Response:
@@ -251,6 +263,230 @@ def parse_esun_constituent_payload(
     )
 
 
+def parse_franklin_mapping(*, etf_code: str, catalog_payload: Any) -> str:
+    """由富蘭克林官方 ETF 清單解析證券代號對應的基金 ID。"""
+
+    code = _normalize_code(etf_code)
+    if not isinstance(catalog_payload, list):
+        raise ValueError("富蘭克林官方 ETF 清單回應格式錯誤")
+    fund = next(
+        (row for row in catalog_payload if isinstance(row, dict)
+         and str(row.get("StockCode", "")).strip().upper() == code),
+        None,
+    )
+    if not isinstance(fund, dict) or not str(fund.get("FundID", "")).strip():
+        raise ValueError(f"富蘭克林官方 ETF 清單找不到證券代號：{code}")
+    return str(fund["FundID"]).strip()
+
+
+def parse_franklin_latest_query_date(date_payload: Any) -> str:
+    """將官方 UTC 可選日期轉成台灣頁面實際查詢的 YYYYMMDD。"""
+
+    if not isinstance(date_payload, list) or not date_payload:
+        raise ValueError("富蘭克林官方持股缺少可用日期")
+    try:
+        values = [
+            datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            for value in date_payload
+        ]
+    except ValueError as error:
+        raise ValueError("富蘭克林官方持股包含無效日期") from error
+    latest = max(values).astimezone(ZoneInfo("Asia/Taipei"))
+    return latest.strftime("%Y%m%d")
+
+
+def parse_franklin_constituent_payload(
+    payload: Any, *, etf_code: str, fund_id: str,
+    source_url: str, fetched_at: datetime,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    if not isinstance(payload, dict):
+        raise ValueError("富蘭克林官方持股 API 回應格式錯誤")
+    if str(payload.get("FundID", "")) != fund_id:
+        raise ValueError("富蘭克林官方持股回傳基金 ID 不符")
+    if str(payload.get("StockCode", "")).strip().upper() != code:
+        raise ValueError(f"富蘭克林官方持股回應與要求的 {code} 不符")
+    rows = payload.get("Secs")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("富蘭克林官方持股缺少股票權重")
+    table = [["股票代號", "股票名稱", "權重(%)"]]
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("富蘭克林官方持股包含無效股票資料列")
+        table.append([
+            str(row.get("SecuritiesCode", "")).strip(),
+            str(row.get("SecuritiesName", "")).strip(),
+            str(row.get("WeightingPercentage", "")).strip(),
+        ])
+    asset_date = str(payload.get("AssetDate", ""))
+    try:
+        as_of_date = datetime.fromisoformat(
+            asset_date.replace("Z", "+00:00")
+        ).astimezone(ZoneInfo("Asia/Taipei")).date()
+    except ValueError as error:
+        raise ValueError("富蘭克林官方持股缺少有效資料日期") from error
+    return _snapshot(
+        code, "富蘭克林", "franklin_official_holdings_api", source_url,
+        as_of_date,
+        _positions(
+            table, code_index=0, name_index=1, weight_index=2,
+            issuer="富蘭克林",
+        ),
+        fetched_at,
+    )
+
+
+def parse_alliancebernstein_mapping(*, etf_code: str, catalog_payload: Any) -> str:
+    """由聯博官方 ETF 清單解析證券代號對應的 share-class ISIN。"""
+
+    code = _normalize_code(etf_code)
+    rows = catalog_payload.get("etfs") if isinstance(catalog_payload, dict) else None
+    if not isinstance(rows, list):
+        raise ValueError("聯博官方 ETF 清單回應格式錯誤")
+    matches = []
+    for row in rows:
+        fund = row.get("fundInfo") if isinstance(row, dict) else None
+        if (isinstance(fund, dict)
+                and str(fund.get("fundNumber", "")).strip().upper() == code):
+            matches.append(fund)
+    if len(matches) != 1:
+        raise ValueError(f"聯博官方 ETF 清單找不到唯一證券代號：{code}")
+    isin = str(matches[0].get("isin", "")).strip().upper()
+    if not _TAIWAN_ISIN_PATTERN.fullmatch(isin):
+        raise ValueError("聯博官方 ETF 清單包含無效 ISIN")
+    return isin
+
+
+def parse_alliancebernstein_constituent_payload(
+    payload: Any, *, etf_code: str, isin: str,
+    source_url: str, fetched_at: datetime,
+) -> ETFConstituentSnapshotCreate:
+    """解析聯博持股，並以官方 equity total 對帳以辨識完整回應。"""
+
+    code = _normalize_code(etf_code)
+    normalized_isin = isin.strip().upper()
+    if not _TAIWAN_ISIN_PATTERN.fullmatch(normalized_isin):
+        raise ValueError("聯博 ETF ISIN 格式錯誤")
+    if not isinstance(payload, dict):
+        raise ValueError("聯博官方持股 API 回應格式錯誤")
+    asset_total = payload.get("fundAssetTotal")
+    if not isinstance(asset_total, dict) or str(asset_total.get("secID", "")).strip().upper() != code:
+        raise ValueError(f"聯博官方持股回應與要求的 {code} 不符")
+    sections = payload.get("domesticHoldings")
+    if not isinstance(sections, list):
+        raise ValueError("聯博官方持股缺少 domesticHoldings")
+    equity_sections = [
+        section for section in sections if isinstance(section, dict)
+        and section.get("holdingCategory") == "holdings-section-equity"
+    ]
+    if len(equity_sections) != 1 or not isinstance(equity_sections[0].get("holdings"), list):
+        raise ValueError("聯博官方持股缺少唯一股票權重表")
+    allocation_rows = asset_total.get("allocationObjSecType")
+    equity_totals = [
+        row for row in allocation_rows or [] if isinstance(row, dict)
+        and row.get("allocationObjSecType") == "holdings-section-equity"
+    ]
+    if len(equity_totals) != 1:
+        raise ValueError("聯博官方持股缺少股票資產合計")
+    positions: list[dict[str, Any]] = []
+    for row in equity_sections[0]["holdings"]:
+        if not isinstance(row, dict):
+            raise ValueError("聯博官方持股包含無效資料列")
+        constituent_id = str(row.get("holdingCode", "")).strip().upper()
+        constituent_name = str(row.get("holding", "")).strip()
+        try:
+            weight = Decimal(str(row.get("holdingPerc", "")))
+        except InvalidOperation as error:
+            raise ValueError("聯博官方持股包含無效股票權重") from error
+        if not constituent_id or not constituent_name:
+            raise ValueError("聯博官方持股包含空白股票識別資料")
+        positions.append({
+            "constituent_id": constituent_id,
+            "constituent_name": constituent_name,
+            "weight_pct": weight,
+            "rank": len(positions) + 1,
+        })
+    if not positions:
+        raise ValueError("聯博官方持股沒有股票權重")
+    try:
+        declared_total = Decimal(str(
+            equity_totals[0].get("percentageUnderlyingSecurities", "")
+        ))
+    except InvalidOperation as error:
+        raise ValueError("聯博官方持股包含無效股票資產合計") from error
+    parsed_total = sum(position["weight_pct"] for position in positions)
+    if abs(parsed_total - declared_total) > Decimal("0.01"):
+        raise ValueError("聯博官方持股與股票資產合計不符，疑似資料不完整")
+    try:
+        as_of_date = datetime.strptime(
+            str(equity_sections[0].get("asOfDate", "")), "%m/%d/%Y"
+        ).date()
+    except ValueError as error:
+        raise ValueError("聯博官方持股缺少有效資料日期") from error
+    return _snapshot(
+        code, "聯博", "alliancebernstein_official_holdings_api", source_url,
+        as_of_date, positions, fetched_at,
+    )
+
+
+def parse_jpmorgan_mapping(*, etf_code: str, catalog_payload: Any) -> str:
+    """由摩根官方 autocomplete 清單解析 ETF 代號對應的 ISIN。"""
+
+    code = _normalize_code(etf_code)
+    if not isinstance(catalog_payload, list):
+        raise ValueError("摩根官方 ETF 清單回應格式錯誤")
+    matches = [
+        row for row in catalog_payload if isinstance(row, dict)
+        and str(row.get("ticker", "")).strip().upper() == code
+        and str(row.get("fundType", "")).strip().lower() == "etf"
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"摩根官方 ETF 清單找不到唯一證券代號：{code}")
+    isin = str(matches[0].get("cusip", "")).strip().upper()
+    if not _TAIWAN_ISIN_PATTERN.fullmatch(isin):
+        raise ValueError("摩根官方 ETF 清單包含無效 ISIN")
+    return isin
+
+
+def parse_jpmorgan_constituent_payload(
+    payload: Any, *, etf_code: str, isin: str,
+    source_url: str, fetched_at: datetime,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    if not _TAIWAN_ISIN_PATTERN.fullmatch(isin.strip().upper()):
+        raise ValueError("摩根 ETF ISIN 格式錯誤")
+    fund = payload.get("fundData") if isinstance(payload, dict) else None
+    share_class = fund.get("shareClass") if isinstance(fund, dict) else None
+    if (not isinstance(share_class, dict)
+            or str(share_class.get("exchangeTicker", "")).strip().upper() != code):
+        raise ValueError(f"摩根官方持股回應與要求的 {code} 不符")
+    holdings = fund.get("holdings")
+    equity = holdings.get("pcfEquityHoldings") if isinstance(holdings, dict) else None
+    rows = equity.get("data") if isinstance(equity, dict) else None
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("摩根官方持股缺少股票權重表")
+    table = [["股票代號", "股票名稱", "權重(%)"]]
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("摩根官方持股包含無效資料列")
+        constituent_id = str(
+            row.get("securityTicker") or row.get("securityIsin") or ""
+        ).strip()
+        table.append([
+            constituent_id,
+            str(row.get("securityDescription", "")).strip(),
+            str(row.get("marketValuePercent", "")).strip(),
+        ])
+    return _snapshot(
+        code, "摩根", "jpmorgan_official_product_data", source_url,
+        _parse_date(str(equity.get("effectiveDate", "")), "摩根"),
+        _positions(
+            table, code_index=0, name_index=1, weight_index=2, issuer="摩根"
+        ),
+        fetched_at,
+    )
+
+
 def fetch_mega_constituent_snapshot(etf_code: str, *, timeout_seconds: float = 30,
                                     fetched_at: datetime | None = None):
     code = _normalize_code(etf_code)
@@ -324,9 +560,85 @@ def fetch_esun_constituent_snapshot(etf_code: str, *, timeout_seconds: float = 3
     )
 
 
+def fetch_franklin_constituent_snapshot(
+    etf_code: str, *, timeout_seconds: float = 30,
+    fetched_at: datetime | None = None,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    catalog = _get(f"{FRANKLIN_API_BASE_URL}/etf", timeout_seconds=timeout_seconds)
+    fund_id = parse_franklin_mapping(
+        etf_code=code, catalog_payload=catalog.json()
+    )
+    dates = _get(
+        f"{FRANKLIN_API_BASE_URL}/etf/share-dates/{fund_id}",
+        timeout_seconds=timeout_seconds,
+    )
+    query_date = parse_franklin_latest_query_date(dates.json())
+    holdings = _get(
+        f"{FRANKLIN_API_BASE_URL}/etf/shares/{fund_id}?date={query_date}",
+        timeout_seconds=timeout_seconds,
+    )
+    return parse_franklin_constituent_payload(
+        holdings.json(), etf_code=code, fund_id=fund_id,
+        source_url=f"{FRANKLIN_SOURCE_URL}?id={fund_id}&tab=holdings",
+        fetched_at=fetched_at or datetime.now(timezone.utc),
+    )
+
+
+def fetch_alliancebernstein_constituent_snapshot(
+    etf_code: str, *, timeout_seconds: float = 30,
+    fetched_at: datetime | None = None,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    catalog = _get(
+        f"{ALLIANCEBERNSTEIN_API_BASE_URL}/etf",
+        timeout_seconds=timeout_seconds,
+    )
+    isin = parse_alliancebernstein_mapping(
+        etf_code=code, catalog_payload=catalog.json()
+    )
+    holdings = _get(
+        f"{ALLIANCEBERNSTEIN_API_BASE_URL}/{isin}/holdings",
+        timeout_seconds=timeout_seconds,
+    )
+    return parse_alliancebernstein_constituent_payload(
+        holdings.json(), etf_code=code, isin=isin,
+        source_url=ALLIANCEBERNSTEIN_SOURCE_URL.format(isin=isin),
+        fetched_at=fetched_at or datetime.now(timezone.utc),
+    )
+
+
+def fetch_jpmorgan_constituent_snapshot(
+    etf_code: str, *, timeout_seconds: float = 30,
+    fetched_at: datetime | None = None,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    catalog_url = (
+        f"{JPMORGAN_API_BASE_URL}/autocomplete"
+        "?country=tw&role=twetf&language=zh&userLoggedIn=false"
+    )
+    catalog = _get(catalog_url, timeout_seconds=timeout_seconds)
+    isin = parse_jpmorgan_mapping(
+        etf_code=code, catalog_payload=catalog.json()
+    )
+    holdings_url = (
+        f"{JPMORGAN_API_BASE_URL}/product-data?cusip={isin}"
+        "&country=tw&role=twetf&userLoggedIn=false&language=zh"
+    )
+    holdings = _get(holdings_url, timeout_seconds=timeout_seconds)
+    return parse_jpmorgan_constituent_payload(
+        holdings.json(), etf_code=code, isin=isin,
+        source_url=holdings_url,
+        fetched_at=fetched_at or datetime.now(timezone.utc),
+    )
+
+
 MAPPED_CONSTITUENT_FETCHERS: dict[str, Callable[..., ETFConstituentSnapshotCreate]] = {
     "mega": fetch_mega_constituent_snapshot,
     "fuh_hwa": fetch_fuh_hwa_constituent_snapshot,
     "uob": fetch_uob_constituent_snapshot,
     "esun": fetch_esun_constituent_snapshot,
+    "franklin": fetch_franklin_constituent_snapshot,
+    "alliancebernstein": fetch_alliancebernstein_constituent_snapshot,
+    "jpmorgan": fetch_jpmorgan_constituent_snapshot,
 }
