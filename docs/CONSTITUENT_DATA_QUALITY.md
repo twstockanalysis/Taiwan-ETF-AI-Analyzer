@@ -3,9 +3,9 @@
 ## Purpose
 
 V2-10 prevents an available issuer adapter from being mistaken for populated,
-current calculation data. Constituent overlap may be used by a later assessment
-only after the requested ETF universe passes explicit coverage, issuer,
-freshness and disclosed-weight checks.
+current calculation data. V2-11 uses constituent overlap only after every ETF
+required by that calculation passes explicit coverage, freshness and
+disclosed-weight checks.
 
 The default calculation universe contains stock ETFs that have a stored 6M
 `PRICE_RETURN`. Bond, leveraged, inverse, futures and multi-asset products are
@@ -63,3 +63,47 @@ refuses to overwrite the immutable snapshot.
 Passing V2-10 proves constituent-data readiness only. Performance, dividend
 events and ACTUAL/estimated dividend-composition coverage retain their own
 separate gates.
+
+## Calculation behavior
+
+- ETF comparison calculates pairwise overlap as the sum of the smaller
+  disclosed weight for each shared constituent.
+- Candidate-holding analysis first weights every current ETF constituent by
+  that holding's current market-value allocation, then compares the aggregated
+  portfolio weights with the candidate ETF.
+- A snapshot older than seven days, below 85% disclosed stock weight or missing
+  for any required ETF makes overlap unavailable for that calculation.
+- Deprecated manual overlap request values are ignored. Unknown overlap is
+  never converted to zero.
+- Automatic overlap contributes 10% of the backend portfolio-fit score. ETF
+  quality remains the largest component, so diversification cannot compensate
+  for weak historical return or downside evidence.
+
+## Refresh the isolated calculation candidate
+
+Set the database environment variable before starting each Pipeline process so
+performance and dividend writes target the isolated copy rather than the
+repository development database:
+
+```powershell
+$env:TW_ETF_DATABASE_PATH = 'C:\absolute\test-data\tw_etf-calculation.db'
+
+.venv\Scripts\python.exe -m backend.app.data_sources.performance_pipeline `
+  --periods 1M 3M 6M 1Y `
+  --no-raw-snapshot
+
+.venv\Scripts\python.exe -m backend.app.data_sources.dividend_pipeline `
+  --preserve-event-on-invalid-estimates
+
+.venv\Scripts\python.exe -m backend.app.data_sources.constituent_batch_pipeline `
+  --database $env:TW_ETF_DATABASE_PATH `
+  --allow-network `
+  --output C:\absolute\test-data\constituent-quality.json
+
+Remove-Item Env:TW_ETF_DATABASE_PATH
+```
+
+The current full-market constituent ceiling can remain below the 90% default
+because Cathay and BlackRock are fail-closed. This does not prevent a bounded
+pair or saved portfolio from calculating when every ETF in that specific set
+passes the gates.

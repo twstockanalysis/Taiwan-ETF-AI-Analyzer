@@ -841,9 +841,21 @@ first public release, and AI output must not become opaque trading advice.
   automation remains unavailable, so the default 90% ETF gate remains
   `NO_GO` until coverage improves
 
-Next V2 milestone: refresh the multi-period performance and dividend
-calculation candidate, populate its eligible constituent universe, and replace
-manual overlap with calculated overlap only for ETF sets that pass V2-10.
+### V2-11 — Gated overlap in calculation flows — Completed locally
+
+- Replaced manual overlap controls in monthly comparison and candidate-holding
+  analysis with official constituent snapshot calculations
+- Added pairwise base-ETF overlap and market-value-weighted current-portfolio
+  overlap without normalizing incomplete disclosures to 100%
+- Required every ETF in the requested calculation to pass the seven-day and
+  85% disclosed-weight gates; unavailable data remains unknown rather than zero
+- Added automatic overlap to the backend portfolio-fit score at a bounded 10%
+  weight while ETF quality remains the primary component
+- Preserved old request fields as ignored compatibility inputs and changed
+  decision-record exports to show the calculated value
+
+Next V2 milestone: refresh and verify an isolated multi-period performance,
+dividend and constituent calculation candidate for owner calculation testing.
 
 ## Security validation — Required after V2 and before V3
 

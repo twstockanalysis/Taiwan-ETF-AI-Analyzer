@@ -1,7 +1,7 @@
 """M11-3 候選 ETF 持倉情境整合測試。"""
 
+from datetime import date, datetime, timezone
 from pathlib import Path
-from datetime import date
 import tempfile
 import unittest
 
@@ -12,6 +12,10 @@ from backend.app.api.owner_access import require_owner_access
 from backend.app.database.connection import get_connection
 from backend.app.database.init_db import initialize_database
 from backend.app.main import create_app
+from backend.app.models.etf_constituent import ETFConstituentSnapshotCreate
+from backend.app.repositories.etf_constituent_repository import (
+    save_constituent_snapshot,
+)
 
 
 class TestCandidateHoldingAnalysis(unittest.TestCase):
@@ -139,6 +143,51 @@ class TestCandidateHoldingAnalysis(unittest.TestCase):
         connection.commit()
         connection.close()
 
+    def _insert_constituent_history(self):
+        for code, positions in (
+            (
+                "0056",
+                [
+                    {
+                        "constituent_id": "2330",
+                        "constituent_name": "台積電",
+                        "weight_pct": 60,
+                    },
+                    {
+                        "constituent_id": "2317",
+                        "constituent_name": "鴻海",
+                        "weight_pct": 30,
+                    },
+                ],
+            ),
+            (
+                "00878",
+                [
+                    {
+                        "constituent_id": "2330",
+                        "constituent_name": "台積電",
+                        "weight_pct": 40,
+                    },
+                    {
+                        "constituent_id": "2881",
+                        "constituent_name": "富邦金",
+                        "weight_pct": 50,
+                    },
+                ],
+            ),
+        ):
+            save_constituent_snapshot(
+                ETFConstituentSnapshotCreate(
+                    etf_code=code,
+                    as_of_date=date.today(),
+                    source_id="issuer_official_holdings",
+                    source_url="https://example.test/holdings",
+                    fetched_at=datetime.now(timezone.utc),
+                    positions=positions,
+                ),
+                self.database_path,
+            )
+
     def test_openapi_contains_candidate_analysis_path(self):
         path = "/api/v1/decision-profile/candidate-analysis/{etf_code}"
         self.assertIn(path, self.application.openapi()["paths"])
@@ -254,6 +303,35 @@ class TestCandidateHoldingAnalysis(unittest.TestCase):
         self.assertIsNone(
             body["comparison"]["annual_after_tax_cash_delta"]
         )
+
+    def test_fresh_constituents_enable_automatic_overlap_and_fit_score(self):
+        self._save_profile()
+        self._insert_market_history()
+        self._insert_constituent_history()
+        payload = self.request_payload()
+        payload["holding_overlap_pct"] = "1"
+
+        response = self.client.post(
+            "/api/v1/decision-profile/candidate-analysis/00878",
+            json=payload,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        candidate = body["eligibility"]["selected_candidates"][0]
+        self.assertEqual(candidate["holding_overlap_pct"], "40.000000")
+        self.assertTrue(candidate["holding_overlap_is_automatic"])
+        assessment = body["explainable_assessment"]
+        self.assertNotIn(
+            "AUTOMATED_CONSTITUENT_OVERLAP",
+            assessment["unscored_metrics"],
+        )
+        overlap_component = next(
+            item
+            for item in assessment["fit_components"]
+            if item["code"] == "AUTOMATED_CONSTITUENT_OVERLAP"
+        )
+        self.assertEqual(overlap_component["observed_value"], "40.000000")
 
     def test_failed_core_gate_cannot_be_offset_by_payment_months(self):
         self._save_profile()

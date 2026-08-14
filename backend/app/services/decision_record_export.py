@@ -249,6 +249,20 @@ def _inputs_sheet(workbook: Workbook, record: DecisionRecordResponse) -> None:
         "此頁保留使用者輸入與無法取得欄位，避免把未知值誤當成零。",
     )
     request = record.request
+    eligibility = record.analysis.eligibility
+    evaluated_candidates = (
+        [
+            *eligibility.selected_candidates,
+            *eligibility.rejected_candidates,
+        ]
+        if eligibility is not None
+        else []
+    )
+    automatic_overlap = (
+        evaluated_candidates[0].holding_overlap_pct
+        if evaluated_candidates
+        else None
+    )
     row = _write_key_values(
         sheet,
         4,
@@ -257,7 +271,7 @@ def _inputs_sheet(workbook: Workbook, record: DecisionRecordResponse) -> None:
             ("候選 ETF", record.candidate_etf_code, None),
             ("預計增加單位數", request.proposed_units, "#,##0"),
             ("候選參考單價", request.unit_price, _CURRENCY_FORMAT),
-            ("持股重疊估計", request.holding_overlap_pct, _PERCENT_FORMAT),
+            ("自動成分股重疊", automatic_overlap, _PERCENT_FORMAT),
             ("月配缺口判定", "啟用" if request.monthly_coverage_enabled else "停用", None),
         ],
     )

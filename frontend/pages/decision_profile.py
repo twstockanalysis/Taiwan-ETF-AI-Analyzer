@@ -321,8 +321,8 @@ def render_explainable_assessment(assessment: dict[str, Any]) -> None:
             "unscored_metrics", []
         ):
             st.info(
-                "成分股重複尚未計分：目前缺少可自動更新的 ETF 成分股資料；"
-                "手動輸入的重疊率只作風險提示，不冒充自動計算結果。"
+                "成分股重複尚未計分：目前持倉或候選 ETF 的正式成分股快照"
+                "缺少、過期，或揭露權重未達門檻；系統不會把未知值當成 0%。"
             )
         st.caption(assessment["disclaimer"])
 
@@ -627,13 +627,9 @@ def render_decision_profile() -> None:
                 default="補足月配缺口",
             )
         with candidate_columns[2]:
-            has_overlap = st.checkbox("提供持股重疊估計", value=False)
-            overlap = st.number_input(
-                "與目前持倉重疊（%）",
-                min_value=0.0,
-                max_value=100.0,
-                value=0.0,
-                disabled=not has_overlap,
+            st.info(
+                "持股重疊率會使用通過新鮮度與揭露權重門檻的正式成分股快照"
+                "自動計算。資料不足時維持未知。"
             )
         candidate_submitted = st.form_submit_button(
             "比較候選加入前後",
@@ -652,9 +648,6 @@ def render_decision_profile() -> None:
                     candidate_request = {
                         "proposed_units": int(proposed_units),
                         "unit_price": candidate_price,
-                        "holding_overlap_pct": (
-                            overlap if has_overlap else None
-                        ),
                         "monthly_coverage_enabled": (
                             analysis_goal == "補足月配缺口"
                         ),

@@ -54,8 +54,8 @@ _ALTERNATIVES = {
         "比較稅後可用現金為正且仍通過風險門檻的候選 ETF。",
     ),
     "HOLDING_OVERLAP_UNAVAILABLE": (
-        "PROVIDE_HOLDING_OVERLAP",
-        "提供持股重疊估計，避免把未知重疊率誤當成零。",
+        "REFRESH_CONSTITUENT_DATA",
+        "更新目前持倉與候選 ETF 的正式成分股快照後再比較；未知值不視為零。",
     ),
     "EXCESSIVE_HOLDING_OVERLAP": (
         "COMPARE_LOWER_OVERLAP_ALTERNATIVE",

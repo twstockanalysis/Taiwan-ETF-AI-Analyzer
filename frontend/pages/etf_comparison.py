@@ -133,7 +133,9 @@ def build_candidate_result_rows(
                 item.get("estimated_after_tax_total_return_pct")
             ),
             "下行觀察值": format_return(item.get("downside_return_pct")),
-            "持股重疊": format_percentage(item.get("holding_overlap_pct")),
+            "自動持股重疊": format_percentage(
+                item.get("holding_overlap_pct")
+            ),
             "理由": "；".join(
                 reason["message"] for reason in item.get("reasons", [])
             ),
@@ -287,25 +289,14 @@ def render_monthly_combination_analysis(
                     step=0.1,
                     key=f"monthly_price_{base_code}_{code}",
                 )
-                has_overlap = st.checkbox(
-                    "提供持股重疊估計",
-                    value=False,
-                    key=f"monthly_overlap_known_{base_code}_{code}",
-                )
-                overlap = st.number_input(
-                    "與基準持股重疊（%）",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=0.0,
-                    disabled=not has_overlap,
-                    key=f"monthly_overlap_{base_code}_{code}",
+                st.caption(
+                    "重疊率由正式成分股快照自動計算；資料未通過門檻時顯示未知。"
                 )
                 assumptions.append(
                     {
                         "etf_code": code,
                         "unit_price": unit_price,
                         "proposed_allocation_pct": allocation,
-                        "holding_overlap_pct": overlap if has_overlap else None,
                     }
                 )
         submitted = st.form_submit_button(
