@@ -1,8 +1,10 @@
 """需由官方目錄對照內部基金 ID 的成分股來源。"""
 
+import json
 import re
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from html import unescape
 from io import BytesIO
 from typing import Any, Callable
 from urllib.parse import urljoin
@@ -35,6 +37,14 @@ FUH_HWA_CATALOG_URL = "https://www.fhtrust.com.tw/ETF/etf_detail/ETF01"
 FUH_HWA_BASE_URL = "https://www.fhtrust.com.tw"
 CAPITAL_CATALOG_URL = "https://www.capitalfund.com.tw/etf/product"
 CAPITAL_BASE_URL = "https://www.capitalfund.com.tw"
+CAPITAL_API_BASE_URL = f"{CAPITAL_BASE_URL}/CFWeb/api/etf"
+FIRST_CATALOG_URL = "https://www.fsitc.com.tw/WebAPI.aspx/Get_ETFNAVDataA"
+FIRST_HOLDINGS_URL = "https://www.fsitc.com.tw/WebAPI.aspx/Get_hd"
+FIRST_BASE_URL = "https://www.fsitc.com.tw"
+KGI_CATALOG_URL = "https://www.kgifund.com.tw/Home/ETF"
+KGI_BASE_URL = "https://www.kgifund.com.tw"
+UPAM_CATALOG_URL = "https://www.ezmoney.com.tw/ETF/Fund"
+UPAM_BASE_URL = "https://www.ezmoney.com.tw"
 UOB_EVENT_URL = "https://www.uobam.com.tw/Events/{etf_code}ETF/"
 UOB_BASE_URL = "https://www.uobam.com.tw"
 ESUN_API_BASE_URL = "https://www.esunam.com/ETFAPI"
@@ -193,6 +203,289 @@ def parse_capital_constituent_html(
         code, "群益", "capital_official_buyback", source_url,
         _parse_date(date_matches[-1] if date_matches else "", "群益"),
         _positions(table, code_index=0, name_index=1, weight_index=2, issuer="群益"),
+        fetched_at,
+    )
+
+
+def parse_capital_basic_mapping(
+    *, etf_code: str, fund_id: str, payload: Any,
+) -> None:
+    """Verify the catalog-derived Capital fund ID against its official API."""
+
+    code = _normalize_code(etf_code)
+    if not isinstance(payload, dict):
+        raise ValueError("群益官方基金基本資料 API 回應失敗")
+    data = payload.get("data")
+    if payload.get("code") != 200 or not isinstance(data, dict):
+        raise ValueError("群益官方基金基本資料 API 回應失敗")
+    if str(data.get("fundNo", "")).strip() != fund_id:
+        raise ValueError("群益官方基金基本資料回傳基金 ID 不符")
+    if str(data.get("stockNo", "")).strip().upper() != code:
+        raise ValueError(f"群益官方基金基本資料與要求的 {code} 不符")
+
+
+def parse_capital_constituent_payload(
+    payload: Any, *, etf_code: str, fund_id: str,
+    source_url: str, fetched_at: datetime,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    if not isinstance(payload, dict):
+        raise ValueError("群益官方持股 API 回應失敗")
+    data = payload.get("data")
+    if payload.get("code") != 200 or not isinstance(data, dict):
+        raise ValueError("群益官方持股 API 回應失敗")
+    pcf = data.get("pcf")
+    rows = data.get("stocks")
+    if not isinstance(pcf, dict) or not isinstance(rows, list) or not rows:
+        raise ValueError("群益官方持股缺少股票權重表")
+    table = [["股票代號", "股票名稱", "權重(%)"]]
+    row_dates = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("群益官方持股包含無效股票資料列")
+        table.append([
+            str(row.get("stocNo", "")).strip(),
+            str(row.get("stocName", "")).strip(),
+            str(row.get("weight", "")).strip(),
+        ])
+        row_dates.add(_parse_date(str(row.get("date1", "")).strip(), "群益"))
+    as_of_text = str(pcf.get("date1", "")).strip()
+    as_of_date = _parse_date(as_of_text, "群益")
+    if row_dates != {as_of_date}:
+        raise ValueError("群益官方持股股票列日期不一致")
+    return _snapshot(
+        code, "群益", "capital_official_buyback_api", source_url,
+        as_of_date,
+        _positions(
+            table, code_index=0, name_index=1, weight_index=2, issuer="群益"
+        ),
+        fetched_at,
+    )
+
+
+def parse_first_mapping(*, etf_code: str, payload: Any) -> str:
+    code = _normalize_code(etf_code)
+    encoded = payload.get("d") if isinstance(payload, dict) else None
+    if not isinstance(encoded, str) or not encoded:
+        raise ValueError("第一金官方 ETF 清單 API 回應失敗")
+    try:
+        rows = json.loads(encoded.split("|", 1)[0])
+    except (json.JSONDecodeError, TypeError) as error:
+        raise ValueError("第一金官方 ETF 清單格式錯誤") from error
+    matches = [
+        row for row in rows if isinstance(row, dict)
+        and str(row.get("EC00105", "")).strip().upper() == code
+    ] if isinstance(rows, list) else []
+    if len(matches) != 1 or not str(matches[0].get("FundID", "")).strip():
+        raise ValueError(f"第一金官方 ETF 清單找不到唯一證券代號：{code}")
+    return str(matches[0]["FundID"]).strip()
+
+
+def parse_first_constituent_payload(
+    payload: Any, *, etf_code: str, fund_id: str,
+    source_url: str, fetched_at: datetime,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    encoded = payload.get("d") if isinstance(payload, dict) else None
+    try:
+        rows = json.loads(encoded) if isinstance(encoded, str) else None
+    except json.JSONDecodeError as error:
+        raise ValueError("第一金官方持股格式錯誤") from error
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("第一金官方持股 API 回應失敗")
+    if any(str(row.get("fundid", "")).strip() != fund_id
+           for row in rows if isinstance(row, dict)):
+        raise ValueError("第一金官方持股回傳基金 ID 不符")
+    dates = {
+        str(row.get("sdate", "")).strip()
+        for row in rows if isinstance(row, dict)
+    }
+    stock_rows = [
+        row for row in rows if isinstance(row, dict)
+        and str(row.get("group", "")) == "1"
+    ]
+    declared_rows = [
+        row for row in rows if isinstance(row, dict)
+        and str(row.get("group", "")) == "5"
+        and str(row.get("A", "")).strip() == "股票"
+    ]
+    if len(dates) != 1 or "" in dates:
+        raise ValueError("第一金官方持股缺少唯一資料日期")
+    if not stock_rows or len(declared_rows) != 1:
+        raise ValueError("第一金官方持股缺少股票權重或股票資產合計")
+    positions: list[dict[str, Any]] = []
+    try:
+        for row in stock_rows:
+            constituent_id = str(row.get("A", "")).strip().upper()
+            constituent_name = str(row.get("B", "")).strip()
+            weight = Decimal(str(row.get("C", "")).replace("%", "").strip())
+            if not constituent_id or not constituent_name or weight <= 0:
+                raise ValueError("第一金官方持股包含無效股票資料列")
+            positions.append({
+                "constituent_id": constituent_id,
+                "constituent_name": constituent_name,
+                "weight_pct": weight,
+                "rank": len(positions) + 1,
+            })
+        declared_total = Decimal(
+            str(declared_rows[0].get("B", "")).replace("%", "").strip()
+        )
+    except InvalidOperation as error:
+        raise ValueError("第一金官方持股包含無效股票權重") from error
+    if abs(sum(row["weight_pct"] for row in positions) - declared_total) > Decimal("0.01"):
+        raise ValueError("第一金官方持股與股票資產合計不符，疑似資料不完整")
+    return _snapshot(
+        code, "第一金", "first_official_asset_weight_api", source_url,
+        _parse_date(next(iter(dates)), "第一金"), positions, fetched_at,
+    )
+
+
+def parse_kgi_candidate_ids(*, catalog_html: str) -> tuple[str, ...]:
+    """Read official product IDs; KGI's catalog does not expose stock codes."""
+
+    matches = re.findall(
+        r'<a[^>]+href=["\'](?:/)?Fund/Detail\?fundID=([^"\'&# >]+)',
+        catalog_html, re.I,
+    )
+    unique = tuple(dict.fromkeys(value.strip() for value in matches if value.strip()))
+    if not unique:
+        raise ValueError("凱基官方 ETF 清單找不到基金詳情連結")
+    return unique
+
+
+def parse_kgi_detail_mapping(
+    *, etf_code: str, fund_id: str, detail_html: str,
+) -> bool:
+    """Return whether an official detail page identifies the requested ETF."""
+
+    code = _normalize_code(etf_code)
+    identity = re.search(
+        r'id=["\']DFundID["\'][^>]+value=["\']([^"\']+)', detail_html, re.I
+    )
+    if identity is None or identity.group(1).strip() != fund_id:
+        raise ValueError("凱基官方基金詳情回傳基金 ID 不符")
+    return re.search(
+        rf"\({re.escape(code)}\s+[^)]+\)", unescape(detail_html), re.I
+    ) is not None
+
+
+def parse_kgi_constituent_html(
+    content: str, *, etf_code: str, fund_id: str,
+    source_url: str, fetched_at: datetime,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    identity = re.search(
+        r'id=["\']DFundID["\'][^>]+value=["\']([^"\']+)', content, re.I
+    )
+    if identity is None or identity.group(1).strip() != fund_id:
+        raise ValueError("凱基官方持股回傳基金 ID 不符")
+    if not re.search(rf"\({re.escape(code)}\s+[^)]+\)", unescape(content), re.I):
+        raise ValueError(f"凱基官方持股回應與要求的 {code} 不符")
+    date_match = re.search(
+        r'fund-asset__date[^>]*>\s*\((20\d{2}/\d{1,2}/\d{1,2})\)',
+        content, re.I,
+    )
+    table_match = re.search(
+        r'<table[^>]+class=["\'][^"\']*\bjs-table-a-0\b[^"\']*["\'][^>]*>.*?</table>',
+        content, re.I | re.S,
+    )
+    if table_match is None:
+        raise ValueError("凱基官方持股找不到股票權重表")
+    parser = _TableParser()
+    parser.feed(table_match.group(0))
+    if len(parser.tables) != 1:
+        raise ValueError("凱基官方持股股票權重表格式錯誤")
+    return _snapshot(
+        code, "凱基", "kgi_official_holdings", source_url,
+        _parse_date(date_match.group(1) if date_match else "", "凱基"),
+        _positions(
+            parser.tables[0], code_index=0, name_index=1, weight_index=3,
+            issuer="凱基",
+        ),
+        fetched_at,
+    )
+
+
+def _parse_upam_embedded_json(content: str, element_id: str) -> Any:
+    match = re.search(
+        rf'<div[^>]+id=["\']{re.escape(element_id)}["\'][^>]+'
+        r'data-content=["\']([^"\']*)["\']',
+        content, re.I,
+    )
+    if match is None:
+        raise ValueError(f"統一官方頁面找不到 {element_id} 資料")
+    encoded = match.group(1)
+    for _ in range(3):
+        stripped = encoded.lstrip()
+        if stripped.startswith(('{"', '[{"')):
+            break
+        decoded = unescape(encoded)
+        if decoded == encoded:
+            break
+        encoded = decoded
+    try:
+        return json.loads(encoded)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"統一官方頁面 {element_id} 資料格式錯誤") from error
+
+
+def parse_upam_mapping(*, etf_code: str, catalog_html: str) -> str:
+    code = _normalize_code(etf_code)
+    rows = _parse_upam_embedded_json(catalog_html, "DataFundList")
+    matches = [
+        row for row in rows if isinstance(row, dict)
+        and str(row.get("sStockNo", "")).strip().upper() == code
+    ] if isinstance(rows, list) else []
+    fund_codes = {
+        str(row.get("sFundCode", "")).strip() for row in matches
+        if str(row.get("sFundCode", "")).strip()
+    }
+    if len(fund_codes) != 1:
+        raise ValueError(f"統一官方 ETF 清單找不到唯一證券代號：{code}")
+    return next(iter(fund_codes))
+
+
+def parse_upam_constituent_html(
+    content: str, *, etf_code: str, fund_code: str,
+    source_url: str, fetched_at: datetime,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    fund = _parse_upam_embedded_json(content, "DataFund")
+    if not isinstance(fund, dict):
+        raise ValueError("統一官方基金基本資料格式錯誤")
+    if str(fund.get("sFundCode", "")).strip() != fund_code:
+        raise ValueError("統一官方持股回傳基金代碼不符")
+    if str(fund.get("sStockNo", "")).strip().upper() != code:
+        raise ValueError(f"統一官方持股回應與要求的 {code} 不符")
+    assets = _parse_upam_embedded_json(content, "DataAsset")
+    stocks = [
+        row for row in assets if isinstance(row, dict)
+        and str(row.get("AssetCode", "")).strip().upper() == "ST"
+    ] if isinstance(assets, list) else []
+    if len(stocks) != 1 or not isinstance(stocks[0].get("Details"), list):
+        raise ValueError("統一官方持股缺少唯一股票權重表")
+    details = stocks[0]["Details"]
+    table = [["股票代號", "股票名稱", "權重(%)"]]
+    dates: set[str] = set()
+    for row in details:
+        if not isinstance(row, dict):
+            raise ValueError("統一官方持股包含無效股票資料列")
+        if str(row.get("FundCode", "")).strip() != fund_code:
+            raise ValueError("統一官方持股股票列基金代碼不符")
+        table.append([
+            str(row.get("DetailCode", "")).strip(),
+            str(row.get("DetailName", "")).strip(),
+            str(row.get("NavRate", "")).strip(),
+        ])
+        dates.add(str(row.get("TranDate", "")).strip())
+    if len(dates) != 1 or "" in dates:
+        raise ValueError("統一官方持股缺少唯一資料日期")
+    return _snapshot(
+        code, "統一", "upam_official_embedded_assets", source_url,
+        _parse_date(next(iter(dates)), "統一"),
+        _positions(
+            table, code_index=0, name_index=1, weight_index=2, issuer="統一"
+        ),
         fetched_at,
     )
 
@@ -518,9 +811,85 @@ def fetch_capital_constituent_snapshot(etf_code: str, *, timeout_seconds: float 
     code = _normalize_code(etf_code)
     catalog = _get(CAPITAL_CATALOG_URL, timeout_seconds=timeout_seconds)
     url = parse_capital_product_url(etf_code=code, catalog_html=catalog.text)
-    return parse_capital_constituent_html(
-        _get(url, timeout_seconds=timeout_seconds).text, etf_code=code,
-        source_url=url, fetched_at=fetched_at or datetime.now(timezone.utc),
+    match = re.search(r"/detail/(\d+)/buyback$", url)
+    if match is None:
+        raise ValueError("群益官方 ETF 清單包含無效基金 ID")
+    fund_id = match.group(1)
+    basic = _get(
+        f"{CAPITAL_API_BASE_URL}/basic/{fund_id}",
+        timeout_seconds=timeout_seconds,
+    )
+    parse_capital_basic_mapping(
+        etf_code=code, fund_id=fund_id, payload=basic.json()
+    )
+    holdings = _post_json(
+        f"{CAPITAL_API_BASE_URL}/buyback",
+        {"fundId": fund_id, "date": None}, timeout_seconds=timeout_seconds,
+    )
+    return parse_capital_constituent_payload(
+        holdings, etf_code=code, fund_id=fund_id, source_url=url,
+        fetched_at=fetched_at or datetime.now(timezone.utc),
+    )
+
+
+def fetch_first_constituent_snapshot(
+    etf_code: str, *, timeout_seconds: float = 30,
+    fetched_at: datetime | None = None,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    catalog = _post_json(
+        FIRST_CATALOG_URL, {"pStrETFCode": ""},
+        timeout_seconds=timeout_seconds,
+    )
+    fund_id = parse_first_mapping(etf_code=code, payload=catalog)
+    holdings = _post_json(
+        FIRST_HOLDINGS_URL, {"pStrFundID": fund_id, "pStrDate": ""},
+        timeout_seconds=timeout_seconds,
+    )
+    return parse_first_constituent_payload(
+        holdings, etf_code=code, fund_id=fund_id,
+        source_url=f"{FIRST_BASE_URL}/FundDetail.aspx?ID={fund_id}",
+        fetched_at=fetched_at or datetime.now(timezone.utc),
+    )
+
+
+def fetch_kgi_constituent_snapshot(
+    etf_code: str, *, timeout_seconds: float = 30,
+    fetched_at: datetime | None = None,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    catalog = _get(KGI_CATALOG_URL, timeout_seconds=timeout_seconds)
+    matches: list[tuple[str, str, httpx.Response]] = []
+    for candidate_id in parse_kgi_candidate_ids(catalog_html=catalog.text):
+        candidate_url = f"{KGI_BASE_URL}/Fund/Detail?fundID={candidate_id}"
+        candidate = _get(candidate_url, timeout_seconds=timeout_seconds)
+        if parse_kgi_detail_mapping(
+            etf_code=code, fund_id=candidate_id, detail_html=candidate.text
+        ):
+            matches.append((candidate_id, candidate_url, candidate))
+    if len(matches) != 1:
+        raise ValueError(f"凱基官方 ETF 清單找不到唯一證券代號：{code}")
+    fund_id, source_url, holdings = matches[0]
+    return parse_kgi_constituent_html(
+        holdings.text, etf_code=code, fund_id=fund_id,
+        source_url=source_url,
+        fetched_at=fetched_at or datetime.now(timezone.utc),
+    )
+
+
+def fetch_upam_constituent_snapshot(
+    etf_code: str, *, timeout_seconds: float = 30,
+    fetched_at: datetime | None = None,
+) -> ETFConstituentSnapshotCreate:
+    code = _normalize_code(etf_code)
+    catalog = _get(UPAM_CATALOG_URL, timeout_seconds=timeout_seconds)
+    fund_code = parse_upam_mapping(etf_code=code, catalog_html=catalog.text)
+    source_url = f"{UPAM_BASE_URL}/ETF/Fund/Info?fundCode={fund_code}"
+    holdings = _get(source_url, timeout_seconds=timeout_seconds)
+    return parse_upam_constituent_html(
+        holdings.text, etf_code=code, fund_code=fund_code,
+        source_url=source_url,
+        fetched_at=fetched_at or datetime.now(timezone.utc),
     )
 
 
@@ -636,6 +1005,10 @@ def fetch_jpmorgan_constituent_snapshot(
 MAPPED_CONSTITUENT_FETCHERS: dict[str, Callable[..., ETFConstituentSnapshotCreate]] = {
     "mega": fetch_mega_constituent_snapshot,
     "fuh_hwa": fetch_fuh_hwa_constituent_snapshot,
+    "first": fetch_first_constituent_snapshot,
+    "capital": fetch_capital_constituent_snapshot,
+    "kgi": fetch_kgi_constituent_snapshot,
+    "upam": fetch_upam_constituent_snapshot,
     "uob": fetch_uob_constituent_snapshot,
     "esun": fetch_esun_constituent_snapshot,
     "franklin": fetch_franklin_constituent_snapshot,

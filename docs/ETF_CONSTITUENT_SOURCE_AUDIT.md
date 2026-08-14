@@ -16,8 +16,9 @@ against the TWSE `t187ap47_L` official fund master on 2026-08-13.
 Finding an official page is not equivalent to automation. Only `AUTOMATED`
 sources may be imported without additional issuer-specific work. The current
 registry has no entrypoint-only issuer: all applicable issuers returned a
-complete official holdings or PCF response during this audit, and sixteen sources
-now have production adapters.
+complete official holdings or PCF response during this audit, and twenty sources
+now have production adapters. Cathay and BlackRock remain fail-closed because
+their tested official automation paths still do not return usable holdings.
 
 ## Issuer matrix
 
@@ -28,15 +29,15 @@ now have production adapters.
 | SinoPac | 00930 | `AUTOMATED` | ETF code in path | Official PCF adapter |
 | Mega | 00932 | `AUTOMATED` | Internal fund ID | Catalog mapping plus holdings adapter |
 | Cathay | 00878 | `FULL_DISCLOSURE_VERIFIED` | Internal fund code | Official holdings tab |
-| First | 00408A | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Official asset-weight table |
+| First | 00408A | `AUTOMATED` | Internal fund ID | ETF catalog plus reconciled asset-weight API |
 | Fuh Hwa | 00929 | `AUTOMATED` | Internal fund ID | Catalog mapping plus asset Excel adapter |
-| Capital | 00923 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Current HTML response fails the 90% runtime completeness gate |
+| Capital | 00923 | `AUTOMATED` | Internal fund ID | Catalog identity plus complete buyback API |
 | Taishin | 00987A | `AUTOMATED` | ETF code in path | Official holdings adapter |
 | CTBC | 00891 | `AUTOMATED` | ETF-code query | Official PCF adapter |
-| UPAM | 00939 | `FULL_DISCLOSURE_VERIFIED` | Internal fund code | Complete holdings table |
+| UPAM | 00939 | `AUTOMATED` | Internal fund code | Catalog mapping plus embedded official asset holdings |
 | JKO | 00693U | `NOT_APPLICABLE` | Futures ETF only | Current products are commodity futures trusts |
 | Franklin Templeton SinoAm | 00905 | `AUTOMATED` | Internal fund ID | Official catalog and holdings API adapter |
-| KGI | 00915 | `FULL_DISCLOSURE_VERIFIED` | Internal fund ID | Complete holdings table |
+| KGI | 00915 | `AUTOMATED` | Internal fund ID | Catalog discovery plus complete holdings table |
 | UOB | 00918 | `AUTOMATED` | Internal fund ID | Event mapping plus official PCF adapter |
 | Nomura | 00944 | `AUTOMATED` | ETF code in request body | Official `GetFundAssets` adapter |
 | E.SUN | 009803 | `AUTOMATED` | Internal fund ID | Overview mapping plus official `GetFundAssets` adapter |
@@ -78,6 +79,20 @@ their official production endpoints on 2026-08-13 and 2026-08-14:
 - J.P. Morgan's official autocomplete response mapped both current Taiwan ETFs
   to their ISINs. Its product-data response returned 64 equity rows each for
   `00401A` (`92.4829%`) and `00989A` (`98.3042%`), dated `2026-08-13`.
+- Capital's official catalog and basic-data API mapped `00923` to `fundNo=365`;
+  its buyback API returned 50 stocks totaling `99.1425%`, dated `2026-08-14`.
+- First's official ETF API mapped `00408A` to `FundID=183`. Its asset endpoint
+  returned 46 stocks totaling `87.75%`, exactly matching the separately declared
+  stock-asset total; the remaining allocation was disclosed as cash/other assets.
+- UPAM's official catalog mapped `00939` to `46YTW`. The product page embedded
+  40 stock rows totaling `96.93%`, dated `2026-08-13`, alongside separate futures
+  and cash asset groups.
+- KGI's official catalog and detail-page identity mapped `00915` to `J015`.
+  The complete server-rendered stock table returned 30 rows totaling `97.04%`,
+  dated `2026-08-14`.
+- Cathay's public `GetETFDetailStockList` endpoint still returned `4005` / no
+  data for the verified `00878` product path and identifiers on `2026-08-14`.
+  No adapter is enabled until the official request can be reproduced reliably.
 - BlackRock's previously verified complete product holdings remain visible to
   interactive users, but the product page and tested official CSV variants
   returned HTTP 403 on `2026-08-14`. No adapter is enabled while automated
@@ -100,10 +115,9 @@ but they are not substitutes for issuer portfolio disclosure.
 
 1. Direct ETF-code sources: completed for SinoPac, Taishin, CTBC, Fubon and
    Nomura, including identity, date and minimum-coverage validation.
-2. Stable internal-ID discovery: completed for Mega, Fuh Hwa, UOB and E.SUN.
-   Franklin Templeton SinoAm is also complete. Revisit Cathay, First and KGI
-   when their application responses expose complete stock rows; resolve
-   Capital's truncated server response before enabling persistence.
+2. Stable internal-ID discovery: completed for Mega, Fuh Hwa, UOB, E.SUN,
+   First, Capital, UPAM and KGI. Franklin Templeton SinoAm is also complete.
+   Revisit Cathay only when its official stock endpoint returns usable data.
 3. Stable product-ID or ISIN discovery: completed for J.P. Morgan and
    AllianceBernstein. Revisit BlackRock only when an officially accessible
    catalog and complete holdings response can be verified without bypassing
