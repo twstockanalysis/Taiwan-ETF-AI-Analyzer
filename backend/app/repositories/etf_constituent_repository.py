@@ -84,6 +84,41 @@ def get_latest_constituent_snapshot(
         connection.close()
 
 
+def get_constituent_snapshot_by_identity(
+    etf_code: str,
+    as_of_date: str,
+    source_id: str,
+    database_path: str | Path | None = None,
+) -> ETFConstituentSnapshot | None:
+    """依不可變來源識別鍵取得既有快照。"""
+
+    connection = get_connection(database_path)
+    try:
+        row = connection.execute(
+            """
+            SELECT * FROM etf_constituent_snapshot
+            WHERE etf_code = ? AND as_of_date = ? AND source_id = ?
+            LIMIT 1;
+            """,
+            (etf_code.strip().upper(), as_of_date, source_id.strip()),
+        ).fetchone()
+        if row is None:
+            return None
+        positions = connection.execute(
+            """
+            SELECT constituent_id, constituent_name, weight_pct, rank
+            FROM etf_constituent_position
+            WHERE snapshot_id = ?
+            ORDER BY COALESCE(rank, 2147483647), weight_pct DESC,
+                     constituent_id;
+            """,
+            (row["id"],),
+        ).fetchall()
+        return _snapshot_from_rows(row, positions)
+    finally:
+        connection.close()
+
+
 def save_constituent_snapshot(
     value: ETFConstituentSnapshotCreate,
     database_path: str | Path | None = None,

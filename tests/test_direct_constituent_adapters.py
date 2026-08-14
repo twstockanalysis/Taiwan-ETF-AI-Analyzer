@@ -6,7 +6,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from backend.app.data_sources.constituent_pipeline import import_official_constituents
+from backend.app.data_sources.constituent_pipeline import (
+    import_official_constituents,
+    import_official_constituents_with_status,
+)
 from backend.app.data_sources.direct_constituent_adapters import (
     NOMURA_API_URL,
     fetch_fubon_constituent_snapshot,
@@ -198,6 +201,50 @@ class TestOfficialConstituentPipeline(unittest.TestCase):
             connection.close()
             with self.assertRaisesRegex(ValueError, "尚未支援"):
                 import_official_constituents("unknown", "00930", database_path)
+
+    def test_same_official_snapshot_is_idempotent_but_changed_content_fails(self):
+        content = f"""00930 資料日期：2026/08/13
+        <table><tr><th>證券代碼</th><th>證券名稱</th><th>股數</th>
+        <th>佔基金淨資產之權重(%)</th></tr>{ROWS}</table>"""
+        snapshot = parse_sinopac_constituent_html(
+            content, etf_code="00930", source_url="https://example.test",
+            fetched_at=FETCHED_AT,
+        )
+        changed = parse_sinopac_constituent_html(
+            content.replace("<td>60</td>", "<td>59</td>").replace(
+                "<td>9.5</td>", "<td>10.5</td>"
+            ),
+            etf_code="00930", source_url="https://example.test",
+            fetched_at=FETCHED_AT,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "constituents.db"
+            initialize_database(database_path)
+            connection = get_connection(database_path)
+            connection.execute(
+                "INSERT INTO etf_master (code, name) VALUES ('00930', '永豐ESG低碳高息');"
+            )
+            connection.commit()
+            connection.close()
+            fetcher = Mock(side_effect=[snapshot, snapshot, changed])
+            with patch.dict(
+                "backend.app.data_sources.constituent_pipeline."
+                "DIRECT_CONSTITUENT_FETCHERS",
+                {"sinopac": fetcher},
+                clear=True,
+            ):
+                first = import_official_constituents_with_status(
+                    "sinopac", "00930", database_path
+                )
+                second = import_official_constituents_with_status(
+                    "sinopac", "00930", database_path
+                )
+                self.assertEqual(first.outcome, "IMPORTED")
+                self.assertEqual(second.outcome, "UNCHANGED")
+                with self.assertRaisesRegex(ValueError, "拒絕覆寫"):
+                    import_official_constituents_with_status(
+                        "sinopac", "00930", database_path
+                    )
 
 
 if __name__ == "__main__":
