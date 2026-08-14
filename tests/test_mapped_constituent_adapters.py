@@ -1,5 +1,6 @@
 """官方目錄對照型 ETF 成分股 Adapter 測試。"""
 
+import json
 import unittest
 from datetime import datetime, timezone
 from io import BytesIO
@@ -9,7 +10,9 @@ from openpyxl import Workbook
 from backend.app.data_sources.mapped_constituent_adapters import (
     parse_alliancebernstein_constituent_payload,
     parse_alliancebernstein_mapping,
+    parse_capital_basic_mapping,
     parse_capital_constituent_html,
+    parse_capital_constituent_payload,
     parse_capital_product_url,
     parse_esun_constituent_payload,
     parse_esun_mapping,
@@ -18,11 +21,18 @@ from backend.app.data_sources.mapped_constituent_adapters import (
     parse_franklin_mapping,
     parse_fuh_hwa_assets_link,
     parse_fuh_hwa_constituent_excel,
+    parse_first_constituent_payload,
+    parse_first_mapping,
     parse_mega_constituent_html,
     parse_mega_product_url,
     parse_jpmorgan_constituent_payload,
     parse_jpmorgan_mapping,
+    parse_kgi_candidate_ids,
+    parse_kgi_constituent_html,
+    parse_kgi_detail_mapping,
     parse_uob_constituent_html,
+    parse_upam_constituent_html,
+    parse_upam_mapping,
 )
 
 
@@ -219,6 +229,147 @@ class TestMappedConstituentAdapters(unittest.TestCase):
             parse_capital_constituent_html(
                 content, etf_code="00923", source_url=url, fetched_at=FETCHED_AT
             )
+
+    def test_capital_api_mapping_and_complete_holdings(self):
+        parse_capital_basic_mapping(
+            etf_code="00923", fund_id="365",
+            payload={"code": 200, "data": {"fundNo": "365", "stockNo": "00923"}},
+        )
+        rows = [
+            {"stocNo": stock, "stocName": name, "weight": weight,
+             "date1": "2026/08/14"}
+            for stock, name, weight in [
+                ("2330", "台積電", "60"), ("2454", "聯發科", "30"),
+                ("2308", "台達電", "9.5"),
+            ]
+        ]
+        result = parse_capital_constituent_payload(
+            {"code": 200, "data": {
+                "pcf": {"date1": "2026/08/14"}, "stocks": rows,
+            }},
+            etf_code="00923", fund_id="365", source_url="https://example.test",
+            fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.source_id, "capital_official_buyback_api")
+        self.assertEqual(result.as_of_date.isoformat(), "2026-08-14")
+
+    def test_capital_api_rejects_wrong_identity_and_mixed_dates(self):
+        with self.assertRaisesRegex(ValueError, "與要求的 00923 不符"):
+            parse_capital_basic_mapping(
+                etf_code="00923", fund_id="365",
+                payload={"code": 200, "data": {
+                    "fundNo": "365", "stockNo": "00924",
+                }},
+            )
+        payload = {"code": 200, "data": {
+            "pcf": {"date1": "2026/08/14"},
+            "stocks": [{"stocNo": "2330", "stocName": "台積電",
+                         "weight": "99", "date1": "2026/08/13"}],
+        }}
+        with self.assertRaisesRegex(ValueError, "日期不一致"):
+            parse_capital_constituent_payload(
+                payload, etf_code="00923", fund_id="365",
+                source_url="https://example.test", fetched_at=FETCHED_AT,
+            )
+
+    def test_first_catalog_and_reconciled_stock_assets(self):
+        catalog = {"d": (
+            '[{"FundID":"183","EC00105":"00408A"},'
+            '{"FundID":"182","EC00105":"00994A"}]|[]'
+        )}
+        self.assertEqual(
+            parse_first_mapping(etf_code="00408a", payload=catalog), "183"
+        )
+        rows = [
+            {"fundid": "183", "sdate": "2026-08-13", "group": "1",
+             "A": "2330", "B": "台積電", "C": "60"},
+            {"fundid": "183", "sdate": "2026-08-13", "group": "1",
+             "A": "2454", "B": "聯發科", "C": "27.75"},
+            {"fundid": "183", "sdate": "2026-08-13", "group": "5",
+             "A": "股票", "B": "87.75%", "C": "1"},
+            {"fundid": "183", "sdate": "2026-08-13", "group": "5",
+             "A": "其他+負債", "B": "12.25%", "C": "5"},
+        ]
+        result = parse_first_constituent_payload(
+            {"d": json.dumps(rows, ensure_ascii=False)},
+            etf_code="00408A", fund_id="183", source_url="https://example.test",
+            fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.source_id, "first_official_asset_weight_api")
+        self.assertEqual(len(result.positions), 2)
+
+    def test_first_requires_declared_stock_total_to_reconcile(self):
+        rows = [
+            {"fundid": "183", "sdate": "2026-08-13", "group": "1",
+             "A": "2330", "B": "台積電", "C": "80"},
+            {"fundid": "183", "sdate": "2026-08-13", "group": "5",
+             "A": "股票", "B": "87.75%", "C": "1"},
+        ]
+        with self.assertRaisesRegex(ValueError, "股票資產合計不符"):
+            parse_first_constituent_payload(
+                {"d": json.dumps(rows, ensure_ascii=False)},
+                etf_code="00408A", fund_id="183",
+                source_url="https://example.test", fetched_at=FETCHED_AT,
+            )
+
+    def test_kgi_catalog_detail_mapping_and_holdings(self):
+        catalog = (
+            '<a href="/Fund/Detail?fundID=J014">凱基ESG BBB債15+</a>'
+            '<a href="/Fund/Detail?fundID=J015">凱基優選高股息30</a>'
+        )
+        self.assertEqual(parse_kgi_candidate_ids(catalog_html=catalog), ("J014", "J015"))
+        rows = "".join(
+            f"<tr><td>{stock}</td><td>{name}</td><td>100</td><td>{weight}</td></tr>"
+            for stock, name, weight in [
+                ("2330", "台積電", "60"), ("2454", "聯發科", "30"),
+                ("2308", "台達電", "9.5"),
+            ]
+        )
+        detail = f'''<input id="DFundID" value="J015" />
+        <h1>(00915 凱基優選高股息30)</h1>
+        <p class="fund-asset__date">(2026/08/13)</p>
+        <table class="js-table-a-0"><tr><th>股票代號</th><th>股票名稱</th>
+        <th>股數</th><th>權重(%)</th></tr>{rows}</table>'''
+        self.assertTrue(parse_kgi_detail_mapping(
+            etf_code="00915", fund_id="J015", detail_html=detail
+        ))
+        result = parse_kgi_constituent_html(
+            detail, etf_code="00915", fund_id="J015",
+            source_url="https://example.test", fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.source_id, "kgi_official_holdings")
+        self.assertEqual(len(result.positions), 3)
+
+    def test_upam_catalog_and_embedded_assets(self):
+        def embedded(element_id, value):
+            encoded = json.dumps(value, ensure_ascii=False).replace('"', '&quot;')
+            return f'<div id="{element_id}" data-content="{encoded}"></div>'
+
+        catalog = embedded("DataFundList", [{
+            "sStockNo": "00939     ", "sFundCode": "46YTW",
+        }])
+        self.assertEqual(
+            parse_upam_mapping(etf_code="00939", catalog_html=catalog), "46YTW"
+        )
+        details = [
+            {"FundCode": "46YTW", "TranDate": "2026-08-13T00:00:00",
+             "DetailCode": stock, "DetailName": name, "NavRate": weight}
+            for stock, name, weight in [
+                ("2330", "台積電", "60"), ("2454", "聯發科", "30"),
+                ("2308", "台達電", "9.5"),
+            ]
+        ]
+        content = embedded("DataFund", {
+            "sFundCode": "46YTW", "sStockNo": "00939     ",
+        }) + embedded("DataAsset", [{
+            "AssetCode": "ST", "Details": details,
+        }])
+        result = parse_upam_constituent_html(
+            content, etf_code="00939", fund_code="46YTW",
+            source_url="https://example.test", fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(result.source_id, "upam_official_embedded_assets")
+        self.assertEqual(result.as_of_date.isoformat(), "2026-08-13")
 
     def test_uob_stock_table(self):
         rows = """<tr><td>2330</td><td>台積電</td><td>100</td><td>1000</td><td>60</td></tr>

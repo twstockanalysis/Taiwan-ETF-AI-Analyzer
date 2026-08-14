@@ -56,8 +56,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "first": ConstituentSource(
         "first", "第一金", "00408A",
         "https://www.fsitc.com.tw/FundDetail.aspx?ID=183",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_ID", "Official asset-weight table; ETF-to-ID discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_ID", "Official ETF catalog and reconciled asset weights are imported.",
     ),
     "fuh_hwa": ConstituentSource(
         "fuh_hwa", "復華", "00929",
@@ -68,8 +68,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "capital": ConstituentSource(
         "capital", "群益", "00923",
         "https://www.capitalfund.com.tw/etf/product/detail/365/buyback",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_ID", "Complete buyback holdings; ETF-to-ID discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_ID", "Official catalog, fund identity and complete buyback API are imported.",
     ),
     "taishin": ConstituentSource(
         "taishin", "台新", "00987A",
@@ -86,8 +86,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "upam": ConstituentSource(
         "upam", "統一", "00939",
         "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=46YTW",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_CODE", "Complete holdings table; ETF-to-code discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_CODE", "Official catalog mapping and embedded asset holdings are imported.",
     ),
     "jko": ConstituentSource(
         "jko", "街口", "00693U",
@@ -105,8 +105,8 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "kgi": ConstituentSource(
         "kgi", "凱基", "00915",
         "https://www.kgifund.com.tw/Fund/Detail?fundID=J015",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
-        "INTERNAL_FUND_ID", "Complete holdings table; ETF-to-ID discovery is required.",
+        ConstituentSourceStatus.AUTOMATED,
+        "INTERNAL_FUND_ID", "Official catalog discovery and complete holdings table are imported.",
     ),
     "uob": ConstituentSource(
         "uob", "大華銀", "00918",
