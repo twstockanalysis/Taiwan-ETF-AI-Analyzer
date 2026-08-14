@@ -5,6 +5,9 @@ from pathlib import Path
 from backend.app.data_sources.direct_constituent_adapters import (
     DIRECT_CONSTITUENT_FETCHERS,
 )
+from backend.app.data_sources.form_constituent_adapters import (
+    FORM_CONSTITUENT_FETCHERS,
+)
 from backend.app.data_sources.mapped_constituent_adapters import (
     MAPPED_CONSTITUENT_FETCHERS,
 )
@@ -52,6 +55,7 @@ def import_official_constituents(
             DIRECT_CONSTITUENT_FETCHERS.get(normalized_issuer)
             or MAPPED_CONSTITUENT_FETCHERS.get(normalized_issuer)
             or SESSION_CONSTITUENT_FETCHERS.get(normalized_issuer)
+            or FORM_CONSTITUENT_FETCHERS.get(normalized_issuer)
         )
         if fetcher is None:
             raise ValueError(f"尚未支援投信成分股自動匯入：{normalized_issuer}")

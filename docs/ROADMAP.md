@@ -810,6 +810,16 @@ first public release, and AI output must not become opaque trading advice.
 - Kept tokens and cookies ephemeral and persisted only validated source-dated
   constituent snapshots
 
+### V2-9 — Form-backed official constituent source — Completed locally
+
+- Added live discovery of every ETF code currently offered by the Union
+  official purchase/redemption form instead of hard-coding one product
+- Added bounded `FundNo` and official `sDate` submissions with response-domain,
+  content-type, size, identity, date and minimum stock-weight validation
+- Verified `009804` with 50 stock rows totaling `99.4138%` and `009825` with 30
+  stock rows totaling `99.5039%` against the official production form
+- Kept unknown ETF codes and changed or incomplete form responses fail-closed
+
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation
 - Third-party market-data evaluation

@@ -16,7 +16,7 @@ against the TWSE `t187ap47_L` official fund master on 2026-08-13.
 Finding an official page is not equivalent to automation. Only `AUTOMATED`
 sources may be imported without additional issuer-specific work. The current
 registry has no entrypoint-only issuer: all applicable issuers returned a
-complete official holdings or PCF response during this audit, and fifteen sources
+complete official holdings or PCF response during this audit, and sixteen sources
 now have production adapters.
 
 ## Issuer matrix
@@ -40,7 +40,7 @@ now have production adapters.
 | UOB | 00918 | `AUTOMATED` | Internal fund ID | Event mapping plus official PCF adapter |
 | Nomura | 00944 | `AUTOMATED` | ETF code in request body | Official `GetFundAssets` adapter |
 | E.SUN | 009803 | `AUTOMATED` | Internal fund ID | Overview mapping plus official `GetFundAssets` adapter |
-| Union | 009804 | `FULL_DISCLOSURE_VERIFIED` | Form selection | Complete holdings table |
+| Union | 009804 | `AUTOMATED` | Form selection | Live fund discovery plus official holdings adapter |
 | HN | 009808 | `AUTOMATED` | ETFID query plus short-lived system token | Public system-token login plus official PCF adapter |
 | Allianz | 00984A | `AUTOMATED` | Antiforgery plus internal fund ID | Antiforgery session, overview mapping and `GetFundAssets` adapter |
 | BlackRock | 009813 | `FULL_DISCLOSURE_VERIFIED` | Internal product ID | Complete holdings verified; official automation is access-protected |
@@ -59,6 +59,9 @@ their official production endpoints on 2026-08-13 and 2026-08-14:
   `2026/08/13` data date.
 - E.SUN `GetETFOverview` mapped `009803` to internal `FundNo=50`, and
   `GetFundAssets` returned 50 stock rows for `2026/08/13`.
+- Union's official form exposed both current ETF codes and accepted bounded
+  `FundNo` plus `sDate` submissions. It returned 50 stock rows totaling
+  `99.4138%` for `009804` and 30 rows totaling `99.5039%` for `009825`.
 - HN's official OpenAPI defines `GET /Stk/PcfData` with the `ETFID` query.
   Its public short-lived system-token flow returned 60 stock rows plus one
   futures row for `009808`, dated `2026-08-13`; the active adapter converts
@@ -107,7 +110,7 @@ but they are not substitutes for issuer portfolio disclosure.
    access protection.
 4. Session-aware sources: completed for HN's short-lived public system token
    and Allianz's antiforgery cookie/header pair.
-5. Form-backed sources such as Union, followed by the remaining issuer-specific
-   parsers.
+5. Form-backed sources: completed for Union with live form discovery, identity
+   checks and complete stock-table validation.
 6. Add freshness and multi-issuer coverage gates before calculated overlap is
    allowed to affect assessment scoring.
