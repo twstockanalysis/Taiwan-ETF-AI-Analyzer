@@ -8,6 +8,9 @@ from backend.app.data_sources.direct_constituent_adapters import (
 from backend.app.data_sources.mapped_constituent_adapters import (
     MAPPED_CONSTITUENT_FETCHERS,
 )
+from backend.app.data_sources.session_constituent_adapters import (
+    SESSION_CONSTITUENT_FETCHERS,
+)
 from backend.app.data_sources.yuanta_constituent_adapter import (
     fetch_yuanta_constituent_snapshot,
 )
@@ -48,6 +51,7 @@ def import_official_constituents(
         fetcher = (
             DIRECT_CONSTITUENT_FETCHERS.get(normalized_issuer)
             or MAPPED_CONSTITUENT_FETCHERS.get(normalized_issuer)
+            or SESSION_CONSTITUENT_FETCHERS.get(normalized_issuer)
         )
         if fetcher is None:
             raise ValueError(f"尚未支援投信成分股自動匯入：{normalized_issuer}")

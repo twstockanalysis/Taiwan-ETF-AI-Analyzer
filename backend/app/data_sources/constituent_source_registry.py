@@ -137,16 +137,16 @@ CONSTITUENT_SOURCES: dict[str, ConstituentSource] = {
     "hnh": ConstituentSource(
         "hnh", "華南永昌", "009808",
         "https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/swagger/index.html",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        ConstituentSourceStatus.AUTOMATED,
         "ETFID_QUERY_WITH_SYSTEM_TOKEN",
-        "Official OpenAPI PCF endpoint returns complete holdings by ETFID.",
+        "Official short-lived public token and PCF holdings are imported.",
     ),
     "allianz": ConstituentSource(
         "allianz", "安聯", "00984A",
         "https://etf.allianzgi.com.tw/etf-info/E0001?tab=4",
-        ConstituentSourceStatus.FULL_DISCLOSURE_VERIFIED,
+        ConstituentSourceStatus.AUTOMATED,
         "ANTIFORGERY_INTERNAL_FUND_ID",
-        "Official overview and GetFundAssets APIs return complete holdings after antiforgery setup.",
+        "Official antiforgery session, overview mapping and holdings are imported.",
     ),
     "blackrock": ConstituentSource(
         "blackrock", "貝萊德投信", "009813",
