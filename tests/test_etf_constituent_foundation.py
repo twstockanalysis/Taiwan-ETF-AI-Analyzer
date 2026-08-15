@@ -20,6 +20,8 @@ from backend.app.repositories.etf_constituent_repository import (
     save_constituent_snapshot,
 )
 from backend.app.services.constituent_overlap import (
+    calculate_gated_pair_overlap,
+    calculate_gated_portfolio_overlap,
     calculate_weighted_overlap,
 )
 
@@ -136,6 +138,126 @@ class TestETFConstituentFoundation(unittest.TestCase):
                     {"constituent_id": "2317", "constituent_name": "鴻海", "weight_pct": 41},
                 ],
             )
+
+    def test_gated_pair_overlap_requires_fresh_complete_snapshots(self):
+        self.assertEqual(
+            calculate_gated_pair_overlap(
+                "0050",
+                "006208",
+                self.database_path,
+                evaluated_on=date(2026, 8, 14),
+            ).decision,
+            "NO_GO",
+        )
+        for code, tsmc_weight, other_id in (
+            ("0050", "55", "2317"),
+            ("006208", "60", "2454"),
+        ):
+            save_constituent_snapshot(
+                self.payload(
+                    code,
+                    [
+                        {
+                            "constituent_id": "2330",
+                            "constituent_name": "台積電",
+                            "weight_pct": tsmc_weight,
+                        },
+                        {
+                            "constituent_id": other_id,
+                            "constituent_name": "其他",
+                            "weight_pct": Decimal("90")
+                            - Decimal(tsmc_weight),
+                        },
+                    ],
+                ),
+                self.database_path,
+            )
+
+        result = calculate_gated_pair_overlap(
+            "0050",
+            "006208",
+            self.database_path,
+            evaluated_on=date(2026, 8, 14),
+        )
+        self.assertEqual(result.decision, "READY")
+        self.assertEqual(result.overlap_pct, Decimal("55.000000"))
+
+    def test_portfolio_overlap_uses_current_market_value_weights(self):
+        connection = get_connection(self.database_path)
+        connection.execute(
+            "INSERT INTO etf_master (code, name) VALUES (?, ?);",
+            ("00878", "國泰永續高股息"),
+        )
+        connection.commit()
+        connection.close()
+        for code, positions in (
+            (
+                "0050",
+                [
+                    {
+                        "constituent_id": "2330",
+                        "constituent_name": "台積電",
+                        "weight_pct": 60,
+                    },
+                    {
+                        "constituent_id": "2317",
+                        "constituent_name": "鴻海",
+                        "weight_pct": 30,
+                    },
+                ],
+            ),
+            (
+                "006208",
+                [
+                    {
+                        "constituent_id": "2330",
+                        "constituent_name": "台積電",
+                        "weight_pct": 40,
+                    },
+                    {
+                        "constituent_id": "2454",
+                        "constituent_name": "聯發科",
+                        "weight_pct": 50,
+                    },
+                ],
+            ),
+            (
+                "00878",
+                [
+                    {
+                        "constituent_id": "2330",
+                        "constituent_name": "台積電",
+                        "weight_pct": 50,
+                    },
+                    {
+                        "constituent_id": "2881",
+                        "constituent_name": "富邦金",
+                        "weight_pct": 40,
+                    },
+                ],
+            ),
+        ):
+            save_constituent_snapshot(
+                self.payload(code, positions),
+                self.database_path,
+            )
+
+        result = calculate_gated_portfolio_overlap(
+            [
+                {"etf_code": "0050", "held_units": 1, "unit_price": 75},
+                {"etf_code": "006208", "held_units": 1, "unit_price": 25},
+            ],
+            "00878",
+            self.database_path,
+            evaluated_on=date(2026, 8, 14),
+        )
+
+        self.assertEqual(result.decision, "READY")
+        self.assertEqual(result.overlap_pct, Decimal("50.000000"))
+        self.assertEqual(
+            result.method,
+            "PORTFOLIO_VALUE_WEIGHTED_SUM_MIN_DISCLOSED_WEIGHTS_V1",
+        )
 
 
 if __name__ == "__main__":

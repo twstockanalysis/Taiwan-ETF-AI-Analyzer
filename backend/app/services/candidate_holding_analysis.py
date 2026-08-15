@@ -31,6 +31,9 @@ from backend.app.repositories.monthly_income_repository import (
 from backend.app.repositories.performance_repository import (
     list_latest_etf_performance,
 )
+from backend.app.services.constituent_overlap import (
+    calculate_gated_portfolio_overlap,
+)
 from backend.app.services.current_holding_analysis import (
     analyze_holding_snapshot,
 )
@@ -266,11 +269,16 @@ def analyze_candidate_holding(
     proposed_allocation_pct = (
         candidate_total_value / proposed_total * Decimal("100")
     ).quantize(_PERCENT_QUANTUM, rounding=ROUND_HALF_UP)
+    automatic_overlap = calculate_gated_portfolio_overlap(
+        holdings,
+        normalized_code,
+        database_path,
+        evaluated_on=analysis_date,
+    )
     assumption = MonthlyCombinationCandidateAssumption(
         etf_code=normalized_code,
         unit_price=request.unit_price,
         proposed_allocation_pct=proposed_allocation_pct,
-        holding_overlap_pct=request.holding_overlap_pct,
     )
     conditions = current.conditions
     assert conditions is not None
@@ -290,6 +298,7 @@ def analyze_candidate_holding(
         cash_deduction_rate_pct=conditions.cash_deduction_rate_pct,
         rules=request.rules,
         as_of_date=analysis_date,
+        automatic_holding_overlap_pct=automatic_overlap.overlap_pct,
     )
     eligibility = calculate_monthly_payment_combination(
         MonthlyCombinationCalculationInput(

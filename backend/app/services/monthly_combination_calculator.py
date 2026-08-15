@@ -195,6 +195,7 @@ def _result(
         ),
         downside_return_pct=candidate.downside_return_pct,
         holding_overlap_pct=candidate.holding_overlap_pct,
+        holding_overlap_is_automatic=candidate.holding_overlap_is_automatic,
         proposed_allocation_pct=candidate.proposed_allocation_pct,
         reasons=reasons,
     )

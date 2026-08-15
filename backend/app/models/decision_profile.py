@@ -150,7 +150,12 @@ class CandidateHoldingAnalysisRequest(DecisionProfileBaseModel):
 
     proposed_units: int = Field(gt=0)
     unit_price: Decimal = Field(gt=0)
-    holding_overlap_pct: Decimal | None = Field(default=None, ge=0, le=100)
+    holding_overlap_pct: Decimal | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description="已停用的相容欄位；後端只採用通過品質門檻的自動成分股重疊率。",
+    )
     monthly_coverage_enabled: bool = True
     rules: MonthlyCombinationEligibilityRules = Field(
         default_factory=MonthlyCombinationEligibilityRules,

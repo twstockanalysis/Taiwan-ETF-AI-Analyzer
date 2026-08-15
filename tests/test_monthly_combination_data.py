@@ -114,7 +114,8 @@ class TestMonthlyCombinationData(unittest.TestCase):
             as_of_date=date(2026, 8, 9),
         )
         self.assertEqual(result.annual_after_tax_cash_rate_pct, Decimal("0"))
-        self.assertEqual(result.holding_overlap_pct, Decimal("0"))
+        self.assertIsNone(result.holding_overlap_pct)
+        self.assertFalse(result.holding_overlap_is_automatic)
 
 
 if __name__ == "__main__":

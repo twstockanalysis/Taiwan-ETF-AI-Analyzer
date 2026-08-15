@@ -188,7 +188,7 @@ def _fit_score(
             "ETF_QUALITY",
             "ETF 本身品質",
             quality_score,
-            "70",
+            "60",
             quality_score,
             "適配度以 ETF 本身品質為主要基礎。",
         ),
@@ -218,6 +218,20 @@ def _fit_score(
             ),
             "加入候選後的組合稅後總報酬改善越多，分數越高。",
         ),
+        _component(
+            "AUTOMATED_CONSTITUENT_OVERLAP",
+            "自動成分股分散度",
+            (
+                Decimal("100") - candidate.holding_overlap_pct
+                if candidate.holding_overlap_is_automatic
+                and candidate.holding_overlap_pct is not None
+                else None
+            ),
+            "10",
+            candidate.holding_overlap_pct,
+            "以通過品質門檻的成分股快照計算；重疊越低分散度越高，"
+            "但不取代 ETF 品質與總報酬判斷。",
+        ),
     ]
     components = [item for item in values if item is not None]
     missing = [
@@ -228,13 +242,12 @@ def _fit_score(
                 "ETF_QUALITY",
                 "CASH_FLOW_CONTRIBUTION",
                 "PORTFOLIO_TOTAL_RETURN_CHANGE",
+                "AUTOMATED_CONSTITUENT_OVERLAP",
             ],
             strict=True,
         )
         if item is None
     ]
-    # 現有重疊率為手動假設；在自動成分股資料完成前不得納入評分。
-    missing.append("AUTOMATED_CONSTITUENT_OVERLAP")
     score = _weighted_score(components) if quality_score is not None else None
     return score, components, missing
 

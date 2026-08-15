@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-14 — V2-11 calculation data integration
+
+- Replaced Streamlit's manual overlap inputs with fail-closed automatic
+  constituent overlap for monthly ETF comparison and candidate-holding analysis.
+- Added market-value-weighted current-portfolio overlap while retaining the
+  existing pairwise disclosed-weight method for a single base ETF.
+- Included automatic overlap as a bounded portfolio-fit component only when
+  every required snapshot passes freshness and disclosed-weight gates.
+- Kept the old request fields as ignored compatibility inputs; missing or
+  rejected constituent data remains unknown rather than becoming zero.
+
 ## 2026-08-14 — V2-10 constituent data gates
 
 - Added full-market and bounded official constituent batch ingestion.

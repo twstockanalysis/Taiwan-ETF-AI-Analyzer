@@ -195,7 +195,7 @@ class TestFrontendETFComparison(
             ]
         )
         self.assertEqual(rows[0]["估算稅後現金率"], "0.00%")
-        self.assertEqual(rows[0]["持股重疊"], "尚未取得")
+        self.assertEqual(rows[0]["自動持股重疊"], "尚未取得")
         self.assertIn("總報酬", rows[0]["理由"])
 
     def test_custom_target_month_presets(self) -> None:

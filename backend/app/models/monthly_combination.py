@@ -95,7 +95,10 @@ class MonthlyCombinationCandidateAssumption(MonthlyCombinationBaseModel):
     unit_price: Decimal = Field(gt=0)
     proposed_allocation_pct: Decimal = Field(gt=0, le=100)
     holding_overlap_pct: Decimal | None = Field(
-        default=None, ge=0, le=100
+        default=None,
+        ge=0,
+        le=100,
+        description="已停用的相容欄位；後端只採用通過品質門檻的自動成分股重疊率。",
     )
 
     @field_validator("etf_code")
@@ -151,6 +154,7 @@ class MonthlyCombinationCandidateInput(MonthlyCombinationBaseModel):
     holding_overlap_pct: Decimal | None = Field(
         default=None, ge=0, le=100
     )
+    holding_overlap_is_automatic: bool = False
     proposed_allocation_pct: Decimal = Field(gt=0, le=100)
 
     @model_validator(mode="after")
@@ -211,6 +215,7 @@ class MonthlyCombinationCandidateResult(MonthlyCombinationBaseModel):
     estimated_after_tax_total_return_pct: Decimal | None
     downside_return_pct: Decimal | None
     holding_overlap_pct: Decimal | None
+    holding_overlap_is_automatic: bool = False
     proposed_allocation_pct: Decimal
     reasons: list[CandidateReason]
 

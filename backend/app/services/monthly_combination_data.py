@@ -9,6 +9,9 @@ from backend.app.models.monthly_combination import (
     MonthlyCombinationCandidateInput,
     MonthlyCombinationEligibilityRules,
 )
+from backend.app.services.constituent_overlap import (
+    calculate_gated_pair_overlap,
+)
 from backend.app.services.target_analysis_data import (
     is_dividend_data_stale,
     is_performance_data_stale,
@@ -68,6 +71,7 @@ def build_candidate_input(
     cash_deduction_rate_pct: Decimal | None,
     rules: MonthlyCombinationEligibilityRules,
     as_of_date: date,
+    automatic_holding_overlap_pct: Decimal | None = None,
 ) -> MonthlyCombinationCandidateInput:
     """保留缺值，建立純計算服務需要的候選事實。"""
 
@@ -172,7 +176,10 @@ def build_candidate_input(
         annual_after_tax_cash_rate_pct=annual_after_tax_cash_rate_pct,
         estimated_after_tax_total_return_pct=estimated_total_return,
         downside_return_pct=min(returns) if returns else None,
-        holding_overlap_pct=assumption.holding_overlap_pct,
+        holding_overlap_pct=automatic_holding_overlap_pct,
+        holding_overlap_is_automatic=(
+            automatic_holding_overlap_pct is not None
+        ),
         proposed_allocation_pct=assumption.proposed_allocation_pct,
     )
 
@@ -237,6 +244,12 @@ def load_monthly_combination_data(
             assumption.etf_code,
             database_path,
         )
+        automatic_overlap = calculate_gated_pair_overlap(
+            base_etf_code,
+            assumption.etf_code,
+            database_path,
+            evaluated_on=as_of_date,
+        )
         candidates.append(
             build_candidate_input(
                 etf=etf,
@@ -247,6 +260,7 @@ def load_monthly_combination_data(
                 cash_deduction_rate_pct=cash_deduction_rate_pct,
                 rules=rules,
                 as_of_date=as_of_date,
+                automatic_holding_overlap_pct=automatic_overlap.overlap_pct,
             )
         )
 
