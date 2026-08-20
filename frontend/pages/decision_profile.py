@@ -158,6 +158,35 @@ def _metric_value(value: Any, *, suffix: str = "") -> str:
     return f"{format_number(parsed, decimal_places=2)}{suffix}"
 
 
+def build_short_history_projection_warning(
+    analysis: dict[str, Any] | None,
+) -> str | None:
+    """提醒使用者短期歷史報酬被機械式外推到多年情境。"""
+
+    if not analysis:
+        return None
+    portfolio = analysis.get("portfolio_analysis") or {}
+    scenario = portfolio.get("scenario_estimate") or {}
+    projection_years = scenario.get("projection_years")
+    if projection_years is None or int(projection_years) <= 1:
+        return None
+    short_history_codes = sorted(
+        {
+            str(item["etf_code"])
+            for item in analysis.get("holdings", [])
+            if item.get("price_return_period_code") == "1Y"
+        }
+    )
+    if not short_history_codes:
+        return None
+    return (
+        "情境外推提醒："
+        + "、".join(short_history_codes)
+        + f" 目前使用最近 1 年價格報酬，並以相同報酬率機械式複利 "
+        f"{int(projection_years)} 年；數值可能被大幅放大，並非績效預測。"
+    )
+
+
 def render_current_holding_analysis_result(
     analysis: dict[str, Any],
 ) -> None:
@@ -201,6 +230,9 @@ def render_current_holding_analysis_result(
         f"{scenario.get('projection_years') or '無法計算'} 年。"
         "價格報酬會先年化後依目前部位價值加權；配息不再投入。"
     )
+    projection_warning = build_short_history_projection_warning(analysis)
+    if projection_warning is not None:
+        st.warning(projection_warning)
     data_warnings = [
         f"{item['etf_code']}：{warning['message']}"
         for item in analysis["holdings"]
@@ -368,6 +400,13 @@ def render_candidate_holding_analysis_result(
             border=True,
         )
     st.table(build_candidate_comparison_rows(comparison))
+
+    projection_warning = build_short_history_projection_warning(
+        analysis.get("proposed_portfolio")
+        or analysis.get("current_portfolio")
+    )
+    if projection_warning is not None:
+        st.warning(projection_warning)
 
     assessment = analysis.get("explainable_assessment")
     if assessment is not None:

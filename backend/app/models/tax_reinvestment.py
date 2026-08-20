@@ -237,6 +237,7 @@ class TaxReinvestmentCalculationResult(TaxReinvestmentBaseModel):
     """四種稅後現金與期末財富比較。"""
 
     currency: str
+    projection_years: int = Field(ge=1, le=50)
     estimate_label: str = "情境估算，非稅務建議"
     rule_version: str
     rule_effective_date: date

@@ -274,6 +274,7 @@ def calculate_tax_reinvestment_scenarios(
 
     return TaxReinvestmentCalculationResult(
         currency=value.currency,
+        projection_years=value.projection_years,
         rule_version=value.tax_rule.rule_version,
         rule_effective_date=value.tax_rule.effective_date,
         historical_component_basis=(

@@ -18,6 +18,14 @@ def validate_tax_reinvestment_result(payload: object) -> dict[str, Any]:
     calculation = payload.get("calculation")
     if not isinstance(facts, dict) or not isinstance(calculation, dict):
         raise APIResponseError("稅務情境缺少歷史事實或計算結果")
+    projection_years = calculation.get("projection_years")
+    if (
+        not isinstance(projection_years, int)
+        or isinstance(projection_years, bool)
+        or projection_years < 1
+        or projection_years > 50
+    ):
+        raise APIResponseError("稅務情境 projection_years 格式不正確")
     scenarios = calculation.get("scenarios")
     if not isinstance(scenarios, list) or len(scenarios) != 4:
         raise APIResponseError("稅務情境必須包含四種配息使用方式")

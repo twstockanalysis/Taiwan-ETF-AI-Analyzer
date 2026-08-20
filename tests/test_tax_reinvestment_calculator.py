@@ -77,6 +77,7 @@ class TestTaxReinvestmentCalculator(unittest.TestCase):
             list(ReinvestmentPolicy),
         )
         self.assertEqual(result.estimate_label, "情境估算，非稅務建議")
+        self.assertEqual(result.projection_years, 1)
         self.assertEqual(result.historical_component_basis, "ACTUAL")
 
     def test_reinvested_cash_is_not_double_counted(self) -> None:

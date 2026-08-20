@@ -29,6 +29,7 @@ _render_tax_reinvestment_result({
     },
     "calculation": {
         "currency": "TWD",
+        "projection_years": 10,
         "rule_version": "TW-INDIVIDUAL-2026.1",
         "rule_effective_date": "2026-01-01",
         "issues": [],
@@ -106,6 +107,7 @@ class TestStreamlitCashFlowSections(unittest.TestCase):
         ):
             self.assertIn(label, rendered)
         self.assertTrue(any("未通過總報酬檢查" in item.value for item in app.error))
+        self.assertTrue(any("並非績效預測" in item.value for item in app.warning))
 
     def test_monthly_combination_renders_anchor_months_and_reason(self) -> None:
         app = AppTest.from_string(MONTHLY_SCRIPT).run()
