@@ -131,10 +131,13 @@ def build_candidate_input(
     )
     distribution_stability_pct = None
     if covered_month_count > 0:
-        distribution_stability_pct = (
-            Decimal(occurrence_count)
-            / (Decimal(covered_month_count) * Decimal(lookback_years))
-            * Decimal("100")
+        distribution_stability_pct = min(
+            Decimal("100"),
+            (
+                Decimal(occurrence_count)
+                / (Decimal(covered_month_count) * Decimal(lookback_years))
+                * Decimal("100")
+            ),
         ).quantize(_PERCENT_QUANTUM, rounding=ROUND_HALF_UP)
 
     annual_after_tax_cash_rate_pct = None

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-20 — V2-12 isolated calculation candidate
+
+- Added a no-overwrite command that copies, migrates, refreshes and verifies an
+  isolated calculation database against explicit ETF codes.
+- Added separate core-calculation and constituent-overlap readiness so missing
+  optional overlap cannot masquerade as zero or block valid cash-flow testing.
+- Refreshed 0050, 0056 and 00918 to complete four-period performance, official
+  closes, dividend history and estimated component mixes.
+- Kept 00918 overlap unavailable after its current official PCF response
+  exposed only 49.20% incompatible foreign-stock weight.
+- Capped rolling-window distribution stability at 100% after live data exposed
+  a four-calendar-year boundary inside a three-year rolling window.
+- Verified real monthly-combination and tax/reinvestment API calculations
+  against the isolated candidate.
+
 ## 2026-08-14 — V2-11 calculation data integration
 
 - Replaced Streamlit's manual overlap inputs with fail-closed automatic
