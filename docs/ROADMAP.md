@@ -879,12 +879,12 @@ first public release, and AI output must not become opaque trading advice.
   return is mechanically compounded over a multi-year scenario
 - Recorded remaining estimated-component, 00918 overlap and per-event-yield
   gaps without converting them to official or zero values
-- Owner confirmed that the replacement local token unlocks the private feature;
-  calculation-result interactions and the relock check remain pending because
-  no browser session is attached to the development environment
+- Owner confirmed all seven browser checks on 2026-08-21, including current
+  holdings, candidate comparison, monthly gaps, tax/reinvestment warnings and
+  relocking the private navigation
 
-Next V2 milestone: complete the seven-step owner browser checklist in
-`CALCULATION_BROWSER_ACCEPTANCE.md`, record confirmation, then begin `SEC-1`.
+V2 acceptance is complete. Independent security validation is active before
+any `V3-X` feature work.
 
 ## Security validation — Required after V2 and before V3
 
@@ -894,12 +894,16 @@ titles use the `SEC-X` prefix. Any later third product version uses `V3-X`.
 
 ### SEC-1 — Secret exposure and repository history
 
-- Scan tracked files, ignored deployment material, generated reports, logs and
-  complete Git history for credentials, owner tokens, API keys and private URLs
-- Verify `.env`, Streamlit secrets, database copies, backups and source
-  snapshots cannot be committed or served publicly
-- Rotate and invalidate any exposed credential; deleting only the current file
-  is not sufficient when a secret exists in history
+- Completed 2026-08-21: scanned worktree files, ignored deployment material,
+  generated reports, logs, all fetched Git refs, commit messages and local
+  unreachable blobs without printing matching values
+- Confirmed zero findings and zero unscanned oversized objects; no credential
+  rotation or history rewrite was required
+- Expanded `.gitignore`, added a deny-by-default Docker build context and
+  verified sensitive local paths are not served as files
+- Evidence: `SECURITY_SECRET_EXPOSURE_AUDIT.md`
+
+Next security milestone: `SEC-2` authentication and API boundary testing.
 
 ### SEC-2 — Authentication and API boundary testing
 

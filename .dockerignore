@@ -1,0 +1,23 @@
+# Deny the entire repository by default. The production image needs only the
+# locked dependencies and application source copied by Dockerfile.
+**
+
+!requirements.lock
+!backend/
+!backend/**
+!frontend/
+!frontend/**
+
+# Keep local runtime artifacts out even when they live under an allowed tree.
+**/__pycache__/
+**/*.py[cod]
+**/.env
+**/.env.*
+**/secrets.toml
+**/*.db
+**/*.db.*
+**/*.sqlite
+**/*.sqlite3
+**/*.log
+**/*.pem
+**/*.key

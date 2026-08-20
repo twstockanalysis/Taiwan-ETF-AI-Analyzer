@@ -29,3 +29,39 @@ data/rejected/*
 
 # Deployment secrets
 deployment/.env
+
+# Environment and application secrets
+.env
+.env.*
+!.env.example
+!deployment/.env.example
+.streamlit/secrets.toml
+**/secrets.toml
+
+# Private keys and credential containers
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa
+id_ed25519
+
+# Local logs, reports, and ad-hoc backups
+*.log
+logs/
+reports/
+*.bak
+*.backup
+*.orig
+*.tmp
+backup/
+backups/
+legacy/
+snapshots/
+source_snapshots/
+
+# Test and coverage caches
+.pytest_cache/
+.coverage
+htmlcov/

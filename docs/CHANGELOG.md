@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-21 — SEC-1 secret exposure and history gate
+
+- Recorded owner confirmation that all seven V2 calculation browser checks
+  passed and closed V2 acceptance.
+- Added a sanitized scanner for worktree files, ignored runtime artifacts, all
+  fetched Git refs, commit messages and local unreachable blobs.
+- Found zero credential or sensitive-filename exposures and zero unscanned
+  oversized objects; no rotation or history rewrite was required.
+- Expanded secret, key, log, report, backup and source-snapshot ignore rules.
+- Restricted the Docker build context to locked dependencies plus backend and
+  frontend source, and made the full secret scan a release prerequisite.
+
 ## 2026-08-20 — V2-13 calculation browser acceptance preflight
 
 - Ran the isolated candidate through public/private smoke checks, saved-holding
