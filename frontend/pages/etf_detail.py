@@ -1631,9 +1631,19 @@ def _render_tax_reinvestment_result(result: dict[str, Any]) -> None:
     st.markdown("**情境估算結果**")
     st.caption(
         f"規則版本 {calculation['rule_version']}；"
-        f"生效日 {calculation['rule_effective_date']}。"
+        f"生效日 {calculation['rule_effective_date']}；"
+        f"情境期間 {calculation['projection_years']} 年。"
         "以下為估算，不是稅務建議，也不標示最佳方案。"
     )
+    if (
+        facts.get("price_return_period_code") == "1Y"
+        and int(calculation["projection_years"]) > 1
+    ):
+        st.warning(
+            "情境外推提醒：目前使用最近 1 年價格報酬，並以相同報酬率"
+            f"機械式複利 {int(calculation['projection_years'])} 年；"
+            "數值可能被大幅放大，並非績效預測。"
+        )
     rows = []
     failed_total_return = False
     for item in calculation["scenarios"]:

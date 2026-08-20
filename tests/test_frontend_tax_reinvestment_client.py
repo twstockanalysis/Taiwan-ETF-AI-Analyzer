@@ -17,6 +17,7 @@ class TestFrontendTaxReinvestmentClient(unittest.TestCase):
             "status": "AVAILABLE",
             "historical_facts": {},
             "calculation": {
+                "projection_years": 10,
                 "scenarios": [{}, {}, {}, {}],
             },
         }

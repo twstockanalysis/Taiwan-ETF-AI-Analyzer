@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-20 — V2-13 calculation browser acceptance preflight
+
+- Ran the isolated candidate through public/private smoke checks, saved-holding
+  analysis, monthly combination, candidate addition and four tax/reinvestment
+  scenarios.
+- Fixed a live HTTP 500 caused by an unbounded repeating decimal during annual
+  dividend-cash aggregation.
+- Added explicit projection years and prominent warnings when a 1Y price return
+  is mechanically compounded across a multi-year scenario.
+- Recorded the calculation evidence, known data gaps and final owner browser
+  checklist; visible owner confirmation remains pending.
+
 ## 2026-08-20 — V2-12 isolated calculation candidate
 
 - Added a no-overwrite command that copies, migrates, refreshes and verifies an

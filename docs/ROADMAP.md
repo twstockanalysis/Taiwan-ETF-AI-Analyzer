@@ -867,8 +867,24 @@ first public release, and AI output must not become opaque trading advice.
 - Fixed rolling-window distribution stability exceeding 100% and verified live
   monthly-combination and tax/reinvestment API responses
 
-Next V2 milestone: run owner browser acceptance against the isolated candidate,
-record calculation findings and close or prioritize remaining V2 data gaps.
+### V2-13 — Calculation browser acceptance — Automated preflight complete
+
+- Passed the six native public/private service boundaries against the isolated
+  V2-12 database
+- Exercised the saved 0050/00918 portfolio, 0050/0056/00918 monthly combination,
+  0056 candidate addition and 0050 four-policy tax/reinvestment flow
+- Fixed the candidate-analysis HTTP 500 caused by an annualized repeating
+  decimal exceeding the money-model precision boundary
+- Added explicit projection years and visible warnings when a 1Y historical
+  return is mechanically compounded over a multi-year scenario
+- Recorded remaining estimated-component, 00918 overlap and per-event-yield
+  gaps without converting them to official or zero values
+- Owner confirmed that the replacement local token unlocks the private feature;
+  calculation-result interactions and the relock check remain pending because
+  no browser session is attached to the development environment
+
+Next V2 milestone: complete the seven-step owner browser checklist in
+`CALCULATION_BROWSER_ACCEPTANCE.md`, record confirmation, then begin `SEC-1`.
 
 ## Security validation — Required after V2 and before V3
 

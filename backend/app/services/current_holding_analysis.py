@@ -26,6 +26,7 @@ from backend.app.services.target_analysis_data import load_target_analysis_data
 
 
 _HUNDRED = Decimal("100")
+_AMOUNT_QUANTUM = Decimal("0.000001")
 _PERCENT_QUANTUM = Decimal("0.000001")
 _PERFORMANCE_PERIOD_YEARS = {
     "1Y": Decimal("1"),
@@ -174,7 +175,12 @@ def analyze_holding_snapshot(
                 )
         else:
             annual_gross_cash = (
-                total_per_unit / Decimal(conditions.history_years) * units
+                total_per_unit
+                * units
+                / Decimal(conditions.history_years)
+            ).quantize(
+                _AMOUNT_QUANTUM,
+                rounding=ROUND_HALF_UP,
             )
             total_gross_cash += annual_gross_cash
 

@@ -9,6 +9,7 @@ from frontend.pages.decision_profile import (
     build_candidate_comparison_rows,
     build_decision_record_rows,
     build_holding_rows,
+    build_short_history_projection_warning,
 )
 
 
@@ -96,6 +97,25 @@ class TestFrontendDecisionProfile(unittest.TestCase):
         self.assertEqual(rows[0]["目前持倉"], "30,000.00 TWD")
         self.assertEqual(rows[0]["加入候選後"], "32,000.00 TWD")
         self.assertEqual(rows[1]["目前持倉"], "無法計算")
+
+    def test_short_history_projection_warning_is_explicit(self):
+        warning = build_short_history_projection_warning(
+            {
+                "holdings": [
+                    {
+                        "etf_code": "0050",
+                        "price_return_period_code": "1Y",
+                    }
+                ],
+                "portfolio_analysis": {
+                    "scenario_estimate": {"projection_years": 10},
+                },
+            }
+        )
+
+        self.assertIn("0050", warning)
+        self.assertIn("機械式複利 10 年", warning)
+        self.assertIn("並非績效預測", warning)
 
     def test_page_renders_native_forms_and_manual_boundary(self):
         app = AppTest.from_string(
@@ -218,6 +238,15 @@ render_candidate_holding_analysis_result({
         "after_tax_total_return_pct_before": "5",
         "after_tax_total_return_pct_after": "5.5",
     },
+    "proposed_portfolio": {
+        "holdings": [{
+            "etf_code": "0050",
+            "price_return_period_code": "1Y",
+        }],
+        "portfolio_analysis": {
+            "scenario_estimate": {"projection_years": 10},
+        },
+    },
     "eligibility": {
         "selected_candidates": [{
             "reasons": [{
@@ -265,6 +294,8 @@ render_candidate_holding_analysis_result({
         )
         info_text = " ".join(item.value for item in app.info)
         self.assertIn("成分股重複尚未計分", info_text)
+        warnings = " ".join(item.value for item in app.warning)
+        self.assertIn("並非績效預測", warnings)
 
     def test_saved_record_can_prepare_excel_download(self):
         app = AppTest.from_string(

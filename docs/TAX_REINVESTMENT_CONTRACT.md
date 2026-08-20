@@ -13,6 +13,10 @@ them to an annualized price-return assumption before projection and returns the
 source `price_return_period_code`. A missing or unsupported period code blocks
 that assumption instead of treating a period return as annual.
 
+The calculation response returns `projection_years` so the result remains tied
+to the submitted horizon. When a 1Y price return is mechanically compounded
+over more than one year, the frontend displays an explicit non-forecast warning.
+
 The rule version shipped by the first Streamlit flow is
 `TW-INDIVIDUAL-2026.1`, with an effective date of 2021-01-01. The date reflects
 the current 2.11% supplementary-premium rate. Users must enter their own
@@ -37,18 +41,19 @@ other income.
 
 ## Historical component selection
 
-Only `component_basis=ACTUAL` rows are eligible. The server selects the newest
-event whose disclosed component ratios are all present and total 99% through
-101%, allowing official rounding. It returns the source event ID, event date
-and every official component code. A formal `76W = 0%` remains available;
-missing ACTUAL `76W` or other missing component data never becomes zero.
+The server first selects the newest `component_basis=ACTUAL` event whose ratios
+are all present and total 99% through 101%, allowing official rounding. If no
+qualifying ACTUAL event exists, it may use the newest complete `ESTIMATED`
+event as `ESTIMATED_FALLBACK` so the scenario remains calculable. The response
+returns the source event, date, selected mix and calculation basis.
 
-`EST_REALIZED_CAPITAL_GAIN` is not queried by this path and is never relabeled
-as official `76W`.
+A formal official `76W = 0%` remains available, while missing official 76W
+never becomes zero. Estimated codes such as `EST_REALIZED_CAPITAL_GAIN` remain
+visibly estimated and are never relabeled as official `76W`.
 
 ## Tax model
 
-For each projection year and official component:
+For each projection year and selected calculation component:
 
 ```text
 component cash = gross distribution cash * ACTUAL component ratio

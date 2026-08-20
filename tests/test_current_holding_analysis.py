@@ -142,6 +142,40 @@ class TestCurrentHoldingAnalysis(TestCase):
     @patch(
         "backend.app.services.current_holding_analysis.get_user_conditions"
     )
+    def test_repeating_annual_cash_is_bounded_before_model_validation(
+        self,
+        get_conditions,
+        list_holdings,
+        load_data,
+    ):
+        get_conditions.return_value = _conditions("0")
+        list_holdings.return_value = [_holding("0056", "30")]
+        load_data.return_value = _data("12.9985", "1Y", "5")
+
+        result = analyze_current_holdings(
+            "ignored.db",
+            as_of_date=date(2026, 8, 9),
+        )
+
+        self.assertEqual(result.status, TargetAnalysisStatus.AVAILABLE)
+        self.assertEqual(
+            result.holdings[0].annual_gross_distribution_cash,
+            Decimal("433.283333"),
+        )
+        self.assertEqual(
+            result.portfolio_analysis.cash_flow.gross_distribution_cash,
+            Decimal("433.28"),
+        )
+
+    @patch(
+        "backend.app.services.current_holding_analysis.load_target_analysis_data"
+    )
+    @patch(
+        "backend.app.services.current_holding_analysis.list_manual_holdings"
+    )
+    @patch(
+        "backend.app.services.current_holding_analysis.get_user_conditions"
+    )
     def test_missing_one_holding_input_does_not_become_partial_zero(
         self,
         get_conditions,
