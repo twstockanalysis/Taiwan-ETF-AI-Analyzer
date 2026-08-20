@@ -117,6 +117,35 @@ class TestMonthlyCombinationData(unittest.TestCase):
         self.assertIsNone(result.holding_overlap_pct)
         self.assertFalse(result.holding_overlap_is_automatic)
 
+    def test_rolling_window_occurrences_cannot_exceed_full_stability(self):
+        monthly = self.monthly_income()
+        monthly["covered_month_occurrence_count"] = 13
+
+        result = build_candidate_input(
+            etf={
+                "code": "00878",
+                "name": "國泰永續高股息",
+                "is_active": False,
+                "is_bond": False,
+            },
+            assumption=MonthlyCombinationCandidateAssumption(
+                etf_code="00878",
+                unit_price="40",
+                proposed_allocation_pct="10",
+            ),
+            monthly_income=monthly,
+            performance_rows=self.performance_rows(),
+            lookback_years=3,
+            cash_deduction_rate_pct=Decimal("0"),
+            rules=MonthlyCombinationEligibilityRules(),
+            as_of_date=date(2026, 8, 9),
+        )
+
+        self.assertEqual(
+            result.distribution_stability_pct,
+            Decimal("100.000000"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

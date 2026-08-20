@@ -854,8 +854,21 @@ first public release, and AI output must not become opaque trading advice.
 - Preserved old request fields as ignored compatibility inputs and changed
   decision-record exports to show the calculated value
 
-Next V2 milestone: refresh and verify an isolated multi-period performance,
-dividend and constituent calculation candidate for owner calculation testing.
+### V2-12 — Isolated calculation candidate — Completed locally
+
+- Added a no-overwrite copy, schema upgrade, official refresh and strict check
+  command for bounded or full calculation universes
+- Separated core cash-flow/tax/performance readiness from optional constituent
+  overlap readiness while preserving missing overlap as unknown
+- Refreshed 0050, 0056 and 00918 to 100% four-period performance, official
+  closes, dividend history and complete estimated component mixes
+- Reached full overlap readiness for 0050 and 0056; kept 00918 fail-closed after
+  its official PCF response exposed incompatible rows totaling only 49.20%
+- Fixed rolling-window distribution stability exceeding 100% and verified live
+  monthly-combination and tax/reinvestment API responses
+
+Next V2 milestone: run owner browser acceptance against the isolated candidate,
+record calculation findings and close or prioritize remaining V2 data gaps.
 
 ## Security validation — Required after V2 and before V3
 
