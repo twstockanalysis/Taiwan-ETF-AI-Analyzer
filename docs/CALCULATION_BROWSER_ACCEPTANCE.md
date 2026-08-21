@@ -101,9 +101,11 @@ owner token as documented in `CALCULATION_CANDIDATE.md`, then open
    mechanical-projection warning are visible.
 7. Relock owner features and confirm the private navigation entry disappears.
 
-Owner confirmation on 2026-08-20: the replacement local token successfully
-unlocked the private feature. The calculation-result interactions in steps 3
-through 6 and the final relock check remain pending explicit confirmation.
+Owner confirmation completed on 2026-08-21. All seven browser checks passed:
+public navigation remained available while locked, the replacement local token
+unlocked the expected holdings, the current-holding, candidate, monthly-gap and
+tax/reinvestment results rendered with the required warnings, and relocking
+removed the private navigation entry.
 
-V2-13 remains open until the owner confirms these visible interactions. After
-that confirmation, the next milestone is `SEC-1`, not a `V3-X` feature PR.
+V2 browser acceptance is complete. The next milestone is `SEC-1`, not a
+`V3-X` feature PR.

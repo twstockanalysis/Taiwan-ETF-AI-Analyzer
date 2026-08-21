@@ -23,6 +23,15 @@ class TestProductionDeployment(unittest.TestCase):
         self.assertIn("replace-with", example)
         self.assertNotIn("correct-owner-token", example)
 
+    def test_docker_context_is_allowlisted_to_runtime_source(self) -> None:
+        dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
+        self.assertIn("**\n", dockerignore)
+        self.assertIn("!requirements.lock", dockerignore)
+        self.assertIn("!backend/**", dockerignore)
+        self.assertIn("!frontend/**", dockerignore)
+        self.assertNotIn("!database/", dockerignore)
+        self.assertNotIn("!deployment/", dockerignore)
+
     def test_locked_versions_match_verified_environment(self) -> None:
         locked = (ROOT / "requirements.lock").read_text(encoding="utf-8")
         self.assertIn("fastapi[standard]==0.140.7", locked)

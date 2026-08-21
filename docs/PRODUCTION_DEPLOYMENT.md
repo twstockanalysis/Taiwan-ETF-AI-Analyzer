@@ -19,15 +19,18 @@ characters. Set `DATA_DIRECTORY` to the durable directory containing
 
 ## Release sequence
 
-1. Create and verify a backup using `docs/DEPLOYMENT_DATABASE.md`.
-2. Rehearse migration on a copy, stop writers, then initialize the durable DB.
-3. Run `docker compose --env-file deployment/.env -f deployment/compose.yaml config`.
-4. Build with `docker compose --env-file deployment/.env -f deployment/compose.yaml build --pull`.
-5. Start with `docker compose --env-file deployment/.env -f deployment/compose.yaml up -d`.
-6. Require all three services to become healthy.
-7. Run `python deployment/smoke_test.py --base-url https://DOMAIN --owner-token TOKEN`.
-8. Restart the stack and repeat the smoke test; confirm the same DB row counts.
-9. Enable the M12-3 scheduler only after the release and restore evidence pass.
+1. Run `.venv\Scripts\python.exe deployment\security_secret_scan.py --include-ignored --include-history`.
+   It must report zero findings and zero unscanned oversized objects without
+   printing secret values.
+2. Create and verify a backup using `docs/DEPLOYMENT_DATABASE.md`.
+3. Rehearse migration on a copy, stop writers, then initialize the durable DB.
+4. Run `docker compose --env-file deployment/.env -f deployment/compose.yaml config`.
+5. Build with `docker compose --env-file deployment/.env -f deployment/compose.yaml build --pull`.
+6. Start with `docker compose --env-file deployment/.env -f deployment/compose.yaml up -d`.
+7. Require all three services to become healthy.
+8. Run `python deployment/smoke_test.py --base-url https://DOMAIN --owner-token TOKEN`.
+9. Restart the stack and repeat the smoke test; confirm the same DB row counts.
+10. Enable the M12-3 scheduler only after the release and restore evidence pass.
 
 Rollback means stop writers, preserve the failed DB, deploy the prior image,
 restore to a new verified path if schema/data rollback is required, update the
