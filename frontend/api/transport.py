@@ -89,7 +89,7 @@ def get_json(
             endpoint_url,
             params=params,
             timeout=timeout_seconds,
-            follow_redirects=True,
+            follow_redirects=False,
             headers={
                 "Accept": "application/json",
                 "User-Agent": (
@@ -151,7 +151,7 @@ def get_binary(
         response = httpx.get(
             endpoint_url,
             timeout=timeout_seconds,
-            follow_redirects=True,
+            follow_redirects=False,
             headers={
                 "Accept": (
                     "application/vnd.openxmlformats-officedocument."
@@ -200,7 +200,7 @@ def post_json(
             endpoint_url,
             json=payload,
             timeout=timeout_seconds,
-            follow_redirects=True,
+            follow_redirects=False,
             headers={
                 "Accept": "application/json",
                 "User-Agent": "TW-ETF-AI-Analyzer-Frontend/0.1",
@@ -250,7 +250,7 @@ def put_json(
             endpoint_url,
             json=payload,
             timeout=timeout_seconds,
-            follow_redirects=True,
+            follow_redirects=False,
             headers={
                 "Accept": "application/json",
                 "User-Agent": "TW-ETF-AI-Analyzer-Frontend/0.1",
@@ -297,7 +297,7 @@ def delete_json(
         response = httpx.delete(
             endpoint_url,
             timeout=timeout_seconds,
-            follow_redirects=True,
+            follow_redirects=False,
             headers={
                 "Accept": "application/json",
                 "User-Agent": "TW-ETF-AI-Analyzer-Frontend/0.1",

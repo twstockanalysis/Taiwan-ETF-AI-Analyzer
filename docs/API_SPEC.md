@@ -85,6 +85,12 @@ official close. Missing close data remains `null` and blocks dependent output.
 The item `PUT` and `DELETE` remain compatibility operations. Missing deductions
 remain `null`, while a formal `0%` deduction remains numerical zero.
 
+Every operation in this section requires `X-Owner-Token`. Private responses,
+including errors and Excel exports, return `Cache-Control: no-store, private`,
+`Pragma: no-cache` and `Vary: X-Owner-Token`. Missing or wrong credentials
+return `401`; a missing or invalid server token configuration returns `503`.
+The batch holdings request accepts at most 500 rows.
+
 The M11-2 current-holding endpoint is read-only. It returns per-ETF historical
 facts, total saved holding value and one portfolio-level M10 target-analysis
 result. The monthly target is applied once to the portfolio. Missing fixed
@@ -385,9 +391,19 @@ The M8 data-quality API is read-only.
 
 ```text
 200  successful response
+400  malformed request framing such as invalid Content-Length
+401  missing or incorrect owner credential on a private endpoint
+413  request body exceeds 64 KiB
+414  path plus query exceeds 8 KiB
 404  ETF, dividend event or queue item not found
-422  invalid path or query parameter
+422  invalid path, query parameter or JSON body
+431  request headers exceed 32 KiB
+500  sanitized unexpected server error without exception details
+503  owner-only API is not safely configured
 ```
+
+Validation errors return only stable error types and locations; submitted input
+values are not reflected. Frontend API transport does not follow redirects.
 
 All API database access is injected through `get_database_path`, allowing tests
 to use isolated temporary SQLite databases.

@@ -14,19 +14,22 @@ the complete `/api/v1/decision-profile` router with one deployment owner token.
 This includes every read, write, analysis, snapshot and Excel export endpoint;
 there is no read-side privacy exception.
 
-Production must set a high-entropy `TW_ETF_OWNER_TOKEN` of at least 32 characters
+Production must set a high-entropy `TW_ETF_OWNER_TOKEN` of 32 to 256 characters
 outside source control.
 Clients send it as `X-Owner-Token`. A missing server setting fails closed with
-HTTP 503; missing or incorrect credentials return HTTP 401. Comparison uses a
-constant-time primitive and errors never echo the configured or submitted
-token. Public ETF, ranking, comparison, quality and health APIs remain public.
+HTTP 503; missing or incorrect credentials return HTTP 401. Comparison uses
+fixed-size SHA-256 digests and a constant-time primitive, and errors never echo
+the configured or submitted token. Public ETF, ranking, comparison, quality and
+health APIs remain public.
 
 Streamlit verifies an entered token through the protected backend before it
 shows the private navigation route. The token is retained only in that browser
 tab's Streamlit session and is attached to every private API request; locking
 or closing the tab clears access. Private responses are not put in the shared
-Streamlit data cache. Hiding navigation is usability only—the backend gate is
-the authoritative security boundary.
+Streamlit data cache. The backend marks every private success and error response
+`no-store, private`, and frontend transport refuses redirects while carrying the
+owner header. Hiding navigation is usability only—the backend gate is the
+authoritative security boundary.
 
 ## Fixed conditions
 
@@ -42,8 +45,9 @@ It is distinct from a formal `0%` deduction.
 
 ## Manual holdings
 
-The M11-5 batch editor accepts zero to any number of Taiwan ETF holdings and
-starts with zero rows for a new profile. Each row has exactly two editable
+The M11-5 batch editor accepts zero to 500 Taiwan ETF holdings and starts with
+zero rows for a new profile. The 500-row application limit remains above the
+supported Taiwan ETF use case while bounding request work. Each row has two editable
 values: ETF code and positive whole units. ETF codes must be unique. One batch
 request atomically replaces the saved set, so an empty batch is a valid
 zero-holding state.
@@ -96,4 +100,5 @@ singleton conditions or manual holdings.
 This M12-4 gate is not a self-service login system: it has no account alias,
 password reset, roles, cookies or durable sessions. Use only behind HTTPS,
 rotate the owner token after suspected disclosure, and restart both services
-after rotation. Rate limiting and provider edge controls belong to M12-5.
+after rotation. Application request target, header and body sizes are bounded;
+connection rate limiting and provider edge controls remain deployment concerns.
