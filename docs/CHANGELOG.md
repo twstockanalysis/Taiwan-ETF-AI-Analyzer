@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-21 — SEC-4 public-host acceptance gate implementation
+
+- Added a fail-closed external probe for public DNS, certificate lifetime, TLS
+  negotiation, HTTP-to-HTTPS redirects, security headers, release identity,
+  blocked API docs, owner boundaries, private caching and edge body limits.
+- Added a 24-hour operator-attestation contract for firewall/admin exposure,
+  shared edge rate limits, production-secret injection and rotation, off-host
+  backup/restore, certificate renewal alerting and exact deployed containers.
+- Added `X-Release-Sha` at the edge and made the exact 40-character release SHA
+  a mandatory deployment setting and automated acceptance check.
+- Changed the production smoke test to refuse redirects and read the owner
+  token from an environment variable instead of a process-list-visible CLI
+  argument.
+- Kept the gate at `NO_GO` until a real host, domain and complete external
+  evidence produce a `READY` report for the exact deployed commit.
+
 ## 2026-08-21 — SEC-3 dependency, container and runtime gate
 
 - Upgraded the pinned Python and Caddy base images and added Python dependency

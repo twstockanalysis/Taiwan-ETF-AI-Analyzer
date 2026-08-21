@@ -1,0 +1,66 @@
+# SEC-4 public-host and launch security acceptance
+
+Date: 2026-08-21
+
+## Current decision
+
+`NO_GO`
+
+The repository-controlled acceptance implementation is complete, but this
+workstation has no registered domain, public host or provider controls. It
+cannot truthfully prove public DNS, certificate issuance/renewal, firewall and
+administration exposure, shared edge rate limiting, production secret
+injection, or off-host backup access. SEC-4 remains an active launch gate and
+V3 must not begin until one exact deployment returns `READY`.
+
+## Automated evidence
+
+`deployment/public_security_acceptance.py` requires explicit network approval,
+a clean HTTPS origin, a full 40-character release SHA, a named manual
+attestation and an absolute output path outside the repository. It verifies:
+
+- DNS resolves to at least one globally routable address;
+- the default trust store accepts the certificate and hostname;
+- the negotiated connection is TLS 1.2 or 1.3 and the certificate has at least
+  30 days remaining;
+- plain HTTP redirects to the same hostname on HTTPS;
+- the API and frontend respond and carry the complete Caddy security-header
+  contract plus the requested `X-Release-Sha`;
+- `/docs`, `/redoc` and `/openapi.json` return 404;
+- anonymous and random-token private calls return 401, the correct owner token
+  returns 200, and all private response classes are non-cacheable; and
+- a body above 64 KiB is rejected at the edge with 413.
+
+The probe refuses redirects for every request. The owner token is read from a
+named environment variable, is never accepted on the command line and is not
+written to the report. Network failures are reduced to sanitized exception
+types in a `NO_GO` result.
+
+## Manual evidence
+
+The external attestation is deliberately not self-certifying. Each section
+requires true booleans and a non-placeholder evidence reference for:
+
+1. exact release SHA and matching application/edge containers;
+2. public firewall ports and restricted host administration;
+3. enabled and tested provider/edge rate limiting;
+4. production-secret injection outside Git and launch-value rotation;
+5. verified off-host backup plus a passing restore drill; and
+6. automatic certificate renewal plus failure alerting.
+
+The reviewer must be named and the review must be timezone-aware and no more
+than 24 hours old. The example ships with every boolean false so it cannot be
+mistaken for acceptance evidence.
+
+## Decision semantics
+
+`AUTOMATED_READY` means only the external probes passed. Final `READY` requires
+both those probes and every fresh manual evidence section to match the same
+domain and release SHA. Missing, stale, malformed, mismatched or false evidence
+produces `NO_GO` and exit code 1. No exception or limited-approval path exists.
+
+TLS negotiation proves that a strong protocol works, not by itself that every
+legacy protocol is disabled. The certificate-renewal evidence should therefore
+reference an independent provider or external TLS configuration report. Public
+launch also requires the ordinary data-readiness, backup, restart and smoke
+gates already documented in `PRODUCTION_DEPLOYMENT.md`.

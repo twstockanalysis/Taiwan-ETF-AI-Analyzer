@@ -23,6 +23,7 @@
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
+        X-Release-Sha "{$RELEASE_SHA}"
         -Server
         -X-Powered-By
     }

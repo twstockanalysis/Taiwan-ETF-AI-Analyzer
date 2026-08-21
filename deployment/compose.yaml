@@ -62,6 +62,7 @@ services:
       dockerfile: Caddy.Dockerfile
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN}
+      RELEASE_SHA: ${RELEASE_SHA:?set RELEASE_SHA}
     ports:
       - "80:80"
       - "443:443"
