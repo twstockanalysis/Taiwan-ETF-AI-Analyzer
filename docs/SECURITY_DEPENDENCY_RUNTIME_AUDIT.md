@@ -21,6 +21,10 @@ authorized public host.
   image and the edge moved from Caddy 2.10.2 to 2.11.4 Alpine. The application
   build applies available Debian package security updates before installing
   Python dependencies.
+- Caddy is rebuilt from the exact released 2.11.4 source commit with Go 1.27.0
+  and fixed `x/net`/`x/text` versions, then copied into a patched Alpine 3.24
+  runtime. This removes fixable scanner findings without consuming unreleased
+  Caddy master behavior.
 - CI repeats Python auditing and scans both built images with Trivy, failing on
   fixable HIGH or CRITICAL operating-system or library findings.
 

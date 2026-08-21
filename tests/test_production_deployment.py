@@ -33,7 +33,14 @@ class TestProductionDeployment(unittest.TestCase):
         self.assertIn("FROM python:3.13.14-slim", dockerfile)
         self.assertIn("apt-get upgrade --yes", dockerfile)
         self.assertIn("USER appuser", dockerfile)
-        self.assertIn("FROM caddy:2.11.4-alpine", caddyfile)
+        self.assertIn("FROM golang:1.27.0-alpine3.24 AS builder", caddyfile)
+        self.assertIn("FROM alpine:3.24", caddyfile)
+        self.assertIn(
+            "CADDY_COMMIT=8ec11a4b7e39a5fd00da2fc5cb9b543e31fd7926",
+            caddyfile,
+        )
+        self.assertIn("golang.org/x/net@v0.57.0", caddyfile)
+        self.assertIn("golang.org/x/text@v0.40.0", caddyfile)
         self.assertIn("USER 10001:10001", caddyfile)
         self.assertNotIn("image: caddy:", compose)
 
