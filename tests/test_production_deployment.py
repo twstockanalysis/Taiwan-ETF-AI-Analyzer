@@ -41,6 +41,7 @@ class TestProductionDeployment(unittest.TestCase):
         )
         self.assertIn("golang.org/x/net@v0.57.0", caddyfile)
         self.assertIn("golang.org/x/text@v0.40.0", caddyfile)
+        self.assertIn("google.golang.org/grpc@v1.82.1", caddyfile)
         self.assertIn("USER 10001:10001", caddyfile)
         self.assertNotIn("image: caddy:", compose)
 

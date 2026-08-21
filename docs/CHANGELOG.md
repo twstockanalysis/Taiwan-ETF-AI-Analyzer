@@ -7,9 +7,9 @@
 - Applied current Debian security updates during application-image builds
   instead of accepting fixable operating-system advisories from the base tag.
 - Rebuilt the exact Caddy 2.11.4 source commit with Go 1.27.0 and patched
-  `x/net`/`x/text` modules, then used an updated Alpine 3.24 runtime to remove
-  newly disclosed fixable edge-image vulnerabilities without adopting
-  unreleased Caddy functionality.
+  `x/net`, `x/text` and gRPC modules, then used an updated Alpine 3.24 runtime
+  to remove newly disclosed fixable edge-image vulnerabilities without
+  adopting unreleased Caddy functionality.
 - Hardened all services with non-root users, read-only root filesystems,
   bounded temporary storage/process counts, dropped capabilities and
   no-new-privileges; only Caddy retains `NET_BIND_SERVICE`.
