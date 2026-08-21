@@ -56,6 +56,7 @@ jobs:
           docker run --rm --read-only \
             --env SITE_DOMAIN=localhost \
             --env RELEASE_SHA="$GITHUB_SHA" \
+            --tmpfs /data:rw,noexec,nosuid,size=16m,uid=10001,gid=10001,mode=0700 \
             --volume "$PWD/deployment/Caddyfile:/etc/caddy/Caddyfile:ro" \
             tw-etf-edge:security caddy validate \
             --config /etc/caddy/Caddyfile --adapter caddyfile

@@ -69,6 +69,7 @@ class TestProductionDeployment(unittest.TestCase):
         )
         self.assertIn("caddy validate", workflow)
         self.assertIn('RELEASE_SHA="$GITHUB_SHA"', workflow)
+        self.assertIn("--tmpfs /data:rw,noexec,nosuid", workflow)
 
     def test_secrets_are_ignored_and_example_is_placeholder(self) -> None:
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
