@@ -43,6 +43,19 @@ class TestOwnerAccess(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 503)
 
+    @patch.dict(os.environ, {OWNER_TOKEN_ENV: "x" * 257}, clear=True)
+    def test_oversized_server_token_is_misconfigured(self) -> None:
+        response = self.client.get(
+            "/api/v1/decision-profile",
+            headers={"X-Owner-Token": "x" * 257},
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            "no-store, private",
+            response.headers["cache-control"],
+        )
+
     @patch.dict(os.environ, {OWNER_TOKEN_ENV: OWNER_TOKEN}, clear=True)
     def test_missing_or_wrong_token_is_unauthorized(self) -> None:
         missing = self.client.get("/api/v1/decision-profile")

@@ -42,9 +42,13 @@ class TargetAnalysisWarningCode(str, Enum):
 class TargetAnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    held_units: int = Field(ge=0)
-    unit_price: Decimal = Field(gt=0)
-    monthly_after_tax_target: Decimal = Field(ge=0)
+    held_units: int = Field(ge=0, le=1_000_000_000_000)
+    unit_price: Decimal = Field(
+        gt=0, max_digits=18, decimal_places=6
+    )
+    monthly_after_tax_target: Decimal = Field(
+        ge=0, max_digits=18, decimal_places=6
+    )
     analysis_years: int = Field(ge=1, le=50)
     history_years: int = Field(default=3, ge=1, le=10)
     cash_deduction_rate_pct: Decimal | None = Field(

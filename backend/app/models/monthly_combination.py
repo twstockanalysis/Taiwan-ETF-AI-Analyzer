@@ -92,7 +92,9 @@ class MonthlyCombinationEligibilityRules(MonthlyCombinationBaseModel):
 
 class MonthlyCombinationCandidateAssumption(MonthlyCombinationBaseModel):
     etf_code: str = Field(min_length=4, max_length=10)
-    unit_price: Decimal = Field(gt=0)
+    unit_price: Decimal = Field(
+        gt=0, max_digits=18, decimal_places=6
+    )
     proposed_allocation_pct: Decimal = Field(gt=0, le=100)
     holding_overlap_pct: Decimal | None = Field(
         default=None,

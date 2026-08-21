@@ -27,7 +27,9 @@ class DecisionProfileBaseModel(BaseModel):
 
 
 class UserConditionsUpsert(DecisionProfileBaseModel):
-    monthly_after_tax_target: Decimal = Field(ge=0)
+    monthly_after_tax_target: Decimal = Field(
+        ge=0, max_digits=18, decimal_places=6
+    )
     analysis_years: int = Field(ge=1, le=50)
     history_years: int = Field(default=3, ge=1, le=10)
     cash_deduction_rate_pct: Decimal | None = Field(
@@ -45,8 +47,10 @@ class UserConditionsResponse(UserConditionsUpsert):
 class ManualHoldingUpsert(DecisionProfileBaseModel):
     """保留 M11-1 單筆 API 的相容輸入；新 UI 使用批次契約。"""
 
-    held_units: int = Field(gt=0)
-    unit_price: Decimal = Field(gt=0)
+    held_units: int = Field(gt=0, le=1_000_000_000_000)
+    unit_price: Decimal = Field(
+        gt=0, max_digits=18, decimal_places=6
+    )
     price_as_of_date: date | None = None
     currency: Literal["TWD"] = "TWD"
 
@@ -60,7 +64,7 @@ class ManualHoldingUpsert(DecisionProfileBaseModel):
 
 class ManualHoldingBatchItem(DecisionProfileBaseModel):
     etf_code: str = Field(min_length=1, max_length=10)
-    held_units: int = Field(gt=0)
+    held_units: int = Field(gt=0, le=1_000_000_000_000)
 
     @field_validator("etf_code", mode="before")
     @classmethod
@@ -71,7 +75,9 @@ class ManualHoldingBatchItem(DecisionProfileBaseModel):
 
 
 class ManualHoldingBatchUpsert(DecisionProfileBaseModel):
-    holdings: list[ManualHoldingBatchItem] = Field(default_factory=list)
+    holdings: list[ManualHoldingBatchItem] = Field(
+        default_factory=list, max_length=500
+    )
 
     @field_validator("holdings")
     @classmethod
@@ -148,8 +154,10 @@ class CurrentHoldingAnalysisResponse(DecisionProfileBaseModel):
 class CandidateHoldingAnalysisRequest(DecisionProfileBaseModel):
     """不寫入持倉的候選 ETF 加碼假設。"""
 
-    proposed_units: int = Field(gt=0)
-    unit_price: Decimal = Field(gt=0)
+    proposed_units: int = Field(gt=0, le=1_000_000_000_000)
+    unit_price: Decimal = Field(
+        gt=0, max_digits=18, decimal_places=6
+    )
     holding_overlap_pct: Decimal | None = Field(
         default=None,
         ge=0,

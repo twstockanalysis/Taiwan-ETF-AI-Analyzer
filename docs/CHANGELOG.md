@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-21 — SEC-2 authentication and API boundary gate
+
+- Locked the complete 11-operation private API inventory behind the owner gate
+  and added non-cacheable headers to every private success and error response.
+- Changed owner-token comparison to fixed-size SHA-256 digests with constant-
+  time comparison and a bounded submitted-token length.
+- Added application limits for request targets, headers, bodies, calculation
+  numbers and manual-holding batches, including streamed-body enforcement.
+- Stopped frontend API redirects while carrying custom headers and sanitized
+  validation and unexpected-error responses so inputs and internals are not
+  reflected.
+- Added adversarial coverage for direct API/export access, CORS, injection,
+  traversal, redirect, oversized payload, caching and error leakage boundaries.
+
 ## 2026-08-21 — SEC-1 secret exposure and history gate
 
 - Recorded owner confirmation that all seven V2 calculation browser checks

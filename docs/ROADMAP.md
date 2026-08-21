@@ -903,14 +903,17 @@ titles use the `SEC-X` prefix. Any later third product version uses `V3-X`.
   verified sensitive local paths are not served as files
 - Evidence: `SECURITY_SECRET_EXPOSURE_AUDIT.md`
 
-Next security milestone: `SEC-2` authentication and API boundary testing.
-
 ### SEC-2 — Authentication and API boundary testing
 
-- Test owner-token comparison, missing/wrong token behavior, private response
-  caching, direct API access and export/record endpoints
-- Test input validation, injection, path traversal, unsafe redirects, oversized
-  upstream payloads, error-detail leakage and denial-of-service boundaries
+- Completed 2026-08-21: locked all 11 private operations behind the owner gate,
+  fixed-size digest comparison and non-cacheable private responses
+- Added redirect refusal, sanitized validation/internal errors and explicit
+  target, header, body, numeric and holding-batch resource limits
+- Verified direct API/export denial, CORS, injection, traversal, streamed and
+  declared oversized bodies, extreme numbers and error-detail boundaries
+- Evidence: `SECURITY_AUTH_API_BOUNDARY_AUDIT.md`
+
+Next security milestone: `SEC-3` dependency, container and runtime hardening.
 
 ### SEC-3 — Dependency, container and runtime hardening
 
