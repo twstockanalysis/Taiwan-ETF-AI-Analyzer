@@ -17,6 +17,13 @@ Generate `TW_ETF_OWNER_TOKEN` with at least 32 cryptographically random
 characters. Set `DATA_DIRECTORY` to the durable directory containing
 `tw_etf.db`; on Linux ensure container UID 10001 can write it.
 
+The default application limits are 600 public and 120 owner-route requests per
+source address per minute. They may be lowered with the two rate-limit values in
+`deployment/.env`. This bounded in-process control protects a single backend
+process; a future multi-replica deployment must also configure a shared limit
+at the hosting provider or edge. Keep FastAPI and Streamlit unpublished and
+allow inbound host traffic only to Caddy on TCP 80/443 and UDP 443.
+
 ## Release sequence
 
 1. Run `.venv\Scripts\python.exe deployment\security_secret_scan.py --include-ignored --include-history`.
@@ -28,9 +35,11 @@ characters. Set `DATA_DIRECTORY` to the durable directory containing
 5. Build with `docker compose --env-file deployment/.env -f deployment/compose.yaml build --pull`.
 6. Start with `docker compose --env-file deployment/.env -f deployment/compose.yaml up -d`.
 7. Require all three services to become healthy.
-8. Run `python deployment/smoke_test.py --base-url https://DOMAIN --owner-token TOKEN`.
-9. Restart the stack and repeat the smoke test; confirm the same DB row counts.
-10. Enable the M12-3 scheduler only after the release and restore evidence pass.
+8. Confirm `/docs`, `/redoc` and `/openapi.json` return 404 through Caddy and
+   plain HTTP redirects to the production HTTPS origin.
+9. Run `python deployment/smoke_test.py --base-url https://DOMAIN --owner-token TOKEN`.
+10. Restart the stack and repeat the smoke test; confirm the same DB row counts.
+11. Enable the M12-3 scheduler only after the release and restore evidence pass.
 
 Rollback means stop writers, preserve the failed DB, deploy the prior image,
 restore to a new verified path if schema/data rollback is required, update the
@@ -44,6 +53,12 @@ prove public certificate issuance without owner authorization and credentials.
 Record the chosen host, domain, deployment SHA, DNS result, certificate issuer,
 smoke output, restart evidence and rollback owner before declaring M12-5
 operationally complete.
+
+The repository security workflow builds both images, proves their numeric UID,
+runs the backend with a read-only root filesystem and dropped capabilities, and
+fails on fixable high or critical Trivy findings. A green workflow is required
+for this gate, but it cannot replace host firewall, DNS, certificate-renewal or
+provider-level rate-limit evidence.
 
 ## Native local rehearsal without Docker
 

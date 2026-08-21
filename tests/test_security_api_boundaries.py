@@ -15,6 +15,7 @@ from backend.app.api.owner_access import OWNER_TOKEN_ENV
 from backend.app.database.connection import get_connection
 from backend.app.database.init_db import initialize_database
 from backend.app.main import create_app
+from backend.app.security import InMemoryRateLimiter
 
 
 class TestSecurityAPIBoundaries(unittest.TestCase):
@@ -201,6 +202,43 @@ class TestSecurityAPIBoundaries(unittest.TestCase):
 
         self.assertNotIn("access-control-allow-origin", response.headers)
         self.assertNotIn("access-control-allow-credentials", response.headers)
+
+    def test_public_and_private_rate_limits_are_independent(self) -> None:
+        application = create_app(
+            public_rate_limit=2,
+            private_rate_limit=1,
+        )
+        application.dependency_overrides[get_database_path] = (
+            lambda: self.database
+        )
+        with TestClient(application) as client:
+            first_public = client.get("/health")
+            second_public = client.get("/health")
+            limited_public = client.get("/health")
+            first_private = client.get("/api/v1/decision-profile")
+            limited_private = client.get("/api/v1/decision-profile")
+
+        self.assertEqual(200, first_public.status_code)
+        self.assertEqual(200, second_public.status_code)
+        self.assertEqual(429, limited_public.status_code)
+        self.assertGreaterEqual(int(limited_public.headers["retry-after"]), 1)
+        self.assertEqual(401, first_private.status_code)
+        self.assertEqual(429, limited_private.status_code)
+        self.assert_private_no_store(limited_private)
+
+    def test_rate_limiter_bounds_client_memory_and_resets_windows(self) -> None:
+        limiter = InMemoryRateLimiter(
+            limit=1,
+            window_seconds=60,
+            max_clients=2,
+        )
+
+        self.assertEqual((True, 60), limiter.allow("first", now=0))
+        self.assertEqual((True, 60), limiter.allow("second", now=0))
+        self.assertEqual((True, 60), limiter.allow("third", now=0))
+        self.assertEqual(2, len(limiter._windows))
+        self.assertEqual((False, 30), limiter.allow("third", now=30))
+        self.assertEqual((True, 60), limiter.allow("third", now=60))
 
     def test_validation_does_not_reflect_injected_or_extreme_input(self) -> None:
         injected = "<script>alert('private-input')</script>"

@@ -1,7 +1,13 @@
 {$SITE_DOMAIN:localhost} {
     encode zstd gzip
+    request_body {
+        max_size 64KB
+    }
 
-    @backend path /health /api/* /docs* /openapi.json
+    @api_docs path /docs* /redoc* /openapi.json
+    respond @api_docs 404
+
+    @backend path /health /api/*
     handle @backend {
         reverse_proxy backend:8000
     }
@@ -12,8 +18,12 @@
 
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Content-Security-Policy "base-uri 'self'; frame-ancestors 'none'; object-src 'none'"
+        Permissions-Policy "camera=(), geolocation=(), microphone=()"
         X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
         -Server
+        -X-Powered-By
     }
 }

@@ -913,15 +913,29 @@ titles use the `SEC-X` prefix. Any later third product version uses `V3-X`.
   declared oversized bodies, extreme numbers and error-detail boundaries
 - Evidence: `SECURITY_AUTH_API_BOUNDARY_AUDIT.md`
 
-Next security milestone: `SEC-3` dependency, container and runtime hardening.
-
 ### SEC-3 — Dependency, container and runtime hardening
 
-- Scan pinned Python and container dependencies for known vulnerabilities
-- Verify non-root containers, file permissions, Caddy headers, HTTPS-only
-  behavior, rate limits, firewall exposure and least-privilege mounts
-- Run automated static, dependency and dynamic tests against an isolated
-  deployment candidate before public launch or any V3 work
+- Completed 2026-08-21: audited the complete pinned Python dependency graph,
+  upgraded Python/Caddy base images and added CI high/critical image scanning
+- Made every service non-root with read-only roots, bounded tmpfs/PIDs, dropped
+  capabilities, no-new-privileges and only the database bind mount writable
+- Removed public API docs, expanded Caddy security headers/body limits, added
+  bounded public/private application rate limits and kept only 80/443 published
+- Added immutable-action CI for secret history, dependency consistency, full
+  regression, image UID, isolated health and container vulnerability gates
+- Evidence: `SECURITY_DEPENDENCY_RUNTIME_AUDIT.md`
+
+Next security milestone: `SEC-4` public-host and launch security acceptance.
+
+### SEC-4 — Public-host and launch security acceptance
+
+- Validate real DNS, automatic HTTPS issuance/renewal and HTTP-to-HTTPS behavior
+- Confirm provider firewall exposure, host administration restrictions,
+  provider/edge rate limits, backup access and production secret injection
+- Run the public/owner smoke suite and external security probes against the
+  exact deployed commit before enabling public access or any V3 work
+
+## Post-security optional integrations
 
 - Decide whether to build self-service account aliases, passwords, login and
   per-user holding-data isolation

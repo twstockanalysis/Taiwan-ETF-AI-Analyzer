@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-21 — SEC-3 dependency, container and runtime gate
+
+- Upgraded the pinned Python and Caddy base images and added Python dependency
+  auditing plus high/critical application and edge image scanning in CI.
+- Hardened all services with non-root users, read-only root filesystems,
+  bounded temporary storage/process counts, dropped capabilities and
+  no-new-privileges; only Caddy retains `NET_BIND_SERVICE`.
+- Removed public API documentation routes, enforced proxy and application body
+  limits, and added CSP, clickjacking, permissions and server-header controls.
+- Added bounded per-source public/private request limits with private no-store
+  behavior and explicit 429 retry guidance.
+- Added isolated container health, UID, secret-history, dependency and complete
+  regression gates using actions pinned to immutable commit SHAs.
+
 ## 2026-08-21 — SEC-2 authentication and API boundary gate
 
 - Locked the complete 11-operation private API inventory behind the owner gate

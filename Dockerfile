@@ -1,4 +1,4 @@
-FROM python:3.13.7-slim
+FROM python:3.13.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -11,5 +11,7 @@ COPY frontend ./frontend
 
 RUN useradd --create-home --uid 10001 appuser \
     && mkdir -p /data /ops \
-    && chown -R appuser:appuser /app /data /ops
+    && chown -R appuser:appuser /app /data /ops \
+    && find /app -type d -exec chmod 0555 {} + \
+    && find /app -type f -exec chmod 0444 {} +
 USER appuser
