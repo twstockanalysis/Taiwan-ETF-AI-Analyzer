@@ -15,7 +15,7 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(resolve_database_path({}), DATABASE_DIR / "tw_etf.db")
 
     def test_database_path_accepts_absolute_durable_path(self) -> None:
-        configured = str(Path("D:/tw-etf-data/tw_etf.db"))
+        configured = str(Path.cwd().resolve() / "tw-etf-data" / "tw_etf.db")
 
         result = resolve_database_path({DATABASE_PATH_ENV: configured})
 

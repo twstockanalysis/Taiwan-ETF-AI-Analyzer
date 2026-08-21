@@ -18,7 +18,9 @@ authorized public host.
   graph against the current advisory service and reported no known
   vulnerabilities on 2026-08-21.
 - The application base moved from Python 3.13.7 to the current 3.13.14 slim
-  image and the edge moved from Caddy 2.10.2 to 2.11.4 Alpine.
+  image and the edge moved from Caddy 2.10.2 to 2.11.4 Alpine. The application
+  build applies available Debian package security updates before installing
+  Python dependencies.
 - CI repeats Python auditing and scans both built images with Trivy, failing on
   fixable HIGH or CRITICAL operating-system or library findings.
 

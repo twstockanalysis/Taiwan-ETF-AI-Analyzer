@@ -4,6 +4,8 @@
 
 - Upgraded the pinned Python and Caddy base images and added Python dependency
   auditing plus high/critical application and edge image scanning in CI.
+- Applied current Debian security updates during application-image builds
+  instead of accepting fixable operating-system advisories from the base tag.
 - Hardened all services with non-root users, read-only root filesystems,
   bounded temporary storage/process counts, dropped capabilities and
   no-new-privileges; only Caddy retains `NET_BIND_SERVICE`.

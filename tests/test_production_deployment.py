@@ -31,6 +31,7 @@ class TestProductionDeployment(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("FROM python:3.13.14-slim", dockerfile)
+        self.assertIn("apt-get upgrade --yes", dockerfile)
         self.assertIn("USER appuser", dockerfile)
         self.assertIn("FROM caddy:2.11.4-alpine", caddyfile)
         self.assertIn("USER 10001:10001", caddyfile)
