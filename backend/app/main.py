@@ -11,7 +11,11 @@ from backend.app.security import (
 )
 
 
-def create_app() -> FastAPI:
+def create_app(
+    *,
+    public_rate_limit: int | None = None,
+    private_rate_limit: int | None = None,
+) -> FastAPI:
     """建立並設定 FastAPI 應用程式。
 
     Returns:
@@ -25,7 +29,11 @@ def create_app() -> FastAPI:
         debug=False,
     )
 
-    application.add_middleware(SecurityBoundaryMiddleware)
+    application.add_middleware(
+        SecurityBoundaryMiddleware,
+        public_rate_limit=public_rate_limit,
+        private_rate_limit=private_rate_limit,
+    )
     application.add_exception_handler(
         RequestValidationError,
         sanitized_validation_exception_handler,

@@ -1,0 +1,89 @@
+name: Security gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install audit and runtime dependencies
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          python -m pip install -r requirements.lock
+      - name: Audit Python dependencies
+        run: python -m pip_audit -r requirements.lock --strict --progress-spinner off
+      - name: Verify dependency consistency
+        run: python -m pip check
+      - name: Scan repository and fetched history for secrets
+        run: python deployment/security_secret_scan.py --include-history
+      - name: Run complete regression suite
+        run: python -m unittest discover -s tests
+
+  container-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build application image
+        run: docker build --tag tw-etf-app:security .
+      - name: Build edge image
+        run: docker build --file deployment/Caddy.Dockerfile --tag tw-etf-edge:security deployment
+      - name: Verify application image runs as non-root
+        run: test "$(docker run --rm --entrypoint python tw-etf-app:security -c 'import os; print(os.getuid())')" = "10001"
+      - name: Verify edge image runs as non-root
+        run: test "$(docker run --rm --entrypoint sh tw-etf-edge:security -c 'id -u')" = "10001"
+      - name: Run isolated backend health check
+        run: |
+          docker run --detach --rm --name tw-etf-security \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --publish 127.0.0.1:18000:8000 \
+            --env TW_ETF_DATABASE_PATH=/tmp/security.db \
+            tw-etf-app:security python -m uvicorn backend.app.main:app \
+            --host 0.0.0.0 --port 8000
+          trap 'docker stop tw-etf-security >/dev/null 2>&1 || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:18000/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs tw-etf-security
+          exit 1
+      - name: Scan application image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: tw-etf-app:security
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+      - name: Scan edge image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: tw-etf-edge:security
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL

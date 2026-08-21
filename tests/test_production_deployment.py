@@ -15,6 +15,52 @@ class TestProductionDeployment(unittest.TestCase):
         self.assertNotIn('"8000:8000"', compose)
         self.assertNotIn('"8501:8501"', compose)
         self.assertIn('"443:443"', compose)
+        self.assertEqual(1, compose.count("read_only: false"))
+        self.assertEqual(3, compose.count("read_only: true"))
+        self.assertEqual(3, compose.count("no-new-privileges:true"))
+        self.assertEqual(3, compose.count("- ALL"))
+        self.assertIn("NET_BIND_SERVICE", compose)
+        self.assertIn("pids_limit: 256", compose)
+
+    def test_all_runtime_images_are_pinned_and_non_root(self) -> None:
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        caddyfile = (ROOT / "deployment/Caddy.Dockerfile").read_text(
+            encoding="utf-8"
+        )
+        compose = (ROOT / "deployment/compose.yaml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("FROM python:3.13.14-slim", dockerfile)
+        self.assertIn("apt-get upgrade --yes", dockerfile)
+        self.assertIn("USER appuser", dockerfile)
+        self.assertIn("FROM golang:1.27.0-alpine3.24 AS builder", caddyfile)
+        self.assertIn("FROM alpine:3.24", caddyfile)
+        self.assertIn(
+            "CADDY_COMMIT=8ec11a4b7e39a5fd00da2fc5cb9b543e31fd7926",
+            caddyfile,
+        )
+        self.assertIn("golang.org/x/net@v0.57.0", caddyfile)
+        self.assertIn("golang.org/x/text@v0.40.0", caddyfile)
+        self.assertIn("google.golang.org/grpc@v1.82.1", caddyfile)
+        self.assertIn("USER 10001:10001", caddyfile)
+        self.assertNotIn("image: caddy:", compose)
+
+    def test_proxy_blocks_api_docs_and_sets_edge_boundaries(self) -> None:
+        caddyfile = (ROOT / "deployment/Caddyfile").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("max_size 64KB", caddyfile)
+        self.assertIn("respond @api_docs 404", caddyfile)
+        self.assertIn("X-Frame-Options \"DENY\"", caddyfile)
+        self.assertIn("Content-Security-Policy", caddyfile)
+        self.assertIn("Permissions-Policy", caddyfile)
+        backend_matcher = next(
+            line for line in caddyfile.splitlines() if line.strip().startswith(
+                "@backend path"
+            )
+        )
+        self.assertNotIn("/docs", backend_matcher)
+        self.assertNotIn("/openapi.json", backend_matcher)
 
     def test_secrets_are_ignored_and_example_is_placeholder(self) -> None:
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
