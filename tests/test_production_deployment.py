@@ -12,6 +12,7 @@ class TestProductionDeployment(unittest.TestCase):
         compose = (ROOT / "deployment/compose.yaml").read_text(encoding="utf-8")
         self.assertIn("TW_ETF_DATABASE_PATH: /data/tw_etf.db", compose)
         self.assertIn("TW_ETF_OWNER_TOKEN", compose)
+        self.assertIn("RELEASE_SHA: ${RELEASE_SHA:?set RELEASE_SHA}", compose)
         self.assertNotIn('"8000:8000"', compose)
         self.assertNotIn('"8501:8501"', compose)
         self.assertIn('"443:443"', compose)
@@ -54,6 +55,7 @@ class TestProductionDeployment(unittest.TestCase):
         self.assertIn("X-Frame-Options \"DENY\"", caddyfile)
         self.assertIn("Content-Security-Policy", caddyfile)
         self.assertIn("Permissions-Policy", caddyfile)
+        self.assertIn('X-Release-Sha "{$RELEASE_SHA}"', caddyfile)
         backend_matcher = next(
             line for line in caddyfile.splitlines() if line.strip().startswith(
                 "@backend path"
@@ -61,6 +63,13 @@ class TestProductionDeployment(unittest.TestCase):
         )
         self.assertNotIn("/docs", backend_matcher)
         self.assertNotIn("/openapi.json", backend_matcher)
+
+        workflow = (ROOT / ".github/workflows/security.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("caddy validate", workflow)
+        self.assertIn('RELEASE_SHA="$GITHUB_SHA"', workflow)
+        self.assertIn("--tmpfs /data:rw,noexec,nosuid", workflow)
 
     def test_secrets_are_ignored_and_example_is_placeholder(self) -> None:
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")

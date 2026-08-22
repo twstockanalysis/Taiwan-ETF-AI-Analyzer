@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "domain": "etf.example.com",
+  "release_sha": "replace-with-the-exact-40-character-deployment-sha",
+  "reviewed_at": "2026-08-21T00:00:00+00:00",
+  "reviewed_by": "replace-with-reviewer-name",
+  "deployment": {
+    "release_sha_verified": false,
+    "containers_match_release": false,
+    "evidence_reference": "replace-with-deployment-evidence"
+  },
+  "firewall": {
+    "only_expected_public_ports": false,
+    "admin_access_restricted": false,
+    "evidence_reference": "replace-with-firewall-evidence"
+  },
+  "provider_edge_rate_limit": {
+    "enabled": false,
+    "tested": false,
+    "evidence_reference": "replace-with-rate-limit-evidence"
+  },
+  "production_secret": {
+    "injected_outside_repository": false,
+    "launch_value_rotated": false,
+    "evidence_reference": "replace-with-secret-injection-evidence"
+  },
+  "backup": {
+    "off_host_copy_verified": false,
+    "restore_drill_passed": false,
+    "evidence_reference": "replace-with-backup-and-restore-evidence"
+  },
+  "certificate_renewal": {
+    "configured": false,
+    "failure_alert_configured": false,
+    "evidence_reference": "replace-with-renewal-alert-evidence"
+  }
+}

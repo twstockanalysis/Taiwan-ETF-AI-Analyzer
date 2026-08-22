@@ -929,11 +929,20 @@ Next security milestone: `SEC-4` public-host and launch security acceptance.
 
 ### SEC-4 — Public-host and launch security acceptance
 
-- Validate real DNS, automatic HTTPS issuance/renewal and HTTP-to-HTTPS behavior
-- Confirm provider firewall exposure, host administration restrictions,
-  provider/edge rate limits, backup access and production secret injection
-- Run the public/owner smoke suite and external security probes against the
-  exact deployed commit before enabling public access or any V3 work
+- Implemented locally 2026-08-21: added a fail-closed public-host probe for DNS,
+  certificate lifetime, TLS negotiation, redirects, security headers, release
+  identity, blocked docs, owner boundaries, private caching and body limits
+- Added a fresh named-attestation contract for firewall/admin exposure, shared
+  edge limits, secret injection/rotation, off-host backup/restore, certificate
+  renewal alerts and exact application/edge container identity
+- Changed deployment smoke checks to refuse redirects and keep the owner token
+  out of command-line arguments
+- Current decision: `NO_GO`; no real host/domain exists, so DNS, public TLS,
+  provider firewall/rate-limit and production-secret evidence are unavailable
+- Required completion: deploy one exact commit, fill the external attestation
+  from real evidence and obtain a `READY` SEC-4 report before public access or
+  any V3 work
+- Evidence contract: `SECURITY_PUBLIC_LAUNCH_ACCEPTANCE.md`
 
 ## Post-security optional integrations
 

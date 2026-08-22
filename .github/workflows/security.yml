@@ -51,6 +51,15 @@ jobs:
         run: test "$(docker run --rm --entrypoint python tw-etf-app:security -c 'import os; print(os.getuid())')" = "10001"
       - name: Verify edge image runs as non-root
         run: test "$(docker run --rm --entrypoint sh tw-etf-edge:security -c 'id -u')" = "10001"
+      - name: Validate edge configuration
+        run: |
+          docker run --rm --read-only \
+            --env SITE_DOMAIN=localhost \
+            --env RELEASE_SHA="$GITHUB_SHA" \
+            --tmpfs /data:rw,noexec,nosuid,size=16m,uid=10001,gid=10001,mode=0700 \
+            --volume "$PWD/deployment/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            tw-etf-edge:security caddy validate \
+            --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Run isolated backend health check
         run: |
           docker run --detach --rm --name tw-etf-security \
