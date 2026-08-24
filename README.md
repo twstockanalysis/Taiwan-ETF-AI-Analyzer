@@ -1,13 +1,13 @@
-# Taiwan-ETF-AI-Analyzer
-## project introduction
-Target:
-Building an analyzer for TW ETF.
+# ETF奈米戶
+## Project introduction
+
+ETF奈米戶是為 ETF 初學者設計的台灣 ETF 現金流規劃網站。V3 將從使用者的領息目標、指定月份與 0～N 檔現有持股出發，提供透明的 ETF、整數股數與所需資金配置情境。
 
 Main function:
 - ETF performance analysis
 - 76W analysis
 - dividends for every months
-- AI score
+- Explainable allocation fit and risks
 - Excel Dashboard
 ---
 ## Author

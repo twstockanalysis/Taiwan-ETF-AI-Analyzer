@@ -2,15 +2,15 @@
 
 ## Product
 
-TW ETF AI Analyzer is a public Taiwan ETF cash-flow decision website for
-individual investors with limited investment information or professional
-analysis experience.
+The official product name is `ETF奈米戶`. It is a Taiwan ETF cash-flow planning
+website for beginners and individual investors with limited investment
+information or professional analysis experience.
 
-The product helps a user start from one self-selected Taiwan-listed ETF and
-answer a practical question:
+The product starts from the user's fixed after-tax cash-flow target, selected
+payment months and zero to N existing Taiwan-listed ETF holdings. It answers:
 
-> How much capital is needed to support a fixed after-tax cash-flow target,
-> and can that target be pursued without hiding a loss in total return?
+> Which ETFs and how many whole shares need to be added, how much additional
+> capital is required, and what risks or data limits remain?
 
 The website analyzes ETFs only. It does not analyze individual stocks and is
 not designed as a professional trading terminal.
@@ -31,20 +31,25 @@ real-time quotes or portfolio optimization are not the primary audience.
 
 ## Product objective
 
-For one base ETF selected by the user, the website must:
+For a user-defined target and current portfolio, the website must:
 
-1. Estimate gross and after-tax cash flow by payment month.
-2. Calculate the capital required for a fixed cash-flow target.
-3. Show the shortfall when the available capital cannot meet that target.
-4. Evaluate distributions together with market-value change and costs.
-5. Compare distribution-use and reinvestment scenarios.
-6. Explain the tax-source composition, including official `54C`, `76W` and
+1. Accept a fixed after-tax cash target, selected payment months and zero to N
+   existing ETF holdings.
+2. Build the eligible candidate universe from the supported Taiwan ETF market;
+   the user must not need to choose candidate ETFs or allocations first.
+3. Return which ETFs to add, the non-negative whole-share quantity for each and
+   the required additional capital.
+4. Estimate gross and after-tax cash flow by payment month and show every
+   remaining target shortfall.
+5. Evaluate distributions together with market-value change and costs.
+6. Compare distribution-use and reinvestment scenarios at portfolio level.
+7. Explain the tax-source composition, including official `54C`, `76W` and
    other disclosed components, without treating a tax code as a universal tax
    conclusion.
-7. Optionally add a small number of complementary ETFs when monthly coverage
-   is requested.
 8. Reject or warn about combinations that improve payment-month coverage or
    apparent tax efficiency at the expense of total-return quality.
+9. Explain inclusions, exclusions, alternatives, assumptions and risks without
+   exposing an ETF-quality score or assessment-confidence label in the UI.
 
 The website provides historical analysis and scenario estimates. It does not
 guarantee future distributions, tax outcomes, market value or principal.
@@ -66,13 +71,13 @@ total-return or data-quality check.
 ## Core user flow
 
 ```text
-select one base ETF
--> enter available capital and fixed monthly cash-flow target
--> review the base ETF alone
--> compare after-tax cash flow and total return
--> compare reinvestment scenarios
--> optionally request monthly payment coverage
--> review complementary ETFs, exclusions and trade-offs
+enter fixed after-tax cash target
+-> choose the months in which that target should be received
+-> enter zero to N existing ETF holdings
+-> let the service evaluate the eligible Taiwan ETF universe
+-> review ETFs to add, whole shares and required additional capital
+-> review month-by-month target coverage, alternatives, exclusions and risks
+-> optionally review portfolio-level tax and reinvestment scenarios
 ```
 
 The monthly cash-flow target remains fixed when available capital changes.
@@ -161,13 +166,13 @@ The website must:
 - Avoid labels such as "tax free" unless the modeled rule and user assumptions
   support that conclusion
 
-### Optional monthly-payment combination
+### Automatic portfolio allocation
 
-Monthly payment coverage is initially the default planning goal and must later
-be available as an explicit user option.
+The public V3 planner is stateless and does not save the submitted holdings.
+It automatically evaluates the supported candidate universe instead of asking
+the user to preselect candidate ETFs or enter allocations.
 
-When enabled, the website may add one to three complementary ETFs to the base
-ETF. A candidate must pass:
+A candidate must pass:
 
 - Data-completeness and freshness requirements
 - Total-return and downside-risk checks
@@ -176,8 +181,24 @@ ETF. A candidate must pass:
 - Holding-overlap and concentration checks
 - High-distribution but weak-total-return exclusions
 
-The result must explain why each ETF was included, which month it supports,
-which candidates were excluded and what trade-offs remain.
+The result must use whole shares and explain why each ETF was included, how
+much capital it consumes, which selected months it supports, which candidates
+were excluded and what trade-offs remain. Existing holdings remain visible
+even when they fail an add-more eligibility gate; V3 does not silently sell or
+replace them.
+
+The optimizer follows a deterministic priority order:
+
+```text
+hard data and risk gates
+-> maximize selected-month after-tax target coverage
+-> minimize required additional capital
+-> reduce unnecessary additions, concentration and overlap
+-> stable ETF-code tie-break
+```
+
+Only a result with a proved optimum may be labeled optimal. A bounded or timed
+best-effort result must say so and retain its remaining shortfall.
 
 ## Analysis modes and data semantics
 
@@ -210,12 +231,11 @@ unavailable or visibly qualified rather than assigned a neutral score.
 - Current-portfolio analysis and read-only candidate addition comparison
 - FastAPI-backed Streamlit website with automated contract tests
 
-These capabilities now form the data and deterministic decision-calculation
-layers. M11 decision records and Excel export preserve immutable candidate
-assessment snapshots without turning the site into a recommendation or
-trading system. Automation,
-operational controls and public deployment remain M12 work and are subject to
-the mandatory `M12_ENTRY_AUDIT.md` direction-and-function reconfirmation.
+These capabilities form the data and deterministic decision-calculation
+layers used by V3. The current owner-only profile remains available, but the V3
+planning entry must be public, stateless and usable with zero existing
+holdings. Real-domain deployment and final SEC-4 acceptance occur after V3 and
+the page-by-page information-architecture review, before public launch.
 
 ## Core principles
 
@@ -230,6 +250,9 @@ the mandatory `M12_ENTRY_AUDIT.md` direction-and-function reconfirmation.
 9. Keep calculations deterministic and explainable before adding AI assistance.
 10. Access public frontend data only through FastAPI and protect contracts with
     automated tests.
+11. Keep internal ETF-quality scores and confidence labels out of the frontend;
+    show allocation fit, reasons, evidence limits and risks instead.
+12. A public planning request must not persist holdings, targets or results.
 
 ## Out of current core scope
 
@@ -245,5 +268,6 @@ the mandatory `M12_ENTRY_AUDIT.md` direction-and-function reconfirmation.
 - Unverified scraping
 - OCR-based automatic tax-code inference
 
-External market or broker APIs can be evaluated only after the core website,
-decision calculations and deployment architecture are complete.
+Broker execution and account synchronization remain optional after the core V3
+allocation flow. The website does not place orders, provide real-time trading
+signals or guarantee future distributions, returns, tax outcomes or principal.

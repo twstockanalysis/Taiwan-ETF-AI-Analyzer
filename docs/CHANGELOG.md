@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-25 — V3-0 product direction and allocation contract
+
+- Renamed the visible product to `ETF奈米戶` and centered the PRD on ETF
+  beginners, selected payment months and zero to N existing holdings.
+- Changed SEC-4 from a pre-V3 gate to a mandatory pre-public-launch gate so V3
+  and page-by-page information review can be completed locally first.
+- Defined the public stateless full-market allocation boundary, whole-share
+  model, deterministic objective order, result statuses and required
+  explanations.
+- Added the V3-1 through V3-8 delivery sequence, including a dedicated
+  page-by-page field and navigation review before real-domain deployment.
+- Kept internal ETF-quality scores and confidence labels out of the frontend.
+
 ## 2026-08-24 — SEC-4 local production-compose rehearsal
 
 - Built and started the exact backend, Streamlit frontend and Caddy images on

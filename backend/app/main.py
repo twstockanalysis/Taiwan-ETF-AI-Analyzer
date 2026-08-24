@@ -1,4 +1,4 @@
-"""TW ETF AI Analyzer FastAPI 應用程式入口。"""
+"""ETF奈米戶 FastAPI 應用程式入口。"""
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -23,7 +23,7 @@ def create_app(
     """
 
     application = FastAPI(
-        title="TW ETF AI Analyzer API",
+        title="ETF奈米戶 API",
         description="台灣 ETF 分析網站後端 API",
         version="0.1.0",
         debug=False,

@@ -16,7 +16,7 @@ from frontend.query_state import (
 )
 
 
-NAVIGATION_GROUP = "TW ETF AI Analyzer"
+NAVIGATION_GROUP = "ETF奈米戶"
 
 
 @dataclass(frozen=True)
