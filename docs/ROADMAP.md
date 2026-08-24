@@ -937,6 +937,12 @@ Next security milestone: `SEC-4` public-host and launch security acceptance.
   renewal alerts and exact application/edge container identity
 - Changed deployment smoke checks to refuse redirects and keep the owner token
   out of command-line arguments
+- Completed an isolated production-compose rehearsal on 2026-08-24 for exact
+  commit `75722b0b3e2823430bf70e8e9d3716de4dc6e2ac`: all images built, services
+  became healthy, HTTPS owner boundaries passed, restart preserved every
+  database count, and the owner confirmed the calculation and export flows
+- Kept the localhost CA outside the Windows trust store and used it only for
+  the automated smoke process
 - Current decision: `NO_GO`; no real host/domain exists, so DNS, public TLS,
   provider firewall/rate-limit and production-secret evidence are unavailable
 - Required completion: deploy one exact commit, fill the external attestation
