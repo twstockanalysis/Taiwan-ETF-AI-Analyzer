@@ -1,4 +1,4 @@
-"""TW ETF AI Analyzer 首頁與系統資料總覽。"""
+"""ETF奈米戶首頁與系統資料總覽。"""
 
 from typing import Any
 
@@ -655,11 +655,11 @@ def render_recent_import_batches(
 def render_home() -> None:
     """顯示首頁與 FastAPI 系統資料總覽。"""
 
-    st.title("TW ETF AI Analyzer")
+    st.title("ETF奈米戶")
 
     st.caption(
-        "台灣 ETF 資料查詢、"
-        "績效與配息品質分析網站"
+        "從現金流目標與現有持股出發，"
+        "透明規劃台灣 ETF 配置"
     )
 
     render_feature_entry_points()

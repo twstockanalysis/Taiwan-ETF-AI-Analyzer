@@ -328,7 +328,7 @@ def export_decision_record_xlsx(record: DecisionRecordResponse) -> bytes:
     _inputs_sheet(workbook, record)
     workbook.properties.title = f"ETF decision record {record.id}"
     workbook.properties.subject = "Taiwan ETF candidate scenario snapshot"
-    workbook.properties.creator = "TW ETF AI Analyzer"
+    workbook.properties.creator = "ETF奈米戶"
     output = BytesIO()
     workbook.save(output)
     return output.getvalue()

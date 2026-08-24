@@ -38,7 +38,7 @@ async def read_root() -> dict[str, str]:
     """回傳 API 基本資訊。"""
 
     return {
-        "message": "TW ETF AI Analyzer API",
+        "message": "ETF奈米戶 API",
         "status": "running",
     }
 

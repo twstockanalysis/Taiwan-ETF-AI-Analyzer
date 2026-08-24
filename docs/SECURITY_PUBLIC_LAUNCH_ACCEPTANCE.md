@@ -11,8 +11,10 @@ The repository-controlled acceptance implementation is complete, but this
 workstation has no registered domain, public host or provider controls. It
 cannot truthfully prove public DNS, certificate issuance/renewal, firewall and
 administration exposure, shared edge rate limiting, production secret
-injection, or off-host backup access. SEC-4 remains an active launch gate and
-V3 must not begin until one exact deployment returns `READY`.
+injection, or off-host backup access. SEC-4 remains an active public-launch
+gate. By owner direction on 2026-08-25, local V3 development and page review
+may proceed first, but no public launch may occur until one exact deployment
+returns `READY`.
 
 ## Local production rehearsal evidence
 

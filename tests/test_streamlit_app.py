@@ -368,7 +368,7 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "TW ETF AI Analyzer",
+            "ETF奈米戶",
         )
 
         success_messages = [

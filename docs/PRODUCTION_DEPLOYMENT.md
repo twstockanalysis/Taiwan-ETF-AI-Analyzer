@@ -59,7 +59,8 @@ prove public certificate issuance without owner authorization and credentials.
 Record the chosen host, domain, deployment SHA, DNS result, certificate issuer,
 smoke output, restart evidence and rollback owner before declaring M12-5
 operationally complete. Until the SEC-4 command returns `READY` for the exact
-deployed SHA, public launch and V3 work remain blocked.
+deployed SHA, public launch remains blocked. Local V3 development and page-by-
+page review may be completed before real-domain deployment.
 
 The repository security workflow builds both images, proves their numeric UID,
 runs the backend with a read-only root filesystem and dropped capabilities, and

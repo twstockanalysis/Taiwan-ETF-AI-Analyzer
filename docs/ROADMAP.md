@@ -886,11 +886,17 @@ first public release, and AI output must not become opaque trading advice.
 V2 acceptance is complete. Independent security validation is active before
 any `V3-X` feature work.
 
-## Security validation — Required after V2 and before V3
+## Security validation — SEC-1–3 complete; SEC-4 required before launch
 
-Security work is an independent release gate after V2; it must not be treated
-as an informal code review or folded silently into a feature PR. Security PR
-titles use the `SEC-X` prefix. Any later third product version uses `V3-X`.
+Security work remains an independent release gate and must not be treated as an
+informal code review or folded silently into a feature PR. Security PR titles
+use the `SEC-X` prefix. Third-version product PR titles use `V3-X`.
+
+The owner changed the delivery order on 2026-08-25: real-domain deployment is
+deferred until the V3 product flow and page-by-page information review are
+complete. Local SEC-1 through SEC-3 controls remain mandatory during V3. SEC-4
+`READY` is still required before public launch, but no longer blocks local V3
+development.
 
 ### SEC-1 — Secret exposure and repository history
 
@@ -946,9 +952,97 @@ Next security milestone: `SEC-4` public-host and launch security acceptance.
 - Current decision: `NO_GO`; no real host/domain exists, so DNS, public TLS,
   provider firewall/rate-limit and production-secret evidence are unavailable
 - Required completion: deploy one exact commit, fill the external attestation
-  from real evidence and obtain a `READY` SEC-4 report before public access or
-  any V3 work
+  from real evidence and obtain a `READY` SEC-4 report before public access
 - Evidence contract: `SECURITY_PUBLIC_LAUNCH_ACCEPTANCE.md`
+
+## V3 — ETF奈米戶 automatic allocation
+
+V3 starts before real-domain deployment so the complete beginner flow can be
+reviewed locally first. The core input is a fixed after-tax cash target,
+selected payment months and zero to N existing ETF holdings. The core output is
+which ETFs to add, how many whole shares to add and the required additional
+capital, together with reasons, alternatives, exclusions and risks.
+
+V3 remains deterministic and explainable. Internal ETF-quality scores may
+support eligibility and ordering, but ETF-quality scores and assessment-
+confidence labels are not shown in the frontend.
+
+### V3-0 — Product, brand and allocation contract — In progress
+
+- Rename the visible product to `ETF奈米戶` and use beginner-oriented wording
+- Replace the base-ETF-first product flow with target-months-and-holdings-first
+  planning
+- Define the public stateless boundary for zero to N holdings
+- Define full-market candidate gates, whole-share constraints, deterministic
+  objective order and stable result semantics
+- Keep real-domain SEC-4 acceptance as a pre-launch gate after V3
+- Evidence: `V3_ALLOCATION_ENGINE_CONTRACT.md`
+
+### V3-1 — Public zero-to-N holdings and target-month flow
+
+- Add a public planner that starts empty and accepts zero to 500 ETF holdings
+- Keep submitted targets and holdings out of the owner profile and persistence
+- Support monthly, odd-month, even-month, quarterly, half-year, annual and
+  arbitrary selected-month goals through one normalized month-set contract
+- Show the current-portfolio baseline before automatic additions
+
+### V3-2 — Full-market eligibility and internal assessment index
+
+- Build the server-side supported ETF universe without user-picked candidates
+- Apply data freshness, distribution stability, total-return, downside,
+  composition, overlap and concentration gates before optimization
+- Keep unsupported product types and missing data visible through stable reason
+  codes
+- Expand reviewed ACTUAL dividend-composition coverage as a priority data track
+
+### V3-3 — Automatic ETF and whole-share allocation engine
+
+- Solve non-negative whole-share additions from the eligible market universe
+- Minimize selected-month shortfall before minimizing required capital
+- Preserve existing holdings without silently selling or replacing them
+- Return reproducible optimality status and bounded best-effort results without
+  false precision
+
+### V3-4 — Result, alternatives and exclusions
+
+- Show ETFs to add, whole shares, reference prices and required capital
+- Show month-by-month current cash, added cash, target and remaining shortfall
+- Explain inclusion, exclusion, trade-offs, assumptions and principal risks
+- Provide materially different alternatives when available
+- Do not display ETF-quality scores or confidence labels
+
+### V3-5 — Three-, five- and ten-year evidence and long-term scenarios
+
+- Populate compatible 3Y, 5Y and 10Y total-return evidence where history allows
+- Keep price return, total return and scenario estimates distinct
+- Add long-term scenario assumptions without presenting forecasts as facts
+
+### V3-6 — Portfolio tax and one-to-twenty-year reinvestment
+
+- Extend tax and reinvestment from one ETF to the complete resulting portfolio
+- Preserve official versus estimated component provenance
+- Show spend, partial-reinvest, excess-only and full-reinvest outcomes without
+  double-counting internal cash flows
+
+### V3-7 — Optional accounts, imports and read-only broker connectivity
+
+- Evaluate account isolation, portfolio import and read-only broker APIs only
+  after the public stateless allocation flow is stable
+- Keep automatic orders and real-time trading signals out of scope
+- Do not let this optional milestone block core V3 acceptance
+
+### V3-8 — Page-by-page and release acceptance
+
+- Review every page with the owner before launch
+- Remove fields that do not help the page's beginner decision task
+- Add missing decision evidence and move misplaced fields to the page where
+  they are needed
+- Recheck navigation, terminology, responsive behavior and public/private data
+  boundaries after the information-architecture changes
+- Pass functional, calculation, data-quality and local security regression
+  gates before selecting the exact public-release commit
+- Complete real-host deployment and obtain SEC-4 `READY` only after this local
+  acceptance is complete
 
 ## Post-security optional integrations
 
