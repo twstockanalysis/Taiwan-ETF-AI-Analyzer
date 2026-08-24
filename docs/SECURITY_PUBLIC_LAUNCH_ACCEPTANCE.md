@@ -1,6 +1,7 @@
 # SEC-4 public-host and launch security acceptance
 
 Date: 2026-08-21
+Last local rehearsal: 2026-08-24
 
 ## Current decision
 
@@ -12,6 +13,32 @@ cannot truthfully prove public DNS, certificate issuance/renewal, firewall and
 administration exposure, shared edge rate limiting, production secret
 injection, or off-host backup access. SEC-4 remains an active launch gate and
 V3 must not begin until one exact deployment returns `READY`.
+
+## Local production rehearsal evidence
+
+Commit `75722b0b3e2823430bf70e8e9d3716de4dc6e2ac` passed an isolated
+Windows 11, WSL 2 and Docker Desktop production-compose rehearsal on
+2026-08-24:
+
+- Docker Desktop 4.87.0 used Linux Engine 29.7.2 and Compose 5.4.0;
+- the exact backend, frontend and Caddy images built successfully from the
+  repository allowlisted contexts;
+- the backend and frontend health checks passed behind the Caddy-only
+  80/443 exposure;
+- HTTPS smoke checks passed for health, frontend availability, anonymous
+  private-route denial and correct owner access;
+- plain HTTP returned a same-host 308 redirect to HTTPS;
+- an isolated copy of `tw_etf-v2-12-20260820.db` passed schema, SQLite
+  integrity and foreign-key verification before and after a full three-service
+  restart, with every recorded table count preserved; and
+- the owner confirmed ETF lookup, dividend composition, holdings cash flow,
+  Excel export, private access and refresh persistence in a local browser.
+
+Caddy issued a localhost certificate from its local CA. Its root was supplied
+only to the automated smoke process and was not installed into the Windows
+trust store. This rehearsal proves local container and application readiness;
+it does not satisfy public DNS, publicly trusted TLS or provider-control
+evidence and therefore does not change the `NO_GO` decision.
 
 ## Automated evidence
 

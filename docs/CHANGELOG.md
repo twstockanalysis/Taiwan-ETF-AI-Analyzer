@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-24 — SEC-4 local production-compose rehearsal
+
+- Built and started the exact backend, Streamlit frontend and Caddy images on
+  Windows 11 with WSL 2 and Docker Desktop from commit `75722b0`.
+- Verified isolated database readiness, container health, HTTPS smoke checks,
+  owner boundaries, HTTP redirect and full restart persistence without
+  modifying the source database or Windows certificate trust store.
+- Recorded owner-confirmed ETF lookup, dividend composition, holdings cash
+  flow, Excel export, private access and refresh persistence.
+- Kept public launch at `NO_GO`; localhost evidence cannot replace a real
+  domain, publicly trusted TLS or provider firewall and operational evidence.
+
 ## 2026-08-21 — SEC-4 public-host acceptance gate implementation
 
 - Added a fail-closed external probe for public DNS, certificate lifetime, TLS
