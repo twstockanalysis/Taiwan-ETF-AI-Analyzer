@@ -967,7 +967,7 @@ V3 remains deterministic and explainable. Internal ETF-quality scores may
 support eligibility and ordering, but ETF-quality scores and assessment-
 confidence labels are not shown in the frontend.
 
-### V3-0 — Product, brand and allocation contract — In progress
+### V3-0 — Product, brand and allocation contract — Completed
 
 - Rename the visible product to `ETF奈米戶` and use beginner-oriented wording
 - Replace the base-ETF-first product flow with target-months-and-holdings-first
@@ -978,13 +978,28 @@ confidence labels are not shown in the frontend.
 - Keep real-domain SEC-4 acceptance as a pre-launch gate after V3
 - Evidence: `V3_ALLOCATION_ENGINE_CONTRACT.md`
 
-### V3-1 — Public zero-to-N holdings and target-month flow
+### V3-1 — Public zero-to-N holdings and target-month flow — Completed locally
 
 - Add a public planner that starts empty and accepts zero to 500 ETF holdings
 - Keep submitted targets and holdings out of the owner profile and persistence
 - Support monthly, odd-month, even-month, quarterly, half-year, annual and
   arbitrary selected-month goals through one normalized month-set contract
 - Show the current-portfolio baseline before automatic additions
+
+Delivered:
+
+- Added a public, owner-token-free `POST /api/v1/allocation-plans/baseline`
+  request that is never written to the saved decision profile or holdings
+- Added an initially empty dynamic holding editor for zero to 500 distinct ETF
+  holdings with positive whole-share quantities
+- Normalized monthly, odd-month, even-month, quarterly, half-year, annual and
+  arbitrary selected-month goals to one ordered month set
+- Used source-dated stored official closes and payment-date dividend history to
+  show current value, historical monthly cash and each selected-month shortfall
+- Preserved missing price, dividend and mixed-currency facts as partial `null`
+  results with reasons; zero holdings remains a known-zero baseline
+- Kept automatic market selection and whole-share additions visibly pending
+  until V3-2 and V3-3
 
 ### V3-2 — Full-market eligibility and internal assessment index
 
