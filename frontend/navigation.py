@@ -59,6 +59,13 @@ ETF_COMPARISON_ROUTE = PageRoute(
     url_path="etf-comparison",
 )
 
+PUBLIC_PLANNER_ROUTE = PageRoute(
+    key="public-planner",
+    title="現金流配置試算",
+    icon=":material/calculate:",
+    url_path="cash-flow-planner",
+)
+
 DECISION_PROFILE_ROUTE = PageRoute(
     key="decision-profile",
     title="我的條件與持有部位",
@@ -83,6 +90,7 @@ ETF_DETAIL_ROUTE = PageRoute(
 
 PUBLIC_ROUTES = (
     HOME_ROUTE,
+    PUBLIC_PLANNER_ROUTE,
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
     ETF_COMPARISON_ROUTE,
@@ -139,6 +147,11 @@ def create_streamlit_page(
         )
 
         source = render_etf_comparison
+
+    elif route == PUBLIC_PLANNER_ROUTE:
+        from frontend.pages.public_planner import render_public_planner
+
+        source = render_public_planner
 
     elif route == DECISION_PROFILE_ROUTE:
         from frontend.pages.decision_profile import (

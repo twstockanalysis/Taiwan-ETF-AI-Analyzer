@@ -29,8 +29,8 @@ Each request contains:
 
 - `target_after_tax_cash_twd`: the fixed amount required in each selected month;
 - `target_months`: a non-empty, unique subset of January through December;
-- `existing_holdings`: zero to 500 unique Taiwan ETF codes with non-negative
-  whole shares; and
+- `existing_holdings`: zero to 500 unique Taiwan ETF codes with positive whole
+  shares for every supplied row; and
 - explicit versioned tax and cost assumptions required by the calculation.
 
 Zero holdings is valid. A formal zero target is valid and returns no required

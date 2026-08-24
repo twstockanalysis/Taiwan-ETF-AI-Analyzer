@@ -57,6 +57,30 @@ five most recent import batches
 Coverage percentages are `null` when the denominator is zero. Missing dates
 remain `null`; the API does not substitute the current date.
 
+## Public cash-flow planning baseline
+
+```http
+POST /api/v1/allocation-plans/baseline
+```
+
+V3-1 accepts a fixed TWD cash target for each selected month, one or more
+months, a one-to-ten-year dividend-history window, a generic cash-deduction
+percentage and zero to 500 unique existing ETF holdings. Each supplied holding
+uses a positive whole-share quantity. The endpoint is public and stateless: it
+does not require `X-Owner-Token`, does not update the single-user profile and
+does not connect to a broker.
+
+The response always returns January through December in order. It uses the
+latest stored official close for current value and actual dividend payment
+dates for the historical monthly cash baseline. A known no-event month is
+zero; a holding with missing price, unusable payment data or incompatible
+currencies keeps the dependent value `null` and returns explicit issues.
+
+This endpoint does not yet select ETFs or recommend additional shares. Its
+`AUTO_ALLOCATION_PENDING` next step reserves that boundary for V3-2 and V3-3.
+ETF-quality scores and assessment-confidence fields are not part of the public
+response.
+
 ## Single-user decision profile
 
 ```http

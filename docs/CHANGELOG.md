@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-25 — V3-1 public stateless planning baseline
+
+- Added a public `POST /api/v1/allocation-plans/baseline` boundary that accepts
+  a fixed cash target, selected months and zero to 500 existing ETF holdings
+  without requiring an owner token or writing the request to profile tables.
+- Added monthly, odd-month, even-month, quarterly, half-year, annual and custom
+  month presets through one normalized January-to-December request contract.
+- Calculated the existing portfolio's source-dated official-close value and
+  payment-date historical cash baseline while preserving missing values,
+  incompatible currencies and formal zero months.
+- Added a public Streamlit flow with an initially empty dynamic holdings table,
+  a twelve-month target-gap result and beginner-facing data warnings.
+- Kept ETF selection, whole-share additions and required-capital optimization
+  explicitly deferred to V3-2 and V3-3, with internal quality and confidence
+  fields absent from the public response.
+
 ## 2026-08-25 — V3-0 product direction and allocation contract
 
 - Renamed the visible product to `ETF奈米戶` and centered the PRD on ETF

@@ -8,6 +8,7 @@ from frontend.navigation import (
     ETF_DETAIL_ROUTE,
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
+    PUBLIC_PLANNER_ROUTE,
     build_detail_query_params,
     normalize_detail_source,
     resolve_detail_return,
@@ -64,6 +65,11 @@ class TestFrontendNavigation(
         )
         self.assertNotIn(DECISION_PROFILE_ROUTE, navigation_routes(False))
         self.assertIn(DECISION_PROFILE_ROUTE, navigation_routes(True))
+
+    def test_public_planner_is_always_available(self) -> None:
+        self.assertIn(PUBLIC_PLANNER_ROUTE, navigation_routes(False))
+        self.assertIn(PUBLIC_PLANNER_ROUTE, navigation_routes(True))
+        self.assertEqual(PUBLIC_PLANNER_ROUTE.url_path, "cash-flow-planner")
 
     def test_detail_query_preserves_search_state(
         self,

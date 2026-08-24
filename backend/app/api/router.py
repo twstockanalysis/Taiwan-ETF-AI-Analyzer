@@ -10,6 +10,7 @@ from backend.app.api.routers import (
     monthly_combination,
     monthly_income,
     performance,
+    public_planner,
     system,
     target_analysis,
 )
@@ -51,4 +52,8 @@ api_router.include_router(
 
 api_router.include_router(
     target_analysis.router
+)
+
+api_router.include_router(
+    public_planner.router
 )
