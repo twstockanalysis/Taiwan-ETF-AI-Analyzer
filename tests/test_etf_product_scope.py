@@ -13,6 +13,13 @@ class TestETFProductScope(unittest.TestCase):
             unsupported_allocation_product_reason("0050", "元大台灣50", False)
         )
 
+    def test_active_equity_suffix_a_is_not_excluded_by_code(self) -> None:
+        self.assertIsNone(
+            unsupported_allocation_product_reason(
+                "00981A", "主動式台灣股票ETF", False
+            )
+        )
+
     def test_special_product_types_are_explicitly_classified(self) -> None:
         self.assertEqual(
             unsupported_allocation_product_reason("00632R", "元大台灣50反1", False),

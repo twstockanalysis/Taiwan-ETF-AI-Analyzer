@@ -117,6 +117,8 @@ def _add_cash_covering_shares(
     current_cash: dict[int, Decimal],
     target: Decimal,
     state: _SolveState,
+    preference_rank: dict[str, int] | None = None,
+    preference_first: bool = False,
 ) -> bool:
     """以整數批次逐步縮小短缺；不經過小數股求解再進位。"""
 
@@ -135,14 +137,23 @@ def _add_cash_covering_shares(
             gain = _cash_gain(candidate, selected_months, remaining)
             if gain <= 0:
                 continue
-            ranked.append(
-                (
+            code = candidate.public_item.etf_code
+            preference = (preference_rank or {}).get(code, len(candidates))
+            if preference_first:
+                key = (
+                    preference,
                     -(gain / price),
                     -(candidate.quality_score or Decimal("0")),
-                    candidate.public_item.etf_code,
-                    candidate,
+                    code,
                 )
-            )
+            else:
+                key = (
+                    -(gain / price),
+                    -(candidate.quality_score or Decimal("0")),
+                    preference,
+                    code,
+                )
+            ranked.append((*key, candidate))
         if not ranked:
             return False
         candidate = min(ranked)[-1]
@@ -169,6 +180,7 @@ def _repair_concentration(
     candidates_by_code: dict[str, InternalMarketCandidate],
     state: _SolveState,
     max_pct: Decimal,
+    preference_rank: dict[str, int] | None = None,
 ) -> bool:
     """以整數股增加低權重候選，直到所有單一 ETF 市值不超過上限。"""
 
@@ -197,7 +209,14 @@ def _repair_concentration(
             choices.append((value, code, price, candidate))
         if not choices:
             return False
-        value, code, price, _ = min(choices, key=lambda row: (row[0], row[1]))
+        value, code, price, _ = min(
+            choices,
+            key=lambda row: (
+                row[0],
+                (preference_rank or {}).get(row[1], len(candidates_by_code)),
+                row[1],
+            ),
+        )
         room = max(dominant_value - value, price)
         quantity = max(1, min(_ceil_shares(deficit / price), _ceil_shares(room / price)))
         state.shares[code] = state.shares.get(code, 0) + quantity
@@ -209,6 +228,8 @@ def build_integer_allocation(
     database_path: str | Path,
     *,
     as_of_date: date | None = None,
+    preferred_candidate_order: tuple[str, ...] | None = None,
+    preference_first: bool = False,
 ) -> IntegerAllocationResponse:
     analysis_date = as_of_date or date.today()
     baseline = analyze_public_planner_baseline(
@@ -334,13 +355,23 @@ def build_integer_allocation(
     }
     state = _SolveState(shares={}, current_values=current_values, prices=prices)
     solve_cash = dict(current_cash)
+    preference_rank = {
+        code: rank for rank, code in enumerate(preferred_candidate_order or ())
+    }
     _add_cash_covering_shares(
-        candidates, selected, solve_cash, target, state
+        candidates,
+        selected,
+        solve_cash,
+        target,
+        state,
+        preference_rank,
+        preference_first,
     )
     concentration_ok = _repair_concentration(
         candidates_by_code,
         state,
         index.rules.max_candidate_allocation_pct,
+        preference_rank,
     )
     if not concentration_ok:
         return IntegerAllocationResponse(
@@ -382,9 +413,17 @@ def build_integer_allocation(
                 name=candidate.public_item.name,
                 additional_shares=quantity,
                 reference_price=price,
+                reference_price_as_of=candidate.public_item.reference_price_as_of,
+                reference_price_source_id=(
+                    candidate.public_item.reference_price_source_id or "UNKNOWN"
+                ),
                 estimated_transaction_cost=Decimal("0"),
                 required_capital=_money(price * quantity),
                 supported_target_months=supported,
+                holding_overlap_pct=candidate.public_item.holding_overlap_pct,
+                constituent_snapshot_dates=(
+                    candidate.public_item.constituent_snapshot_dates
+                ),
                 reasons=["通過全市場資料門檻，並用於縮小目標月份現金流缺口。"],
                 risks=risks,
             )

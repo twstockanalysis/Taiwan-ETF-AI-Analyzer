@@ -1059,7 +1059,7 @@ Delivered:
 - Kept internal quality scores and confidence labels out of the public payload
 - Evidence: `V3_ALLOCATION_ENGINE_CONTRACT.md`
 
-### V3-4 — Result, alternatives and exclusions
+### V3-4 — Result, alternatives and exclusions — Completed locally
 
 - Show ETFs to add, whole shares, reference prices and required capital
 - Show month-by-month current cash, added cash, target and remaining shortfall
@@ -1067,11 +1067,33 @@ Delivered:
 - Provide materially different alternatives when available
 - Do not display ETF-quality scores or confidence labels
 
+Delivered:
+
+- Added public stateless `POST /api/v1/allocation-plans/allocation-results`
+  with one to three non-duplicate strategies
+- Kept `推薦配置` as the default best-fit result while preserving honest
+  bounded optimality language
+- Added evidence-dependent `平衡配置` for lower constituent overlap and
+  `集中配置` for stronger recent total return with more similar constituents
+- Returned fewer strategies with a simple reason when formal constituent data
+  is insufficient or an alternative is not materially different
+- Added source-dated reference prices, whole-share additions, required capital,
+  selected-month cash and shortfalls, resulting holdings, risks and exclusions
+- Replaced the baseline-only public page result with a beginner-facing strategy
+  selector and expandable secondary evidence
+- Confirmed active equity ETF codes ending in `A` are not excluded by suffix
+- Kept internal quality scores and confidence labels out of the API and page
+- Evidence: `V3_ALLOCATION_RESULTS_CONTRACT.md`
+
 ### V3-5 — Three-, five- and ten-year evidence and long-term scenarios
 
 - Populate compatible 3Y, 5Y and 10Y total-return evidence where history allows
 - Keep price return, total return and scenario estimates distinct
 - Add long-term scenario assumptions without presenting forecasts as facts
+- Use all compatible history available for each ETF rather than forcing a
+  uniform history longer than the Taiwan ETF market provides
+- Produce conservative, base and optimistic scenarios and connect them to the
+  later one-to-twenty-year portfolio model
 
 ### V3-6 — Portfolio tax and one-to-twenty-year reinvestment
 
@@ -1079,13 +1101,20 @@ Delivered:
 - Preserve official versus estimated component provenance
 - Show spend, partial-reinvest, excess-only and full-reinvest outcomes without
   double-counting internal cash flows
+- Limit the beginner-facing tax output to estimated supplementary NHI and
+  estimated dividend-related individual income tax; keep legal citations and
+  detailed rule text out of the main page
+- Reconfirm the applicable treatment of official `54C` and `76W` against the
+  then-current rules before implementing the portfolio tax model
 
-### V3-7 — Optional accounts, imports and read-only broker connectivity
+### V3-7 — Optional accounts and imports after core acceptance
 
-- Evaluate account isolation, portfolio import and read-only broker APIs only
-  after the public stateless allocation flow is stable
+- Evaluate account isolation and portfolio import only after the public
+  stateless allocation flow is stable
 - Keep automatic orders and real-time trading signals out of scope
 - Do not let this optional milestone block core V3 acceptance
+- Do not implement broker API connectivity before real-domain testing; assess
+  it later only when a concrete need exists
 
 ### V3-8 — Page-by-page and release acceptance
 

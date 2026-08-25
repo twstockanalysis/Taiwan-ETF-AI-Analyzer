@@ -14,6 +14,11 @@ from backend.app.models.integer_allocation import (
     IntegerAllocationRequest,
     IntegerAllocationResponse,
 )
+from backend.app.models.allocation_results import (
+    AllocationResultsRequest,
+    AllocationResultsResponse,
+)
+from backend.app.services.allocation_results import build_allocation_results
 from backend.app.services.integer_allocation import build_integer_allocation
 from backend.app.services.market_eligibility_index import (
     build_market_eligibility_index,
@@ -73,6 +78,25 @@ def create_integer_allocation(
 ) -> IntegerAllocationResponse:
     try:
         return build_integer_allocation(request, database_path)
+    except LookupError as error:
+        code = str(error.args[0]).strip().upper()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到 ETF：{code}",
+        ) from error
+
+
+@router.post(
+    "/allocation-results",
+    response_model=AllocationResultsResponse,
+    summary="建立推薦、平衡與集中配置結果",
+)
+def create_allocation_results(
+    request: AllocationResultsRequest,
+    database_path: Path = Depends(get_database_path),
+) -> AllocationResultsResponse:
+    try:
+        return build_allocation_results(request, database_path)
     except LookupError as error:
         code = str(error.args[0]).strip().upper()
         raise HTTPException(
