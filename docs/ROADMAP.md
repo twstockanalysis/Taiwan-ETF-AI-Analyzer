@@ -1085,7 +1085,7 @@ Delivered:
 - Kept internal quality scores and confidence labels out of the API and page
 - Evidence: `V3_ALLOCATION_RESULTS_CONTRACT.md`
 
-### V3-5 — Three-, five- and ten-year evidence and long-term scenarios
+### V3-5 — Three-, five- and ten-year evidence and long-term scenarios — Completed locally
 
 - Populate compatible 3Y, 5Y and 10Y total-return evidence where history allows
 - Keep price return, total return and scenario estimates distinct
@@ -1094,6 +1094,30 @@ Delivered:
   uniform history longer than the Taiwan ETF market provides
 - Produce conservative, base and optimistic scenarios and connect them to the
   later one-to-twenty-year portfolio model
+
+Delivered:
+
+- Added public stateless `POST /api/v1/allocation-plans/long-term-scenarios`
+  while preserving the exact V3-4 allocation response and strategy order
+- Rebuilt portfolio historical evidence from each plan's resulting whole
+  shares, compatible common official close dates and actual TWD payment-date
+  distributions instead of relabeling stored 1Y price return as long-term
+  total return
+- Returned the maximum compatible history plus independent 3Y, 5Y and 10Y
+  windows; insufficient history remains unavailable instead of becoming zero
+- Kept historical distributions in a no-reinvestment cash ledger and applied
+  the request's generic cash-deduction assumption exactly once
+- Added conservative, base and optimistic ten-year index scenarios from the
+  25th, 50th and 75th percentiles of complete trailing one-year observations,
+  with a minimum of two observations and an index base of 100
+- Added a beginner-facing table and native line chart synchronized to the
+  selected recommended, balanced or focused allocation
+- Disclosed that stored official closes are raw and do not yet adjust ETF
+  splits or reverse splits; the result is an estimate rather than an official
+  adjusted total-return series
+- Kept scores, confidence labels, forecasts, trading signals and persisted
+  planner inputs out of the public contract
+- Evidence: `V3_LONG_TERM_SCENARIO_CONTRACT.md`
 
 ### V3-6 — Portfolio tax and one-to-twenty-year reinvestment
 

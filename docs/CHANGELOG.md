@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-25 — V3-5 portfolio history and long-term scenarios
+
+- Added maximum-compatible, 3Y, 5Y and 10Y portfolio evidence based on the
+  selected allocation's whole shares, common official closes and actual TWD
+  payment-date distributions.
+- Kept insufficient periods unavailable and disclosed that raw official closes
+  do not yet adjust ETF splits or reverse splits.
+- Added conservative, base and optimistic ten-year total-value-index scenarios
+  from complete trailing one-year observations without presenting them as
+  forecasts or actual cash amounts.
+- Connected the public planner's selected allocation to a beginner-facing
+  historical table and native scenario chart while keeping internal scores and
+  confidence labels out of the response.
+
 ## 2026-08-25 — V3-2 full-market eligibility index
 
 - Added a server-built index over every ETF master row with explicit product-

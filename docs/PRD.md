@@ -224,6 +224,13 @@ Forecasts must expose their lookback window and assumptions. Missing data is
 never silently converted to zero, and a result with insufficient data must be
 unavailable or visibly qualified rather than assigned a neutral score.
 
+The V3 long-term view uses the longest compatible history available to the
+complete resulting portfolio and separately reports 3-year, 5-year and 10-year
+windows when each window is supported. Historical cash distributions are kept
+separate from market value and are not reinvested in this evidence view. The
+future view uses conservative, base and optimistic total-value-index scenarios;
+it does not present those scenarios as predictions or actual cash amounts.
+
 ## Existing delivered capabilities
 
 - ETF master search, classification and detail

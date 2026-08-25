@@ -97,3 +97,60 @@ def fetch_allocation_results(
         timeout_seconds=timeout_seconds,
     )
     return validate_allocation_results(result)
+
+
+def validate_long_term_scenarios(payload: object) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise APIResponseError("長期情境回應必須是 JSON 物件")
+    if payload.get("profile_scope") != "PUBLIC_STATELESS":
+        raise APIResponseError("長期情境 profile_scope 格式不正確")
+    if payload.get("request_persisted") is not False:
+        raise APIResponseError("長期情境不得標示為已儲存")
+    allocation_results = validate_allocation_results(
+        payload.get("allocation_results")
+    )
+    evidence = payload.get("plan_evidence")
+    if not isinstance(evidence, list) or len(evidence) != len(
+        allocation_results["plans"]
+    ):
+        raise APIResponseError("長期情境必須對應每一種配置")
+    expected_strategies = [
+        item["strategy"] for item in allocation_results["plans"]
+    ]
+    for index, item in enumerate(evidence):
+        if not isinstance(item, dict) or item.get("strategy") != expected_strategies[index]:
+            raise APIResponseError("長期情境與配置方案順序不一致")
+        periods = item.get("historical_periods")
+        if not isinstance(periods, list) or [
+            period.get("period") for period in periods if isinstance(period, dict)
+        ] != ["AVAILABLE_HISTORY", "3Y", "5Y", "10Y"]:
+            raise APIResponseError("長期情境必須包含最長、3、5 與 10 年歷史")
+        scenarios = item.get("scenarios")
+        if not isinstance(scenarios, list) or len(scenarios) not in {0, 3}:
+            raise APIResponseError("長期情境必須無情境或包含三種情境")
+        for scenario in scenarios:
+            points = scenario.get("index_points") if isinstance(scenario, dict) else None
+            if not isinstance(points, list) or [
+                point.get("year") for point in points if isinstance(point, dict)
+            ] != list(range(11)):
+                raise APIResponseError("十年情境必須包含第 0 至 10 年")
+    serialized = json.dumps(payload, ensure_ascii=False).lower()
+    for forbidden in ("quality_score", "confidence"):
+        if forbidden in serialized:
+            raise APIResponseError("長期情境不得包含內部評分或可信度欄位")
+    return payload
+
+
+def fetch_long_term_scenarios(
+    api_base_url: str,
+    payload: dict[str, Any],
+    timeout_seconds: float = 90.0,
+) -> dict[str, Any]:
+    result = post_json(
+        api_base_url=api_base_url,
+        endpoint_path="/api/v1/allocation-plans/long-term-scenarios",
+        operation_name="ETF 長期歷史與情境",
+        payload=payload,
+        timeout_seconds=timeout_seconds,
+    )
+    return validate_long_term_scenarios(result)

@@ -57,6 +57,7 @@ def _resulting_holdings(
     request: IntegerAllocationRequest,
     added_shares: dict[str, int],
     added_prices: dict[str, Decimal],
+    added_market_facts: dict[str, tuple[date, str]] | None = None,
 ) -> list[IntegerAllocationHoldingResult]:
     existing_units = {
         holding.etf_code: holding.held_units for holding in request.existing_holdings
@@ -81,6 +82,17 @@ def _resulting_holdings(
             continue
         existing = existing_units.get(code, 0)
         additional = added_shares.get(code, 0)
+        market_fact = (added_market_facts or {}).get(code)
+        if fact is not None:
+            price_as_of = fact.price_as_of_date
+            price_source = fact.price_source_id
+        elif market_fact is not None:
+            price_as_of, price_source = market_fact
+        else:
+            price_as_of = None
+            price_source = None
+        if price_as_of is None or price_source is None:
+            continue
         results.append(
             IntegerAllocationHoldingResult(
                 etf_code=code,
@@ -88,6 +100,8 @@ def _resulting_holdings(
                 additional_shares=additional,
                 resulting_shares=existing + additional,
                 reference_price=price,
+                reference_price_as_of=price_as_of,
+                reference_price_source_id=price_source,
                 resulting_value=_money(values[code]),
                 allocation_pct=(
                     values[code] / total * Decimal("100")
@@ -432,7 +446,21 @@ def build_integer_allocation(
     total_capital = sum(
         (item.required_capital for item in additions), Decimal("0")
     )
-    holdings = _resulting_holdings(baseline, request, state.shares, prices)
+    added_market_facts = {
+        code: (
+            candidate.public_item.reference_price_as_of,
+            candidate.public_item.reference_price_source_id or "UNKNOWN",
+        )
+        for code, candidate in candidates_by_code.items()
+        if candidate.public_item.reference_price_as_of is not None
+    }
+    holdings = _resulting_holdings(
+        baseline,
+        request,
+        state.shares,
+        prices,
+        added_market_facts,
+    )
 
     month_results = []
     total_shortfall = Decimal("0")

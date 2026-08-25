@@ -103,6 +103,37 @@ Quality scores, components, internal ranks and confidence labels are absent
 from the public response. The endpoint remains stateless and requires no owner
 token.
 
+### Allocation results and long-term scenarios
+
+```http
+POST /api/v1/allocation-plans/allocation-results
+POST /api/v1/allocation-plans/long-term-scenarios
+```
+
+The V3-4 allocation endpoint returns one to three materially different
+`RECOMMENDED`, `BALANCED` and `FOCUSED` whole-share configurations. Every plan
+includes the required additional capital, selected-month cash and shortfall,
+resulting holdings, assumptions and risks. It returns fewer plans rather than
+fabricating duplicate alternatives.
+
+The V3-5 endpoint includes the same allocation response and one aligned
+long-term-evidence record per returned strategy. Historical portfolio evidence
+uses fixed resulting shares, compatible common official close dates, actual
+TWD payment-date distributions and the request's generic cash-deduction rate.
+It returns the maximum compatible history plus 3Y, 5Y and 10Y windows; a window
+without enough data remains `UNAVAILABLE`.
+
+Historical evidence uses raw official closes and a no-reinvestment cash policy.
+It is an estimate, not an adjusted official total-return index, because ETF
+split and reverse-split adjustments are not yet available. Ten-year scenarios
+are produced only with at least two complete one-year observations. Their
+conservative, base and optimistic annual assumptions are the 25th, 50th and
+75th percentiles of those observations and are shown as a compounded index
+starting at 100, not as a cash forecast.
+
+Both endpoints are public and stateless. They do not expose internal ETF-quality
+scores or assessment-confidence fields.
+
 ## Single-user decision profile
 
 ```http
