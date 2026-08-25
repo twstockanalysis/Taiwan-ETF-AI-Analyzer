@@ -6,7 +6,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from frontend.api_client import APIClientError, fetch_long_term_scenarios
+from frontend.api_client import APIClientError, fetch_portfolio_projections
 from frontend.config import get_api_base_url
 from frontend.ui.formatters import format_number
 from frontend.ui.states import loading_state, render_api_error
@@ -478,6 +478,142 @@ def render_long_term_evidence(payload: dict[str, Any], strategy: str) -> None:
     st.caption(payload["estimate_label"])
 
 
+def _portfolio_projection_chart_rows(
+    market: dict[str, Any],
+) -> list[dict[str, Any]]:
+    policy_labels = {
+        "NO_REINVESTMENT": "領出使用",
+        "EXCESS_ONLY": "只投入超過目標部分",
+        "CUSTOM_PERCENTAGE": "按比例投入",
+        "FULL_REINVESTMENT": "全部投入",
+    }
+    rows_by_year: dict[int, dict[str, Any]] = {}
+    for result in market.get("reinvestment_results", []):
+        label = policy_labels[result["policy"]]
+        for point in result.get("year_points", []):
+            year = int(point["year"])
+            rows_by_year.setdefault(year, {"年數": year})[label] = float(
+                point["ending_value"]
+            ) + float(point["usable_cash"])
+    return [rows_by_year[year] for year in sorted(rows_by_year)]
+
+
+def render_portfolio_projection(payload: dict[str, Any], strategy: str) -> None:
+    projection = next(
+        item for item in payload["plan_projections"] if item["strategy"] == strategy
+    )
+    st.subheader(f"整體組合 {payload['projection_years']} 年試算")
+    st.caption(
+        "以配置後全部持股一起估算，只顯示可能產生的個人所得稅與二代健保金額；"
+        "不同人的實際結果可能不同。"
+    )
+    with st.container(horizontal=True):
+        st.metric(
+            "組合起始價值",
+            format_number(
+                projection.get("initial_value"), decimal_places=2, suffix=" TWD"
+            ),
+            border=True,
+        )
+        st.metric(
+            "年現金目標",
+            format_number(
+                projection.get("annual_cash_target"), decimal_places=2, suffix=" TWD"
+            ),
+            border=True,
+        )
+        st.metric(
+            "歷史年均配息率",
+            format_number(
+                projection.get("weighted_annual_gross_distribution_rate_pct"),
+                decimal_places=2,
+                suffix="%",
+                missing_text="無法計算",
+            ),
+            border=True,
+        )
+
+    if projection.get("status") != "AVAILABLE":
+        messages = [item["message"] for item in projection.get("issues", [])]
+        st.info(
+            "目前無法建立整體組合試算。"
+            + ((" " + "、".join(dict.fromkeys(messages))) if messages else "")
+        )
+        return
+
+    markets = projection["market_projections"]
+    labels = [item["label"] for item in markets]
+    selected = st.segmented_control(
+        "市場情境",
+        labels,
+        default=labels[1] if len(labels) > 1 else labels[0],
+        key=f"portfolio_market_{strategy}",
+    ) or labels[0]
+    market = next(item for item in markets if item["label"] == selected)
+    st.caption(
+        "這個市場情境假設每年含息報酬約 "
+        + format_number(
+            market["gross_annual_total_return_assumption_pct"],
+            decimal_places=2,
+            suffix="%",
+        )
+        + "；不是未來預測。"
+    )
+
+    policy_labels = {
+        "NO_REINVESTMENT": "領出使用",
+        "EXCESS_ONLY": "只投入超過目標部分",
+        "CUSTOM_PERCENTAGE": "按比例投入",
+        "FULL_REINVESTMENT": "全部投入",
+    }
+    rows = []
+    for result in market["reinvestment_results"]:
+        rows.append(
+            {
+                "配息使用方式": policy_labels[result["policy"]],
+                "期末持股價值": format_number(
+                    result["ending_value"], decimal_places=2, suffix=" TWD"
+                ),
+                "期間可用現金": format_number(
+                    result["usable_cash"], decimal_places=2, suffix=" TWD"
+                ),
+                "投入金額": format_number(
+                    result["reinvested_cash"], decimal_places=2, suffix=" TWD"
+                ),
+                "可能的所得稅": format_number(
+                    result["modeled_income_tax"], decimal_places=2, suffix=" TWD"
+                ),
+                "可能的二代健保": format_number(
+                    result["modeled_supplementary_premium"],
+                    decimal_places=2,
+                    suffix=" TWD",
+                ),
+                "稅後總報酬": format_number(
+                    result["after_tax_total_return_pct"],
+                    decimal_places=2,
+                    suffix="%",
+                ),
+            }
+        )
+    st.dataframe(rows, hide_index=True)
+    st.line_chart(
+        pd.DataFrame(_portfolio_projection_chart_rows(market)),
+        x="年數",
+        y=list(policy_labels.values()),
+        x_label="配置後年數",
+        y_label="持股價值加已領可用現金（TWD）",
+    )
+
+    actual_count = int(projection.get("actual_component_holding_count", 0))
+    estimated_count = int(projection.get("estimated_component_holding_count", 0))
+    unavailable_count = int(projection.get("unavailable_component_holding_count", 0))
+    st.caption(
+        f"配息組成來源：正式資料 {actual_count} 檔、估算資料 {estimated_count} 檔、"
+        f"缺少資料 {unavailable_count} 檔。估算資本利得不會標示為正式 76W。"
+    )
+    st.caption(payload["estimate_label"])
+
+
 def render_public_planner() -> None:
     """Render the public, stateless V3-1 planning flow."""
 
@@ -516,13 +652,67 @@ def render_public_planner() -> None:
             )
         with input_columns[2]:
             deduction_rate = st.number_input(
-                "現金扣除率假設（%）",
+                "配置階段現金扣除率（%）",
                 min_value=0.0,
                 max_value=100.0,
                 value=0.0,
                 step=1.0,
-                help="可自行納入稅負、補充保費或其他現金扣除；0% 代表不扣除。",
+                help="只用於判斷現金流目標；下方長期試算會另外估算整體組合稅務。",
             )
+
+        st.markdown("#### 長期與稅務試算")
+        scenario_columns = st.columns(4)
+        with scenario_columns[0]:
+            projection_years = st.number_input(
+                "試算年數",
+                min_value=1,
+                max_value=20,
+                value=10,
+                step=1,
+            )
+        with scenario_columns[1]:
+            tax_method_label = st.selectbox(
+                "股利計稅方式",
+                ["合併計稅並試算抵減", "股利 28% 分開計稅"],
+            )
+        with scenario_columns[2]:
+            marginal_tax_rate = st.number_input(
+                "個人所得稅率（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=5.0,
+                step=1.0,
+                disabled=tax_method_label == "股利 28% 分開計稅",
+            )
+        with scenario_columns[3]:
+            custom_reinvestment_pct = st.number_input(
+                "按比例投入（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=50.0,
+                step=5.0,
+            )
+        with st.expander("其他試算設定"):
+            advanced_columns = st.columns(3)
+            with advanced_columns[0]:
+                remaining_credit_cap = st.number_input(
+                    "今年剩餘股利抵減上限（TWD）",
+                    min_value=0.0,
+                    max_value=80000.0,
+                    value=80000.0,
+                    step=1000.0,
+                    disabled=tax_method_label == "股利 28% 分開計稅",
+                )
+            with advanced_columns[1]:
+                other_income_tax_rate = st.number_input(
+                    "其他配息組成稅率（%）",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=0.0,
+                    step=1.0,
+                )
+            with advanced_columns[2]:
+                premium_exempt = st.checkbox("不估算二代健保", value=False)
 
         st.markdown("#### 現有持股（可留空）")
         st.caption(
@@ -568,7 +758,7 @@ def render_public_planner() -> None:
             try:
                 api_base_url = get_api_base_url()
                 with loading_state("正在檢查全市場資料並計算整數股數..."):
-                    result = fetch_long_term_scenarios(
+                    result = fetch_portfolio_projections(
                         api_base_url,
                         {
                             "target_after_tax_cash_twd": target_cash,
@@ -577,14 +767,29 @@ def render_public_planner() -> None:
                             "history_years": int(history_years),
                             "cash_deduction_rate_pct": deduction_rate,
                             "currency": "TWD",
+                            "projection_years": int(projection_years),
+                            "custom_reinvestment_pct": custom_reinvestment_pct,
+                            "dividend_tax_method": (
+                                "SEPARATE_28"
+                                if tax_method_label == "股利 28% 分開計稅"
+                                else "COMBINED_WITH_CREDIT"
+                            ),
+                            "marginal_income_tax_rate_pct": marginal_tax_rate,
+                            "other_income_tax_rate_pct": other_income_tax_rate,
+                            "remaining_annual_dividend_credit_cap_twd": (
+                                remaining_credit_cap
+                            ),
+                            "supplementary_premium_exempt": premium_exempt,
                         },
                     )
             except (APIClientError, ValueError) as error:
                 render_api_error("無法完成公開現金流試算。", error)
             else:
-                st.session_state["public_long_term_scenarios"] = result
+                st.session_state["public_portfolio_projections"] = result
 
-    result = st.session_state.get("public_long_term_scenarios")
+    result = st.session_state.get("public_portfolio_projections")
     if isinstance(result, dict):
-        selected_strategy = render_allocation_results(result["allocation_results"])
-        render_long_term_evidence(result, selected_strategy)
+        long_term = result["long_term_scenarios"]
+        selected_strategy = render_allocation_results(long_term["allocation_results"])
+        render_long_term_evidence(long_term, selected_strategy)
+        render_portfolio_projection(result, selected_strategy)

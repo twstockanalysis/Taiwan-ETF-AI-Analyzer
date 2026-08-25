@@ -154,3 +154,58 @@ def fetch_long_term_scenarios(
         timeout_seconds=timeout_seconds,
     )
     return validate_long_term_scenarios(result)
+
+
+def validate_portfolio_projections(payload: object) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise APIResponseError("整體組合情境回應必須是 JSON 物件")
+    if payload.get("profile_scope") != "PUBLIC_STATELESS":
+        raise APIResponseError("整體組合情境 profile_scope 格式不正確")
+    if payload.get("request_persisted") is not False:
+        raise APIResponseError("整體組合情境不得標示為已儲存")
+    years = payload.get("projection_years")
+    if not isinstance(years, int) or not 1 <= years <= 20:
+        raise APIResponseError("整體組合情境年數必須介於 1 至 20 年")
+    long_term = validate_long_term_scenarios(payload.get("long_term_scenarios"))
+    projections = payload.get("plan_projections")
+    plans = long_term["allocation_results"]["plans"]
+    if not isinstance(projections, list) or len(projections) != len(plans):
+        raise APIResponseError("整體組合情境必須對應每一種配置")
+    for projection, plan in zip(projections, plans, strict=True):
+        if not isinstance(projection, dict) or projection.get("strategy") != plan["strategy"]:
+            raise APIResponseError("整體組合情境與配置方案順序不一致")
+        if projection.get("status") not in {"AVAILABLE", "UNAVAILABLE"}:
+            raise APIResponseError("整體組合情境狀態不正確")
+        markets = projection.get("market_projections")
+        if not isinstance(markets, list) or len(markets) not in {0, 3}:
+            raise APIResponseError("整體組合情境必須無市場情境或包含三種情境")
+        for market in markets:
+            results = market.get("reinvestment_results")
+            if not isinstance(results, list) or len(results) != 4:
+                raise APIResponseError("每種市場情境必須包含四種配息使用方式")
+            for result in results:
+                points = result.get("year_points") if isinstance(result, dict) else None
+                if not isinstance(points, list) or [
+                    point.get("year") for point in points if isinstance(point, dict)
+                ] != list(range(years + 1)):
+                    raise APIResponseError("再投入情境年份不完整")
+    serialized = json.dumps(payload, ensure_ascii=False).lower()
+    for forbidden in ("quality_score", "confidence"):
+        if forbidden in serialized:
+            raise APIResponseError("整體組合情境不得包含內部評分或可信度欄位")
+    return payload
+
+
+def fetch_portfolio_projections(
+    api_base_url: str,
+    payload: dict[str, Any],
+    timeout_seconds: float = 120.0,
+) -> dict[str, Any]:
+    result = post_json(
+        api_base_url=api_base_url,
+        endpoint_path="/api/v1/allocation-plans/portfolio-projections",
+        operation_name="ETF 整體組合稅務與再投入情境",
+        payload=payload,
+        timeout_seconds=timeout_seconds,
+    )
+    return validate_portfolio_projections(result)

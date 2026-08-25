@@ -92,9 +92,11 @@ from frontend.api.performance import (
 from frontend.api.public_planner import (
     fetch_allocation_results,
     fetch_long_term_scenarios,
+    fetch_portfolio_projections,
     fetch_public_planner_baseline,
     validate_allocation_results,
     validate_long_term_scenarios,
+    validate_portfolio_projections,
     validate_public_planner_result,
 )
 from frontend.api.system_overview import (

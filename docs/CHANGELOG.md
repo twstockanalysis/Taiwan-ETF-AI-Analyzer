@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-25 — V3-6 portfolio tax and reinvestment
+
+- Added a public stateless portfolio projection endpoint for 1-to-20-year
+  conservative, base and optimistic market scenarios.
+- Extended tax and reinvestment from one ETF to every resulting allocation
+  holding, with spend, excess-only, custom-percentage and full-reinvestment
+  outcomes.
+- Modeled dividend-related individual income tax and supplementary NHI while
+  preserving ACTUAL versus estimated composition and official `76W` zero or
+  unavailable semantics.
+- Prevented double counting by treating forward return bands as gross before
+  portfolio tax and reinvested distributions as internal cash flow.
+- Added beginner-facing public controls, comparison results and a native
+  portfolio-value-plus-usable-cash chart without legal text or internal scores.
+
 ## 2026-08-25 — V3-5 portfolio history and long-term scenarios
 
 - Added maximum-compatible, 3Y, 5Y and 10Y portfolio evidence based on the

@@ -242,6 +242,7 @@ it does not present those scenarios as predictions or actual cash amounts.
 - January-through-December monthly-income API
 - Fixed-target cash-flow and no-reinvestment total-return calculations
 - Taiwan individual-tax and four reinvestment scenarios
+- Public 1-to-20-year portfolio tax and four-policy reinvestment scenarios
 - Explainable monthly-payment candidate inclusion and exclusion
 - Single-user saved conditions and manual holdings without broker connectivity
 - Current-portfolio analysis and read-only candidate addition comparison

@@ -77,6 +77,11 @@ at the latest common close and moving backward in twelve-month steps. At least
 two available observations are required. Otherwise all scenarios remain absent
 with an explicit issue.
 
+Forward scenario observations use gross distributions before the request's
+generic cash deduction and return `return_basis=GROSS_BEFORE_PORTFOLIO_TAX`.
+The generic deduction remains part of the separate historical evidence rows.
+V3-6 applies its explicit portfolio tax model once to these gross bands.
+
 When enough evidence exists, V3-5 uses:
 
 | Scenario | Historical percentile |

@@ -108,6 +108,7 @@ token.
 ```http
 POST /api/v1/allocation-plans/allocation-results
 POST /api/v1/allocation-plans/long-term-scenarios
+POST /api/v1/allocation-plans/portfolio-projections
 ```
 
 The V3-4 allocation endpoint returns one to three materially different
@@ -131,7 +132,22 @@ conservative, base and optimistic annual assumptions are the 25th, 50th and
 75th percentiles of those observations and are shown as a compounded index
 starting at 100, not as a cash forecast.
 
-Both endpoints are public and stateless. They do not expose internal ETF-quality
+The V3-6 endpoint nests the V3-5 response and adds one aligned portfolio-tax
+projection per returned strategy. It accepts a 1-to-20-year horizon, one of two
+dividend-tax methods, explicit tax-rate assumptions, remaining dividend-credit
+cap, supplementary-premium exemption and custom reinvestment percentage. Each
+available plan contains three market bands and four distribution-use results,
+with annual points, ending holding value, usable cash, reinvested cash,
+estimated individual income tax and estimated supplementary NHI.
+
+Forward market returns are gross before portfolio tax. Official versus
+estimated component provenance is preserved; missing positive-cash component
+data makes the plan unavailable. Official `76W` and estimated realized capital
+gain are excluded from the modeled personal dividend tax and premium base, and
+estimated capital gain is never relabeled as official `76W`. Reinvested cash is
+an internal transfer and is not counted twice in after-tax return.
+
+All three endpoints are public and stateless. They do not expose internal ETF-quality
 scores or assessment-confidence fields.
 
 ## Single-user decision profile
