@@ -11,7 +11,7 @@ data remains distinct from zero, and public safety boundaries remain visible.
 | 3 | ETF detail | Understand one ETF's identity, performance, distributions, composition and risks | Target analysis and single-ETF tax forms overlap with the public portfolio planner and may need relocation or reduction | Pending |
 | 4 | ETF comparison | Compare 2-4 ETFs on decision-relevant facts | Monthly-gap solver overlaps with automatic allocation; input and result fields need review | Pending |
 | 5 | ETF search | Find an ETF and continue to its detailed information | Asset-type filtering and comparison entry distracted from the direct search-to-detail path; pipe-separated rows did not keep fields aligned | Revised, awaiting owner review |
-| 6 | Performance ranking | Explore comparable historical price-return periods | Ranking evidence is useful; filters, metrics and explanatory copy need consolidation review | Pending |
+| 6 | Performance ranking | View the top 20 non-bond ETFs for one selected performance period | Asset type, page-size, pagination and comparison controls obscured the ranking task; pipe-separated results were difficult to scan | Revised, awaiting owner review |
 | 7 | Dividend data quality | Understand whether official distribution data is available | Public transparency is useful, but operational review-queue fields may belong to owner operations | Pending |
 | 8 | Owner profile | Maintain optional saved conditions and records | Deferred account/broker work must stay out; overlap with the public stateless planner needs review | Pending |
 | 9 | Website administration | Inspect data coverage, freshness and import failures | Operational data was exposed on the public homepage | Relocated, awaiting owner review |
@@ -69,3 +69,14 @@ will be assigned to their final destinations.
   preserving the search state.
 - Do not imitate quote, price-change or volume fields from the visual reference
   until the list API provides verified values for those fields.
+
+## Performance ranking acceptance decision
+
+- Use `績效排行榜` for the page title and place it immediately below `股利試算`
+  and above `搜尋&詳細資料` in public navigation.
+- Keep only period and management-type filters; the ranking is fixed to non-bond
+  ETFs and defaults to 6M.
+- Request and display only the filtered top 20. Remove page-size controls,
+  pagination and the comparison-page shortcut.
+- Present rank, name/code, selected-period return, data date and management type
+  in a stable table. Selecting the name/code opens ETF detail.

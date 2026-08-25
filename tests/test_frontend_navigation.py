@@ -48,6 +48,22 @@ class TestFrontendNavigation(
             len(set(url_paths)),
         )
 
+    def test_public_navigation_places_ranking_before_search(
+        self,
+    ) -> None:
+        """確認股利試算後依序顯示績效排行榜與搜尋。"""
+
+        routes = navigation_routes(False)
+
+        self.assertEqual(
+            routes[1:4],
+            (
+                PUBLIC_PLANNER_ROUTE,
+                PERFORMANCE_RANKING_ROUTE,
+                ETF_SEARCH_ROUTE,
+            ),
+        )
+
     def test_detail_route_is_hidden(
         self,
     ) -> None:

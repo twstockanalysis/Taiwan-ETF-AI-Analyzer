@@ -449,7 +449,7 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "ETF 績效排行榜",
+            "績效排行榜",
         )
 
         metric_values = [
@@ -462,10 +462,21 @@ class TestStreamlitApp(unittest.TestCase):
             metric_values,
         )
 
-        caption_values = [
-            item.value
-            for item in app.caption
+        selectbox_labels = [
+            item.label
+            for item in app.selectbox
         ]
+
+        self.assertNotIn("資產類型", selectbox_labels)
+        self.assertNotIn("每頁筆數", selectbox_labels)
+
+        button_labels = [
+            item.label
+            for item in app.button
+        ]
+
+        self.assertNotIn("上一頁", button_labels)
+        self.assertNotIn("下一頁", button_labels)
 
         caption_text = "\n".join(
             str(item.value)
@@ -473,18 +484,22 @@ class TestStreamlitApp(unittest.TestCase):
         )
 
         self.assertIn(
-            "依指定期間排序並只顯示該期間",
+            "預設為6M",
             caption_text,
         )
 
-        self.assertIn(
-            "名次與每列報酬率均依 6M",
-            caption_text,
-        )
+        self.assertNotIn("市價報酬率", caption_text)
 
-        self.assertIn(
-            "其他期間可從排序期間切換查看",
-            caption_text,
+        self.assertEqual(len(app.dataframe), 1)
+        self.assertEqual(
+            list(app.dataframe[0].value.columns),
+            [
+                "rank",
+                "detail",
+                "period_return",
+                "as_of_date",
+                "management_type",
+            ],
         )
 
 
