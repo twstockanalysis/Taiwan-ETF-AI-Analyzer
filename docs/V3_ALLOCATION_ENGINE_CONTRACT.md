@@ -129,6 +129,26 @@ Optimality is reported separately as `PROVED_OPTIMAL`, `BOUNDED_BEST_EFFORT`
 or `NOT_APPLICABLE`. Only `PROVED_OPTIMAL` may be described as the lowest-
 capital or optimal result.
 
+### V3-3 bounded solver methodology
+
+V3-3 uses a dependency-free, Decimal-safe deterministic integer search. It
+selects whole-share batches by selected-month shortfall reduction per TWD,
+then adds whole shares to the lowest-value eligible positions until the fixed
+20% resulting-value concentration limit is satisfied. Stable internal quality
+ordering and ETF code resolve otherwise equal choices; neither value is
+returned publicly.
+
+This constructive search is bounded and does not claim a global capital
+minimum. Non-zero allocation results therefore report
+`BOUNDED_BEST_EFFORT`. A zero-addition result whose target is already met is
+`PROVED_OPTIMAL`, because no allocation can require less than zero additional
+capital. Missing baseline cash, missing prices and infeasible concentration
+fail closed instead of weakening a gate.
+
+The initial transaction-cost assumption is versioned and fixed at 0 TWD. The
+response states this limitation explicitly; broker-specific fees are not
+silently estimated.
+
 ## Required response
 
 The public result includes:

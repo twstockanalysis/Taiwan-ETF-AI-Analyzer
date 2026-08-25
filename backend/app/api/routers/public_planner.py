@@ -10,6 +10,11 @@ from backend.app.models.market_eligibility import (
     MarketEligibilityIndexRequest,
     MarketEligibilityIndexResponse,
 )
+from backend.app.models.integer_allocation import (
+    IntegerAllocationRequest,
+    IntegerAllocationResponse,
+)
+from backend.app.services.integer_allocation import build_integer_allocation
 from backend.app.services.market_eligibility_index import (
     build_market_eligibility_index,
 )
@@ -49,6 +54,25 @@ def read_market_eligibility_index(
 ) -> MarketEligibilityIndexResponse:
     try:
         return build_market_eligibility_index(request, database_path).response
+    except LookupError as error:
+        code = str(error.args[0]).strip().upper()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到 ETF：{code}",
+        ) from error
+
+
+@router.post(
+    "/integer-allocation",
+    response_model=IntegerAllocationResponse,
+    summary="建立全市場整數股數配置情境",
+)
+def create_integer_allocation(
+    request: IntegerAllocationRequest,
+    database_path: Path = Depends(get_database_path),
+) -> IntegerAllocationResponse:
+    try:
+        return build_integer_allocation(request, database_path)
     except LookupError as error:
         code = str(error.args[0]).strip().upper()
         raise HTTPException(
