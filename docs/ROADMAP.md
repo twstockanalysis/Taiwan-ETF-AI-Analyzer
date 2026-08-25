@@ -1030,13 +1030,34 @@ Delivered:
   and calculation facts are refreshed
 - Evidence: `V3_MARKET_ELIGIBILITY_INDEX_CONTRACT.md`
 
-### V3-3 — Automatic ETF and whole-share allocation engine
+### V3-3 — Automatic ETF and whole-share allocation engine — Completed locally
 
 - Solve non-negative whole-share additions from the eligible market universe
 - Minimize selected-month shortfall before minimizing required capital
 - Preserve existing holdings without silently selling or replacing them
 - Return reproducible optimality status and bounded best-effort results without
   false precision
+
+Delivered:
+
+- Added public stateless `POST /api/v1/allocation-plans/integer-allocation`
+  orchestration from the existing-holding baseline through the full-market
+  eligibility index to whole-share additions
+- Implemented a dependency-free Decimal-safe bounded solver that never solves
+  fractional shares and rounds them afterward
+- Minimized selected-month shortfall first, used capital efficiency for the
+  deterministic construction order and enforced the fixed 20% resulting-value
+  concentration limit with whole-share dilution
+- Preserved existing holdings as fixed inputs and returned current cash, added
+  cash, shortfall, additions, capital and resulting concentration without
+  writing the request or result to a profile
+- Reported ordinary non-zero results as `BOUNDED_BEST_EFFORT`, reserved
+  `PROVED_OPTIMAL` for provable zero-addition cases and failed closed when
+  required baseline data or a concentration-feasible structure was absent
+- Kept transaction costs explicitly fixed at 0 TWD for this methodology
+  version instead of inventing broker-specific fees
+- Kept internal quality scores and confidence labels out of the public payload
+- Evidence: `V3_ALLOCATION_ENGINE_CONTRACT.md`
 
 ### V3-4 — Result, alternatives and exclusions
 
