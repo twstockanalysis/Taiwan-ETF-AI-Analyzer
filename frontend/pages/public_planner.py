@@ -13,8 +13,22 @@ from frontend.ui.states import loading_state, render_api_error
 
 
 MONTH_OPTIONS = list(range(1, 13))
+MONTH_PRESETS = {
+    "每月": MONTH_OPTIONS,
+    "單數月": [1, 3, 5, 7, 9, 11],
+    "雙數月": [2, 4, 6, 8, 10, 12],
+}
+TARGET_MONTHS_STATE_KEY = "public_planner_target_months"
+REINVESTMENT_POLICY_STATE_KEY = "public_planner_reinvestment_policy"
 DEFAULT_HISTORY_YEARS = 10
 DEFAULT_CASH_DEDUCTION_RATE_PCT = 0.0
+DEFAULT_CUSTOM_REINVESTMENT_PCT = 50.0
+
+
+def apply_month_preset(months: list[int]) -> None:
+    """將月份快速選取同步到逐月選擇元件。"""
+
+    st.session_state[TARGET_MONTHS_STATE_KEY] = list(months)
 
 
 def empty_holding_editor_rows() -> pd.DataFrame:
@@ -472,6 +486,7 @@ def render_long_term_evidence(payload: dict[str, Any], strategy: str) -> None:
 
 def _portfolio_projection_chart_rows(
     market: dict[str, Any],
+    selected_policy: str | None = None,
 ) -> list[dict[str, Any]]:
     policy_labels = {
         "NO_REINVESTMENT": "領出使用",
@@ -481,6 +496,8 @@ def _portfolio_projection_chart_rows(
     }
     rows_by_year: dict[int, dict[str, Any]] = {}
     for result in market.get("reinvestment_results", []):
+        if selected_policy is not None and result["policy"] != selected_policy:
+            continue
         label = policy_labels[result["policy"]]
         for point in result.get("year_points", []):
             year = int(point["year"])
@@ -490,7 +507,11 @@ def _portfolio_projection_chart_rows(
     return [rows_by_year[year] for year in sorted(rows_by_year)]
 
 
-def render_portfolio_projection(payload: dict[str, Any], strategy: str) -> None:
+def render_portfolio_projection(
+    payload: dict[str, Any],
+    strategy: str,
+    selected_reinvestment_policy: str,
+) -> None:
     projection = next(
         item for item in payload["plan_projections"] if item["strategy"] == strategy
     )
@@ -558,8 +579,12 @@ def render_portfolio_projection(payload: dict[str, Any], strategy: str) -> None:
         "CUSTOM_PERCENTAGE": "按比例投入",
         "FULL_REINVESTMENT": "全部投入",
     }
+    selected_policy_label = policy_labels[selected_reinvestment_policy]
+    st.caption(f"本次選擇的股息使用方式：{selected_policy_label}。")
     rows = []
     for result in market["reinvestment_results"]:
+        if result["policy"] != selected_reinvestment_policy:
+            continue
         rows.append(
             {
                 "配息使用方式": policy_labels[result["policy"]],
@@ -589,9 +614,14 @@ def render_portfolio_projection(payload: dict[str, Any], strategy: str) -> None:
         )
     st.dataframe(rows, hide_index=True)
     st.line_chart(
-        pd.DataFrame(_portfolio_projection_chart_rows(market)),
+        pd.DataFrame(
+            _portfolio_projection_chart_rows(
+                market,
+                selected_reinvestment_policy,
+            )
+        ),
         x="年數",
-        y=list(policy_labels.values()),
+        y=[selected_policy_label],
         x_label="配置後年數",
         y_label="持股價值加已領可用現金（TWD）",
     )
@@ -612,34 +642,51 @@ def render_public_planner() -> None:
     st.title("股利試算")
     st.caption("請依序選擇輸入")
 
-    with st.form("public_cash_flow_planner"):
+    st.session_state.setdefault(TARGET_MONTHS_STATE_KEY, MONTH_OPTIONS)
+
+    with st.form("public_cash_flow_planner", enter_to_submit=False):
+        st.subheader("1. 每個目標月想領多少股利（TWD）")
         target_cash = st.number_input(
-            "1. 每個目標月想領多少股利（TWD）",
+            "每個目標月想領多少股利（TWD）",
             min_value=0,
             value=3000,
             step=500,
+            label_visibility="collapsed",
         )
+
+        st.subheader("2. 領息月份")
+        with st.container(horizontal=True):
+            for preset_label, preset_months in MONTH_PRESETS.items():
+                st.form_submit_button(
+                    preset_label,
+                    type="secondary",
+                    on_click=apply_month_preset,
+                    args=(preset_months,),
+                )
         selected_months = st.pills(
-            "2. 領息月份",
+            "領息月份",
             options=MONTH_OPTIONS,
-            default=MONTH_OPTIONS,
             selection_mode="multi",
             format_func=lambda month: f"{month} 月",
-            key="public_planner_target_months",
+            key=TARGET_MONTHS_STATE_KEY,
+            label_visibility="collapsed",
             width="stretch",
         )
+
+        st.subheader("3. 想持有年限")
         projection_years = st.number_input(
-            "3. 想持有年限",
+            "想持有年限",
             min_value=1,
             max_value=20,
             value=10,
             step=1,
+            label_visibility="collapsed",
         )
 
-        st.markdown("#### 現有持股（可留空）")
+        st.subheader("4. 庫存ETF持股 (可留空)")
         st.caption(
-            "每列輸入一檔 ETF 與目前股數；使用表格下方新增或刪除列。"
-            "價格採系統已保存的最新官方收盤價，不是即時報價。"
+            "請輸入代號＋股數，價格自動擷取最新收盤價，非即時報價；"
+            "若在盤中，則為前一日收盤價。"
         )
         edited_holdings = st.data_editor(
             empty_holding_editor_rows(),
@@ -661,6 +708,16 @@ def render_public_planner() -> None:
             },
         )
 
+        st.subheader("5. 股息再投入與否")
+        reinvestment_policy_label = st.segmented_control(
+            "股息再投入與否",
+            ["不再投入", "全部再投入"],
+            default="不再投入",
+            selection_mode="single",
+            label_visibility="collapsed",
+            key="public_planner_reinvestment_choice",
+        ) or "不再投入"
+
         with st.expander("稅務與再投入假設（可調整）"):
             st.caption(
                 "若不調整，系統會依合併計稅、5% 所得稅率及需要估算二代健保，"
@@ -680,13 +737,6 @@ def render_public_planner() -> None:
                     value=5.0,
                     step=1.0,
                     disabled=tax_method_label == "股利 28% 分開計稅",
-                )
-                custom_reinvestment_pct = st.number_input(
-                    "按比例投入（%）",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=50.0,
-                    step=5.0,
                 )
             with advanced_columns[1]:
                 remaining_credit_cap = st.number_input(
@@ -713,6 +763,14 @@ def render_public_planner() -> None:
         )
 
     if submitted:
+        selected_reinvestment_policy = (
+            "FULL_REINVESTMENT"
+            if reinvestment_policy_label == "全部再投入"
+            else "NO_REINVESTMENT"
+        )
+        st.session_state[REINVESTMENT_POLICY_STATE_KEY] = (
+            selected_reinvestment_policy
+        )
         holdings, errors = build_holding_payload(edited_holdings)
         if not selected_months:
             errors.append("請至少選擇一個領息月份。")
@@ -735,7 +793,9 @@ def render_public_planner() -> None:
                             ),
                             "currency": "TWD",
                             "projection_years": int(projection_years),
-                            "custom_reinvestment_pct": custom_reinvestment_pct,
+                            "custom_reinvestment_pct": (
+                                DEFAULT_CUSTOM_REINVESTMENT_PCT
+                            ),
                             "dividend_tax_method": (
                                 "SEPARATE_28"
                                 if tax_method_label == "股利 28% 分開計稅"
@@ -759,4 +819,11 @@ def render_public_planner() -> None:
         long_term = result["long_term_scenarios"]
         selected_strategy = render_allocation_results(long_term["allocation_results"])
         render_long_term_evidence(long_term, selected_strategy)
-        render_portfolio_projection(result, selected_strategy)
+        render_portfolio_projection(
+            result,
+            selected_strategy,
+            st.session_state.get(
+                REINVESTMENT_POLICY_STATE_KEY,
+                "NO_REINVESTMENT",
+            ),
+        )

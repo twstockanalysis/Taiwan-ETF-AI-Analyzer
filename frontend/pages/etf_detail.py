@@ -267,7 +267,8 @@ def render_code_form(
     """顯示 ETF 代號查詢表單。"""
 
     with st.form(
-        "etf_detail_code_form"
+        "etf_detail_code_form",
+        enter_to_submit=False,
     ):
         code = st.text_input(
             "ETF 代號",
@@ -1816,7 +1817,10 @@ def render_base_target_analysis(
         f"{latest_close['close_price']:.2f} TWD（{latest_close['trade_date']}；"
         f"來源 {latest_close['source_id']}），價格不可手動覆寫。"
     )
-    with st.form(f"target_analysis_{etf['code']}"):
+    with st.form(
+        f"target_analysis_{etf['code']}",
+        enter_to_submit=False,
+    ):
         columns = st.columns(3)
         with columns[0]:
             held_units = st.number_input(
@@ -1887,7 +1891,10 @@ def render_tax_reinvestment_analysis(
         "請依自身申報情況調整有效稅率；結果僅供估算。"
     )
 
-    with st.form(f"tax_reinvestment_{etf['code']}"):
+    with st.form(
+        f"tax_reinvestment_{etf['code']}",
+        enter_to_submit=False,
+    ):
         input_columns = st.columns(3)
         with input_columns[0]:
             held_units = st.number_input(

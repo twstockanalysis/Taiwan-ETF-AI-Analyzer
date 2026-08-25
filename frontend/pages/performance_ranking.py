@@ -449,7 +449,8 @@ def render_performance_filter_form() -> None:
     )
 
     with st.form(
-        "performance_ranking_form"
+        "performance_ranking_form",
+        enter_to_submit=False,
     ):
         period_column, active_column = (
             st.columns(2)

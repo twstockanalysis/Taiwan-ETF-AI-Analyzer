@@ -368,7 +368,8 @@ def render_etf_coverage_form(
     st.subheader("ETF 個別覆蓋率")
 
     with st.form(
-        "quality_etf_coverage_form"
+        "quality_etf_coverage_form",
+        enter_to_submit=False,
     ):
         etf_code = st.text_input(
             "ETF 代號",
@@ -448,7 +449,8 @@ def render_queue_filter_form() -> None:
     )
 
     with st.form(
-        "quality_review_queue_form"
+        "quality_review_queue_form",
+        enter_to_submit=False,
     ):
         status_column, issue_column = (
             st.columns(2)

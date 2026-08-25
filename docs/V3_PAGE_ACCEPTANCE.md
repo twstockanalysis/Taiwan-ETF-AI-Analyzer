@@ -17,6 +17,18 @@ data remains distinct from zero, and public safety boundaries remain visible.
 | 9 | Website administration | Inspect data coverage, freshness and import failures | Operational data was exposed on the public homepage | Relocated, awaiting owner review |
 | 10 | Global navigation and responsive acceptance | Reach public tasks without exposing internal concepts | Material icons adopted with the home review; final route order and public/private boundaries remain pending | In progress |
 
+## Dividend planner input decision
+
+- Steps 1 through 5 use the same prominent heading level.
+- Holdings remain optional and only require ETF code plus integer units; the
+  latest stored official close is supplied by the system.
+- Month pills remain individually selectable, with every-month, odd-month and
+  even-month shortcuts.
+- Dividend reinvestment is a separate choice between cash use and full
+  reinvestment.
+- Enter-key form submission is disabled; only visible actions submit or change
+  the form.
+
 ## Home acceptance decision
 
 Keep:

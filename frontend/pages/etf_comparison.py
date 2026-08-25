@@ -213,7 +213,10 @@ def render_monthly_combination_analysis(
     candidate_items = [
         item for item in items if item["etf"]["code"] != base_code
     ]
-    with st.form(f"monthly_combination_{'_'.join(labels)}"):
+    with st.form(
+        f"monthly_combination_{'_'.join(labels)}",
+        enter_to_submit=False,
+    ):
         goal = st.segmented_control(
             "分析目標",
             options=["補足月配缺口", "只檢查候選資格"],
@@ -697,7 +700,8 @@ def render_code_form(
     """顯示比較代號輸入與清單操作。"""
 
     with st.form(
-        "etf_comparison_form"
+        "etf_comparison_form",
+        enter_to_submit=False,
     ):
         code_text = st.text_input(
             "ETF 代號",

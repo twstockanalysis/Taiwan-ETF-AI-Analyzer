@@ -313,7 +313,8 @@ def render_search_form() -> None:
     )
 
     with st.form(
-        "etf_search_form"
+        "etf_search_form",
+        enter_to_submit=False,
     ):
         keyword_column, active_column = (
             st.columns(2)

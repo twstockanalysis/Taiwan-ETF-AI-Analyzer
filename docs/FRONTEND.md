@@ -182,6 +182,10 @@ It reduces oversized headings and metrics, allows metric values and page-link
 labels to wrap instead of using ellipsis, and uses smaller sidebar text when
 the navigation panel is open.
 
+All frontend forms disable Enter-key submission. Users must choose a visible
+submit action, so focused number and text inputs do not show or trigger the
+`Press Enter to submit form` behavior.
+
 ## Pages
 
 ### Home

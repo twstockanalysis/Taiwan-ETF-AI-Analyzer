@@ -459,7 +459,7 @@ def render_decision_profile() -> None:
     conditions = profile.get("conditions") or {}
     st.subheader("固定分析條件")
     st.caption("這些條件會在後續切片重用 M10 計算；儲存本身不會產生推薦。")
-    with st.form("decision_profile_conditions"):
+    with st.form("decision_profile_conditions", enter_to_submit=False):
         condition_columns = st.columns(3)
         with condition_columns[0]:
             monthly_target = st.number_input(
@@ -539,7 +539,7 @@ def render_decision_profile() -> None:
             ),
         }
     )
-    with st.form("manual_holding_batch"):
+    with st.form("manual_holding_batch", enter_to_submit=False):
         edited_holdings = st.data_editor(
             editor_rows,
             num_rows="dynamic",
@@ -639,7 +639,7 @@ def render_decision_profile() -> None:
         "輸入一個候選加碼情境，比較加入前後的整體持倉；"
         "此分析不會新增或更新手動持倉。"
     )
-    with st.form("candidate_holding_analysis"):
+    with st.form("candidate_holding_analysis", enter_to_submit=False):
         candidate_columns = st.columns(3)
         with candidate_columns[0]:
             candidate_code = st.text_input(
