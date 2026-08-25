@@ -6,11 +6,6 @@ from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
 
-from frontend.pages.home import (
-    load_system_overview,
-)
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 STREAMLIT_APP_PATH = (
@@ -334,20 +329,10 @@ page.render_etf_detail()
 class TestStreamlitApp(unittest.TestCase):
     """測試 Streamlit 網站主要頁面。"""
 
-    @patch(
-        "frontend.pages.home.fetch_system_overview"
-    )
     def test_application_renders_home_page(
         self,
-        mock_fetch_system_overview,
     ) -> None:
         """確認網站入口以初學者配置任務為主。"""
-
-        mock_fetch_system_overview.return_value = (
-            build_system_overview_payload()
-        )
-
-        load_system_overview.clear()
 
         app = AppTest.from_file(
             STREAMLIT_APP_PATH,
@@ -368,32 +353,22 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "ETF奈米戶",
+            "ETF nano cat",
         )
 
         self.assertEqual(len(app.success), 0)
 
-        metric_values = [
-            str(item.value)
-            for item in app.metric
-        ]
-
-        self.assertIn(
-            "4 檔",
-            metric_values,
-        )
-
-        self.assertIn(
-            "50.00%",
-            metric_values,
-        )
+        self.assertEqual(len(app.metric), 0)
 
         page_text = "\n".join(
             [item.value for item in app.subheader]
             + [item.value for item in app.caption]
         )
         self.assertIn("先算出適合你的 ETF 配置", page_text)
+        self.assertIn("運用AI評分系統", page_text)
+        self.assertIn("所有資料皆來源自證交所及投信", page_text)
         self.assertIn("不下單", page_text)
+        self.assertNotIn("目前可用資料", page_text)
         self.assertNotIn("FastAPI", page_text)
         self.assertNotIn("SQLite", page_text)
         self.assertNotIn("最近匯入批次", page_text)

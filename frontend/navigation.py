@@ -16,7 +16,7 @@ from frontend.query_state import (
 )
 
 
-NAVIGATION_GROUP = "ETF奈米戶"
+NAVIGATION_GROUP = "ETF nano cat"
 
 
 @dataclass(frozen=True)
@@ -73,6 +73,13 @@ DECISION_PROFILE_ROUTE = PageRoute(
     url_path="decision-profile",
 )
 
+ADMIN_OVERVIEW_ROUTE = PageRoute(
+    key="admin-overview",
+    title="網站管理",
+    icon=":material/admin_panel_settings:",
+    url_path="admin-overview",
+)
+
 DIVIDEND_DATA_QUALITY_ROUTE = PageRoute(
     key="dividend-data-quality",
     title="配息資料品質",
@@ -97,7 +104,10 @@ PUBLIC_ROUTES = (
     DIVIDEND_DATA_QUALITY_ROUTE,
 )
 
-OWNER_ROUTES = (DECISION_PROFILE_ROUTE,)
+OWNER_ROUTES = (
+    DECISION_PROFILE_ROUTE,
+    ADMIN_OVERVIEW_ROUTE,
+)
 
 ALL_ROUTES = (
     *PUBLIC_ROUTES,
@@ -159,6 +169,11 @@ def create_streamlit_page(
         )
 
         source = render_decision_profile
+
+    elif route == ADMIN_OVERVIEW_ROUTE:
+        from frontend.pages.admin_overview import render_admin_overview
+
+        source = render_admin_overview
 
     elif route == DIVIDEND_DATA_QUALITY_ROUTE:
         from frontend.pages.dividend_data_quality import (

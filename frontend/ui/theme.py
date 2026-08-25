@@ -81,6 +81,11 @@ GLOBAL_STYLES = f"""
     line-height: 1.4 !important;
 }}
 
+.st-key-home-primary-action [data-testid="stPageLink"] p {{
+    font-size: clamp(1.15rem, 2vw, 1.4rem) !important;
+    font-weight: 700 !important;
+}}
+
 @media (max-width: 1100px) {{
     [data-testid="stMetricValue"],
     [data-testid="stMetricValue"] > div {{
@@ -96,6 +101,10 @@ GLOBAL_STYLES = f"""
 
     [data-testid="stPageLink"] p {{
         font-size: 0.9rem !important;
+    }}
+
+    .st-key-home-primary-action [data-testid="stPageLink"] p {{
+        font-size: 1.1rem !important;
     }}
 }}
 </style>

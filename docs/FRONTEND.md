@@ -58,7 +58,7 @@ path. New implementation belongs in focused modules under `frontend/api/`:
 | `performance.py` | ETF performance and rankings |
 | `dividends.py` | Dividend events, components and monthly income |
 | `dividend_quality.py` | ACTUAL/76W coverage and review queue |
-| `system_overview.py` | Homepage system overview |
+| `system_overview.py` | Owner-only website administration overview |
 | `data_profile.py` | ETF source coverage and freshness |
 | `comparison.py` | Multi-ETF comparison |
 | `decision_profile.py` | Conditions, holdings, analyses, records and export |
@@ -106,10 +106,18 @@ Public pages:
 
 ```text
 /
+cash-flow-planner
 etf-search
 performance-ranking
 etf-comparison
 dividend-data-quality
+```
+
+Owner-unlocked pages:
+
+```text
+decision-profile
+admin-overview
 ```
 
 Hidden page:
@@ -178,22 +186,27 @@ the navigation panel is open.
 
 ### Home
 
-The homepage reads only:
+It shows:
+
+- The `ETF nano cat` brand and approved slogan
+- One prominent link to the public cash-flow planner
+- Secondary links to ETF search, performance ranking, comparison and data quality
+- A small source and decision-responsibility notice
+- No-order, no-signal and no-guarantee boundaries
+
+The homepage does not request operational data.
+
+### Website Administration
+
+The owner-unlocked page reads:
 
 ```text
 GET /api/v1/system/overview
 ```
 
-It shows:
-
-- Primary links to ETF search, performance ranking and dividend data quality
-- FastAPI and SQLite status
-- ETF totals and active/passive, bond/non-bond classifications
-- ETFs with PRICE_RETURN data and ETFs with dividend history
-- ACTUAL and official 76W event coverage
-- Separate 1M, 3M, 6M and 1Y performance coverage
-- ETF-master, performance, dividend and ACTUAL-document freshness
-- Five most recent import batches, including failed-batch error summaries
+It shows ETF, performance and dividend counts, ACTUAL and official 76W
+coverage, source-document coverage, dataset freshness and recent import batch
+errors. A manual refresh clears only the short frontend cache.
 
 Missing dates display `尚未取得`. A zero-event coverage ratio displays
 `尚無資料`, while a formally calculated zero remains `0.00%`.

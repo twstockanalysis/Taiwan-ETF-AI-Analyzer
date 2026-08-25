@@ -1,4 +1,4 @@
-"""ETF奈米戶 Streamlit 應用程式入口。"""
+"""ETF nano cat Streamlit 應用程式入口。"""
 
 import streamlit as st
 
@@ -13,7 +13,7 @@ def main() -> None:
     """建立並執行 Streamlit 網站。"""
 
     st.set_page_config(
-        page_title="ETF奈米戶",
+        page_title="ETF nano cat",
         page_icon=":material/finance_mode:",
         layout="wide",
         initial_sidebar_state="expanded",

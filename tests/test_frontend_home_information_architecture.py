@@ -2,44 +2,30 @@
 
 import unittest
 
-from frontend.pages.home import build_home_data_dates, format_overview_percentage
+from frontend.pages.home import (
+    PLANNER_INTRO,
+    PLANNER_NOTICE,
+    SITE_NAME,
+    SITE_SLOGAN,
+)
+from frontend.ui.theme import GLOBAL_STYLES
 
 
 class TestFrontendHomeInformationArchitecture(unittest.TestCase):
-    def test_missing_percentage_is_not_zero(self) -> None:
-        self.assertEqual(format_overview_percentage(None), "尚無資料")
-        self.assertEqual(format_overview_percentage(0), "0.00%")
-
-    def test_home_uses_public_data_dates_only(self) -> None:
-        dates = build_home_data_dates(
-            {
-                "performance": {"latest_as_of_date": "2026-07-30"},
-                "dividends": {"latest_event_date": "2026-08-10"},
-                "api_status": "healthy",
-                "database_type": "SQLite",
-                "recent_import_batches": [{"batch_id": 8}],
-            }
-        )
-
+    def test_home_uses_approved_brand_and_beginner_copy(self) -> None:
+        self.assertEqual(SITE_NAME, "ETF nano cat")
         self.assertEqual(
-            dates,
-            ["績效資料至 2026-07-30", "配息事件至 2026-08-10"],
+            SITE_SLOGAN,
+            "運用AI評分系統，讓奈米戶自己也能月月領錢",
         )
-        self.assertNotIn("FastAPI", " ".join(dates))
-        self.assertNotIn("SQLite", " ".join(dates))
-        self.assertNotIn("batch", " ".join(dates).lower())
+        self.assertIn("或直接空白", PLANNER_INTRO)
+        self.assertIn("推薦 ETF＋股數", PLANNER_INTRO)
+        self.assertIn("不需登入", PLANNER_NOTICE)
+        self.assertIn("是否購買皆由用戶決定", PLANNER_NOTICE)
 
-    def test_missing_dates_remain_missing(self) -> None:
-        dates = build_home_data_dates(
-            {
-                "performance": {"latest_as_of_date": None},
-                "dividends": {"latest_event_date": None},
-            }
-        )
-        self.assertEqual(
-            dates,
-            ["績效資料至 尚未取得", "配息事件至 尚未取得"],
-        )
+    def test_primary_action_has_scoped_larger_font(self) -> None:
+        self.assertIn(".st-key-home-primary-action", GLOBAL_STYLES)
+        self.assertIn("font-weight: 700", GLOBAL_STYLES)
 
 
 if __name__ == "__main__":

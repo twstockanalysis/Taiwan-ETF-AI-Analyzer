@@ -3,6 +3,7 @@
 import unittest
 
 from frontend.navigation import (
+    ADMIN_OVERVIEW_ROUTE,
     ALL_ROUTES,
     DECISION_PROFILE_ROUTE,
     ETF_DETAIL_ROUTE,
@@ -65,6 +66,12 @@ class TestFrontendNavigation(
         )
         self.assertNotIn(DECISION_PROFILE_ROUTE, navigation_routes(False))
         self.assertIn(DECISION_PROFILE_ROUTE, navigation_routes(True))
+
+    def test_admin_overview_is_owner_only_route(self) -> None:
+        self.assertIn(ADMIN_OVERVIEW_ROUTE, ALL_ROUTES)
+        self.assertEqual(ADMIN_OVERVIEW_ROUTE.url_path, "admin-overview")
+        self.assertNotIn(ADMIN_OVERVIEW_ROUTE, navigation_routes(False))
+        self.assertIn(ADMIN_OVERVIEW_ROUTE, navigation_routes(True))
 
     def test_public_planner_is_always_available(self) -> None:
         self.assertIn(PUBLIC_PLANNER_ROUTE, navigation_routes(False))
