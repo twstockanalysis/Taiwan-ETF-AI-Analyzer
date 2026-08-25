@@ -46,13 +46,7 @@ ACTIVE_FILTER_OPTIONS: dict[
 
 NON_BOND_LABEL = "非債券"
 
-RESULT_COLUMN_WIDTHS = [
-    3,
-    1.2,
-    1.3,
-    1.5,
-    1.2,
-]
+RESULT_ACTION_KEY = "etf_search_detail_action"
 
 SEARCH_QUERY_SIGNATURE_KEY = (
     "_etf_search_query_signature"
@@ -124,7 +118,7 @@ def render_clickable_etf_rows(
     items: list[dict[str, Any]],
     query_state: ETFSearchQueryState | None = None,
 ) -> None:
-    """以固定欄位顯示可導向詳細資料的 ETF 清單。"""
+    """以固定欄位資料表顯示 ETF 清單。"""
 
     source_state = (
         query_state
@@ -134,70 +128,107 @@ def render_clickable_etf_rows(
         )
     )
 
-    header_columns = st.columns(
-        RESULT_COLUMN_WIDTHS,
-        vertical_alignment="center",
-    )
-    for column, label in zip(
-        header_columns,
-        (
-            "名稱／代號",
-            "管理方式",
-            "上市日期",
-            "基金規模",
-            "費用率",
-        ),
-        strict=True,
-    ):
-        column.markdown(f"**{label}**")
-
-    for item in items:
-        row = format_etf_result_row(item)
-
-        with st.container(border=True):
-            columns = st.columns(
-                RESULT_COLUMN_WIDTHS,
-                vertical_alignment="center",
-            )
-
-            with columns[0]:
-                st.page_link(
-                    "page_scripts/etf_detail_page.py",
-                    label=(
-                        f"{row['name']}（{row['code']}）"
-                    ),
-                    icon=":material/chevron_right:",
-                    icon_position="right",
-                    help=(
-                        f"查看 {row['code']} "
-                        f"{row['name']} 詳細資料"
-                    ),
-                    width="stretch",
-                    query_params=(
-                        build_detail_query_params(
-                            code=row["code"],
-                            source=str(
-                                ETF_SEARCH_ROUTE.url_path
-                            ),
-                            source_query_params=(
-                                source_state.to_query_params()
-                            ),
-                        )
-                    ),
-                )
-
-            columns[1].write(
+    rows = [
+        {
+            "detail": (
+                f"{row['name']}\n{row['code']}"
+            ),
+            "management_type": (
                 row["management_type"]
-            )
-            columns[2].write(
-                row["listing_date"]
-            )
-            columns[3].write(
-                row["fund_size"]
-            )
-            columns[4].write(
-                row["expense_ratio"]
-            )
+            ),
+            "listing_date": row["listing_date"],
+            "fund_size": row["fund_size"],
+            "expense_ratio": row["expense_ratio"],
+        }
+        for row in (
+            format_etf_result_row(item)
+            for item in items
+        )
+    ]
+
+    st.dataframe(
+        rows,
+        column_order=(
+            "detail",
+            "management_type",
+            "listing_date",
+            "fund_size",
+            "expense_ratio",
+        ),
+        column_config={
+            "detail": st.column_config.ButtonColumn(
+                "名稱／代號",
+                width="large",
+                pinned=True,
+                alignment="left",
+                type="tertiary",
+                on_click=open_etf_detail,
+                args=(items, source_state),
+                key=RESULT_ACTION_KEY,
+            ),
+            "management_type": (
+                st.column_config.TextColumn(
+                    "管理方式",
+                    width="small",
+                )
+            ),
+            "listing_date": (
+                st.column_config.TextColumn(
+                    "上市日期",
+                    width="medium",
+                )
+            ),
+            "fund_size": st.column_config.TextColumn(
+                "基金規模",
+                width="medium",
+            ),
+            "expense_ratio": (
+                st.column_config.TextColumn(
+                    "費用率",
+                    width="small",
+                )
+            ),
+        },
+        hide_index=True,
+        width="stretch",
+        height="content",
+        row_height=58,
+    )
+
+
+def open_etf_detail(
+    items: list[dict[str, Any]],
+    source_state: ETFSearchQueryState,
+) -> None:
+    """由資料表按鈕開啟所選 ETF 詳細資料。"""
+
+    action = st.session_state.get(
+        RESULT_ACTION_KEY
+    )
+
+    if action is None:
+        return
+
+    row_index = int(action["row"])
+
+    if not 0 <= row_index < len(items):
+        return
+
+    item = items[row_index]
+    code = str(item["code"]).strip().upper()
+
+    st.switch_page(
+        "page_scripts/etf_detail_page.py",
+        query_params=build_detail_query_params(
+            code=code,
+            source=str(
+                ETF_SEARCH_ROUTE.url_path
+            ),
+            source_query_params=(
+                source_state.to_query_params()
+            ),
+        ),
+    )
 
 
 def apply_search_state(

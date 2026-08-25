@@ -405,18 +405,29 @@ class TestStreamlitApp(unittest.TestCase):
             selectbox_labels,
         )
 
-        markdown_text = "\n".join(
-            str(item.value)
-            for item in app.markdown
+        self.assertEqual(len(app.dataframe), 1)
+
+        result_table = app.dataframe[0].value
+
+        self.assertEqual(
+            list(result_table.columns),
+            [
+                "detail",
+                "management_type",
+                "listing_date",
+                "fund_size",
+                "expense_ratio",
+            ],
         )
 
-        self.assertIn(
-            "名稱／代號",
-            markdown_text,
+        caption_text = "\n".join(
+            str(item.value)
+            for item in app.caption
         )
+
         self.assertNotIn(
             "搜尋及篩選臺灣 ETF 官方主資料",
-            markdown_text,
+            caption_text,
         )
 
     def test_performance_page_renders_ranking(

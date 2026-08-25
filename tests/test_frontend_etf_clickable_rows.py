@@ -1,9 +1,15 @@
 """ETF 搜尋結果欄位測試。"""
 
 import unittest
+from unittest.mock import patch
 
 from frontend.pages.etf_search import (
+    RESULT_ACTION_KEY,
     format_etf_result_row,
+    open_etf_detail,
+)
+from frontend.query_state import (
+    ETFSearchQueryState,
 )
 
 
@@ -56,6 +62,48 @@ class TestFrontendETFClickableRows(
         )
 
         self.assertNotIn("asset_type", row)
+
+    @patch(
+        "frontend.pages.etf_search."
+        "st.switch_page"
+    )
+    @patch(
+        "frontend.pages.etf_search."
+        "st.session_state",
+        {
+            RESULT_ACTION_KEY: {
+                "row": 0,
+                "label": "元大台灣50\n0050",
+            }
+        },
+    )
+    def test_table_action_opens_detail(
+        self,
+        mock_switch_page,
+    ) -> None:
+        """確認名稱代號按鈕保留搜尋狀態後導向詳細頁。"""
+
+        open_etf_detail(
+            [self.build_item()],
+            ETFSearchQueryState(
+                keyword="元大",
+                bond_label="非債券",
+                page=2,
+            ),
+        )
+
+        mock_switch_page.assert_called_once_with(
+            "page_scripts/etf_detail_page.py",
+            query_params={
+                "code": "0050",
+                "from": "etf-search",
+                "active": "all",
+                "bond": "non-bond",
+                "page": "2",
+                "page_size": "20",
+                "keyword": "元大",
+            },
+        )
 
 
 if __name__ == "__main__":
