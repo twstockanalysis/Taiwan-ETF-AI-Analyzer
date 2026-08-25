@@ -163,7 +163,8 @@ The public result includes:
 - resulting holdings and concentration;
 - inclusion reasons and risk explanations;
 - excluded candidates and stable reason codes;
-- at least one alternative when a materially different feasible result exists;
+- one to three named strategies, with two or more preferred when materially
+  different feasible results and formal constituent evidence exist;
 - missing, stale or estimated-data warnings; and
 - the non-advice and non-guarantee statement.
 
@@ -189,7 +190,8 @@ or predicts a guaranteed future distribution.
 - V3-1 exposes the public zero-to-N holdings and target-month request flow.
 - V3-2 builds the full-market eligibility and internal assessment index.
 - V3-3 implements the deterministic whole-share allocation solver.
-- V3-4 presents the primary result, alternatives and exclusion reasons.
+- V3-4 presents `推薦配置`, optional `平衡配置` and optional `集中配置`
+  together with exclusion reasons. It never fabricates duplicate strategies.
 - V3-5 adds 3-year, 5-year and 10-year total-return evidence and long-term
   scenarios.
 - V3-6 extends tax and 1-to-20-year reinvestment calculations to the complete

@@ -90,7 +90,9 @@ from frontend.api.performance import (
     validate_return_pct,
 )
 from frontend.api.public_planner import (
+    fetch_allocation_results,
     fetch_public_planner_baseline,
+    validate_allocation_results,
     validate_public_planner_result,
 )
 from frontend.api.system_overview import (

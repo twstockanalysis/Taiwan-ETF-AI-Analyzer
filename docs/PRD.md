@@ -200,6 +200,15 @@ hard data and risk gates
 Only a result with a proved optimum may be labeled optimal. A bounded or timed
 best-effort result must say so and retain its remaining shortfall.
 
+The beginner-facing result always starts with `推薦配置`. When formal
+constituent evidence produces a materially different feasible allocation, the
+website should also show `平衡配置` and/or `集中配置`. Two or more configurations
+are preferred, but the system does not fabricate a fixed count. `平衡配置`
+reduces unnecessary constituent overlap. `集中配置` favors stronger recent
+total-return evidence and similar constituent exposure without weakening the
+same data, downside or concentration gates. Explanations remain short and use
+plain language.
+
 ## Analysis modes and data semantics
 
 The product must distinguish:

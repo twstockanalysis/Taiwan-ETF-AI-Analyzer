@@ -33,9 +33,13 @@ class IntegerAllocationAddition(PublicPlannerBaseModel):
     name: str
     additional_shares: int = Field(gt=0)
     reference_price: Decimal = Field(gt=0)
+    reference_price_as_of: date
+    reference_price_source_id: str
     estimated_transaction_cost: Decimal = Field(ge=0)
     required_capital: Decimal = Field(gt=0)
     supported_target_months: list[int] = Field(default_factory=list)
+    holding_overlap_pct: Decimal | None = Field(default=None, ge=0, le=100)
+    constituent_snapshot_dates: list[date] = Field(default_factory=list)
     reasons: list[str] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)
 
