@@ -10,6 +10,7 @@ from backend.app.models.monthly_combination import (
     MonthlyCombinationCalculationResult,
     MonthlyCombinationCandidateInput,
     MonthlyCombinationCandidateResult,
+    MonthlyCombinationEligibilityRules,
     MonthlyCombinationStatus,
 )
 
@@ -32,11 +33,14 @@ def _reason(
     )
 
 
-def _eligibility_reasons(
+def evaluate_candidate_eligibility(
     candidate: MonthlyCombinationCandidateInput,
-    value: MonthlyCombinationCalculationInput,
+    rules: MonthlyCombinationEligibilityRules,
+    *,
+    evaluate_allocation_concentration: bool = True,
 ) -> list[CandidateReason]:
-    rules = value.rules
+    """套用可重用的候選硬門檻，不執行月份選擇。"""
+
     reasons: list[CandidateReason] = []
 
     if (
@@ -154,7 +158,10 @@ def _eligibility_reasons(
                 f"門檻 {rules.max_holding_overlap_pct}%）。",
             )
         )
-    if candidate.proposed_allocation_pct > rules.max_candidate_allocation_pct:
+    if (
+        evaluate_allocation_concentration
+        and candidate.proposed_allocation_pct > rules.max_candidate_allocation_pct
+    ):
         reasons.append(
             _reason(
                 CandidateReasonKind.EXCLUDE,
@@ -266,7 +273,7 @@ def calculate_monthly_payment_combination(
 
     evaluated = []
     for candidate in value.candidates:
-        reasons = _eligibility_reasons(candidate, value)
+        reasons = evaluate_candidate_eligibility(candidate, value.rules)
         supported = sorted(
             set(candidate.stable_payment_months) & set(initial_gaps)
         )

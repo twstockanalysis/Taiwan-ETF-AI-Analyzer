@@ -81,6 +81,28 @@ This endpoint does not yet select ETFs or recommend additional shares. Its
 ETF-quality scores and assessment-confidence fields are not part of the public
 response.
 
+### Full-market eligibility index
+
+```http
+POST /api/v1/allocation-plans/eligibility-index
+```
+
+V3-2 applies fixed server-side product, reference-price, completeness,
+freshness, payment stability, after-tax cash, total-return, downside,
+composition and portfolio-overlap gates to every ETF in the master. Public
+requests cannot override these thresholds.
+
+The response includes the complete code-ordered universe, eligible/excluded
+counts, source dates, stable payment months, ACTUAL versus estimated component
+basis, overlap state, stable reasons and a reproducible `sha256:` snapshot ID.
+Allocation-dependent concentration is returned as a mandatory V3-3 constraint.
+
+The server retains a deterministic quality score and twelve Decimal-safe
+cash-per-share values only in its internal index for the next solver stage.
+Quality scores, components, internal ranks and confidence labels are absent
+from the public response. The endpoint remains stateless and requires no owner
+token.
+
 ## Single-user decision profile
 
 ```http

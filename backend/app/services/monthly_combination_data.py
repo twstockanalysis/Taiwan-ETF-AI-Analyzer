@@ -86,6 +86,7 @@ def build_candidate_input(
         monthly_income
         and monthly_income.get("as_of_date") is not None
         and not monthly_income.get("has_mixed_currencies", False)
+        and monthly_income.get("missing_payment_date_count", 0) == 0
         and monthly_income.get("total_amount_per_unit") is not None
     )
     if monthly_available:

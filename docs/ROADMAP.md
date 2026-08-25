@@ -1001,7 +1001,7 @@ Delivered:
 - Kept automatic market selection and whole-share additions visibly pending
   until V3-2 and V3-3
 
-### V3-2 — Full-market eligibility and internal assessment index
+### V3-2 — Full-market eligibility and internal assessment index — Completed locally
 
 - Build the server-side supported ETF universe without user-picked candidates
 - Apply data freshness, distribution stability, total-return, downside,
@@ -1009,6 +1009,26 @@ Delivered:
 - Keep unsupported product types and missing data visible through stable reason
   codes
 - Expand reviewed ACTUAL dividend-composition coverage as a priority data track
+
+Delivered:
+
+- Built the candidate universe from every ETF master row without user-picked
+  candidates and retained unsupported product types with stable reasons
+- Applied fixed server-side price, completeness, freshness, payment stability,
+  after-tax cash, total-return, downside, composition and overlap gates
+- Kept allocation-dependent concentration as an explicit V3-3 hard constraint
+  instead of evaluating a fabricated percentage before shares exist
+- Added a deterministic internal ETF-quality ordering and twelve-month cash-
+  per-share facts without returning scores, components, ranks or confidence
+  labels through the public API
+- Added a public code-ordered safety projection with source dates, ACTUAL versus
+  estimated composition, exclusions and a reproducible snapshot identity
+- Kept estimated composition visibly downgraded and exposed ACTUAL coverage
+  counts so the formal-data expansion track cannot be overstated
+- Confirmed three eligible ETFs against the isolated V2-12 calculation data;
+  the older default database remains zero-eligible until its official market
+  and calculation facts are refreshed
+- Evidence: `V3_MARKET_ELIGIBILITY_INDEX_CONTRACT.md`
 
 ### V3-3 — Automatic ETF and whole-share allocation engine
 

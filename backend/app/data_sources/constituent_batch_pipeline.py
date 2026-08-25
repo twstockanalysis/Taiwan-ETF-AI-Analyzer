@@ -26,6 +26,9 @@ from backend.app.services.constituent_data_quality import (
     ConstituentQualityThreshold,
     evaluate_constituent_data_quality,
 )
+from backend.app.services.etf_product_scope import (
+    unsupported_allocation_product_reason,
+)
 
 
 ISSUER_NAME_MARKERS: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -96,24 +99,6 @@ def resolve_constituent_issuer(
     return matches[0] if len(set(matches)) == 1 else None
 
 
-def _ineligible_reason(code: str, name: str, is_bond: bool) -> str | None:
-    normalized_code = code.strip().upper()
-    normalized_name = name.strip().upper()
-    if is_bond or normalized_code.endswith(("B", "D")) or "債" in normalized_name:
-        return "BOND_OR_FIXED_INCOME"
-    if normalized_code.endswith(("L", "R", "U")):
-        return "LEVERAGED_INVERSE_OR_FUTURES"
-    if any(value in normalized_name for value in ("正2", "反1", "反一")):
-        return "LEVERAGED_INVERSE_OR_FUTURES"
-    if normalized_name.startswith("期") or any(
-        value in normalized_name for value in ("原油", "黃金", "美元指", "布蘭特")
-    ):
-        return "LEVERAGED_INVERSE_OR_FUTURES"
-    if normalized_code.endswith("T") or "平衡" in normalized_name:
-        return "MULTI_ASSET"
-    return None
-
-
 def build_constituent_batch_plan(
     database_path: str | Path,
 ) -> list[ConstituentBatchPlanItem]:
@@ -135,7 +120,11 @@ def build_constituent_batch_plan(
     for etf in list_etfs(database_path, limit=10000):
         code = str(etf["code"])
         name = str(etf["name"])
-        reason = _ineligible_reason(code, name, bool(etf["is_bond"]))
+        reason = unsupported_allocation_product_reason(
+            code,
+            name,
+            bool(etf["is_bond"]),
+        )
         issuer_key = resolve_constituent_issuer(name, code)
         if reason is not None:
             status = "NOT_EQUITY"
