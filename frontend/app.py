@@ -14,7 +14,7 @@ def main() -> None:
 
     st.set_page_config(
         page_title="ETF奈米戶",
-        page_icon="📊",
+        page_icon=":material/finance_mode:",
         layout="wide",
         initial_sidebar_state="expanded",
     )

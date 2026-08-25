@@ -34,28 +34,28 @@ class PageRoute:
 HOME_ROUTE = PageRoute(
     key="home",
     title="首頁",
-    icon="🏠",
+    icon=":material/home:",
     default=True,
 )
 
 ETF_SEARCH_ROUTE = PageRoute(
     key="etf-search",
     title="ETF 查詢",
-    icon="🔍",
+    icon=":material/search:",
     url_path="etf-search",
 )
 
 PERFORMANCE_RANKING_ROUTE = PageRoute(
     key="performance-ranking",
     title="績效排行榜",
-    icon="📈",
+    icon=":material/query_stats:",
     url_path="performance-ranking",
 )
 
 ETF_COMPARISON_ROUTE = PageRoute(
     key="etf-comparison",
     title="ETF 比較",
-    icon="⚖️",
+    icon=":material/compare_arrows:",
     url_path="etf-comparison",
 )
 
@@ -76,14 +76,14 @@ DECISION_PROFILE_ROUTE = PageRoute(
 DIVIDEND_DATA_QUALITY_ROUTE = PageRoute(
     key="dividend-data-quality",
     title="配息資料品質",
-    icon="🧪",
+    icon=":material/database:",
     url_path="dividend-data-quality",
 )
 
 ETF_DETAIL_ROUTE = PageRoute(
     key="etf-detail",
     title="ETF 詳細資料",
-    icon="📄",
+    icon=":material/description:",
     url_path="etf-detail",
     hidden=True,
 )

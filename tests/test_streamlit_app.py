@@ -341,7 +341,7 @@ class TestStreamlitApp(unittest.TestCase):
         self,
         mock_fetch_system_overview,
     ) -> None:
-        """確認網站入口顯示首頁系統總覽。"""
+        """確認網站入口以初學者配置任務為主。"""
 
         mock_fetch_system_overview.return_value = (
             build_system_overview_payload()
@@ -371,18 +371,7 @@ class TestStreamlitApp(unittest.TestCase):
             "ETF奈米戶",
         )
 
-        success_messages = [
-            item.value
-            for item in app.success
-        ]
-
-        self.assertTrue(
-            any(
-                "FastAPI 連線成功"
-                in message
-                for message in success_messages
-            )
-        )
+        self.assertEqual(len(app.success), 0)
 
         metric_values = [
             str(item.value)
@@ -398,6 +387,16 @@ class TestStreamlitApp(unittest.TestCase):
             "50.00%",
             metric_values,
         )
+
+        page_text = "\n".join(
+            [item.value for item in app.subheader]
+            + [item.value for item in app.caption]
+        )
+        self.assertIn("先算出適合你的 ETF 配置", page_text)
+        self.assertIn("不下單", page_text)
+        self.assertNotIn("FastAPI", page_text)
+        self.assertNotIn("SQLite", page_text)
+        self.assertNotIn("最近匯入批次", page_text)
 
     def test_search_page_renders_clickable_rows(
         self,

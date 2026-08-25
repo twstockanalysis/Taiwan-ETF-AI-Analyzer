@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-25 — V3-8 home-page acceptance
+
+- Made the public cash-flow planner the home page's primary action and reduced
+  ETF search, ranking, comparison and data completeness to secondary paths.
+- Replaced backend URL, database engine, import-batch and detailed pipeline
+  coverage output with a beginner-readable public data snapshot.
+- Added concise public boundaries for persistence, order placement, real-time
+  signals and performance guarantees.
+- Replaced remaining navigation emoji with Material Symbols and recorded the
+  page-by-page acceptance order and relocation decisions.
+
 ## 2026-08-25 — V3-6 portfolio tax and reinvestment
 
 - Added a public stateless portfolio projection endpoint for 1-to-20-year

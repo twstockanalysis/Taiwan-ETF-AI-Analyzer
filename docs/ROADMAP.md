@@ -1169,6 +1169,13 @@ Delivered:
 - Complete real-host deployment and obtain SEC-4 `READY` only after this local
   acceptance is complete
 
+Acceptance log:
+
+- Home page: core public planner promoted to the primary action; backend URL,
+  database engine, import batches and detailed pipeline coverage removed from
+  the beginner view. Public data counts, dates and safety boundaries retained.
+- Remaining page decisions and order are tracked in `V3_PAGE_ACCEPTANCE.md`.
+
 ## Post-security optional integrations
 
 - Decide whether to build self-service account aliases, passwords, login and
