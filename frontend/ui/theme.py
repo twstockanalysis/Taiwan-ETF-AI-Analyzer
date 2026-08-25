@@ -86,6 +86,10 @@ GLOBAL_STYLES = f"""
     font-weight: 700 !important;
 }}
 
+.st-key-public-planner-holdings [data-testid="stElementToolbar"] {{
+    display: none !important;
+}}
+
 @media (max-width: 1100px) {{
     [data-testid="stMetricValue"],
     [data-testid="stMetricValue"] > div {{

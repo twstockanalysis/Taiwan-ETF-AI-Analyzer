@@ -20,6 +20,9 @@ MONTH_PRESETS = {
 }
 TARGET_MONTHS_STATE_KEY = "public_planner_target_months"
 REINVESTMENT_POLICY_STATE_KEY = "public_planner_reinvestment_policy"
+HOLDING_ROWS_STATE_KEY = "public_planner_holding_rows"
+HOLDING_EDITOR_VERSION_STATE_KEY = "public_planner_holding_editor_version"
+HOLDING_SELECTION_COLUMN = "選取"
 DEFAULT_HISTORY_YEARS = 10
 DEFAULT_CASH_DEDUCTION_RATE_PCT = 0.0
 DEFAULT_CUSTOM_REINVESTMENT_PCT = 50.0
@@ -36,10 +39,58 @@ def empty_holding_editor_rows() -> pd.DataFrame:
 
     return pd.DataFrame(
         {
+            HOLDING_SELECTION_COLUMN: pd.Series(dtype="bool"),
             "ETF 代號": pd.Series(dtype="string"),
             "持有股數": pd.Series(dtype="Int64"),
         }
     )
+
+
+def normalize_holding_editor_rows(rows: pd.DataFrame) -> pd.DataFrame:
+    """維持庫存持股表欄位順序與明確型別。"""
+
+    normalized = rows.reindex(
+        columns=[HOLDING_SELECTION_COLUMN, "ETF 代號", "持有股數"]
+    ).copy()
+    normalized[HOLDING_SELECTION_COLUMN] = (
+        normalized[HOLDING_SELECTION_COLUMN].fillna(False).astype("bool")
+    )
+    normalized["ETF 代號"] = normalized["ETF 代號"].astype("string")
+    normalized["持有股數"] = pd.to_numeric(
+        normalized["持有股數"], errors="coerce"
+    ).astype("Int64")
+    return normalized.reset_index(drop=True)
+
+
+def add_empty_holding_row(rows: pd.DataFrame) -> pd.DataFrame:
+    """在庫存持股表加入一列空白輸入。"""
+
+    new_row = pd.DataFrame(
+        {
+            HOLDING_SELECTION_COLUMN: pd.Series([False], dtype="bool"),
+            "ETF 代號": pd.Series([pd.NA], dtype="string"),
+            "持有股數": pd.Series([pd.NA], dtype="Int64"),
+        }
+    )
+    return normalize_holding_editor_rows(
+        pd.concat([normalize_holding_editor_rows(rows), new_row], ignore_index=True)
+    )
+
+
+def remove_selected_holding_rows(rows: pd.DataFrame) -> pd.DataFrame:
+    """只刪除已明確勾選的庫存持股列。"""
+
+    normalized = normalize_holding_editor_rows(rows)
+    return normalize_holding_editor_rows(
+        normalized.loc[~normalized[HOLDING_SELECTION_COLUMN]]
+    )
+
+
+def replace_holding_rows(rows: pd.DataFrame) -> None:
+    """更新庫存持股資料並重建編輯器，避免殘留舊列狀態。"""
+
+    st.session_state[HOLDING_ROWS_STATE_KEY] = normalize_holding_editor_rows(rows)
+    st.session_state[HOLDING_EDITOR_VERSION_STATE_KEY] += 1
 
 
 def build_holding_payload(
@@ -643,57 +694,72 @@ def render_public_planner() -> None:
     st.caption("請依序選擇輸入")
 
     st.session_state.setdefault(TARGET_MONTHS_STATE_KEY, MONTH_OPTIONS)
+    st.session_state.setdefault(
+        HOLDING_ROWS_STATE_KEY,
+        add_empty_holding_row(empty_holding_editor_rows()),
+    )
+    st.session_state.setdefault(HOLDING_EDITOR_VERSION_STATE_KEY, 0)
 
-    with st.form("public_cash_flow_planner", enter_to_submit=False):
-        st.subheader("1. 每個目標月想領多少股利（TWD）")
-        target_cash = st.number_input(
-            "每個目標月想領多少股利（TWD）",
-            min_value=0,
-            value=3000,
-            step=500,
-            label_visibility="collapsed",
-        )
+    st.subheader("1. 每個目標月想領多少股利（TWD）")
+    target_cash = st.number_input(
+        "每個目標月想領多少股利（TWD）",
+        min_value=0,
+        value=3000,
+        step=500,
+        label_visibility="collapsed",
+    )
 
-        st.subheader("2. 領息月份")
-        with st.container(horizontal=True):
-            for preset_label, preset_months in MONTH_PRESETS.items():
-                st.form_submit_button(
-                    preset_label,
-                    type="secondary",
-                    on_click=apply_month_preset,
-                    args=(preset_months,),
-                )
-        selected_months = st.pills(
-            "領息月份",
-            options=MONTH_OPTIONS,
-            selection_mode="multi",
-            format_func=lambda month: f"{month} 月",
-            key=TARGET_MONTHS_STATE_KEY,
-            label_visibility="collapsed",
-            width="stretch",
-        )
+    st.subheader("2. 領息月份")
+    with st.container(horizontal=True):
+        for preset_label, preset_months in MONTH_PRESETS.items():
+            st.button(
+                preset_label,
+                type="secondary",
+                on_click=apply_month_preset,
+                args=(preset_months,),
+                key=f"public_planner_month_preset_{preset_label}",
+            )
+    selected_months = st.pills(
+        "領息月份",
+        options=MONTH_OPTIONS,
+        selection_mode="multi",
+        format_func=lambda month: f"{month} 月",
+        key=TARGET_MONTHS_STATE_KEY,
+        label_visibility="collapsed",
+        width="stretch",
+    )
 
-        st.subheader("3. 想持有年限")
-        projection_years = st.number_input(
-            "想持有年限",
-            min_value=1,
-            max_value=20,
-            value=10,
-            step=1,
-            label_visibility="collapsed",
-        )
+    st.subheader("3. 想持有年限")
+    projection_years = st.number_input(
+        "想持有年限",
+        min_value=1,
+        max_value=20,
+        value=10,
+        step=1,
+        label_visibility="collapsed",
+    )
 
-        st.subheader("4. 庫存ETF持股 (可留空)")
-        st.caption(
-            "請輸入代號＋股數，價格自動擷取最新收盤價，非即時報價；"
-            "若在盤中，則為前一日收盤價。"
-        )
+    st.subheader("4. 庫存ETF持股 (可留空)")
+    st.caption(
+        "請輸入代號＋股數，價格自動擷取最新收盤價，非即時報價；"
+        "若在盤中，則為前一日收盤價。"
+    )
+    holding_actions = st.container(horizontal=True)
+    editor_version = st.session_state[HOLDING_EDITOR_VERSION_STATE_KEY]
+    with st.container(key="public-planner-holdings"):
         edited_holdings = st.data_editor(
-            empty_holding_editor_rows(),
-            num_rows="dynamic",
+            st.session_state[HOLDING_ROWS_STATE_KEY],
+            num_rows="fixed",
             hide_index=True,
-            key="public_planner_holding_editor",
+            key=f"public_planner_holding_editor_{editor_version}",
+            column_order=[HOLDING_SELECTION_COLUMN, "ETF 代號", "持有股數"],
             column_config={
+                HOLDING_SELECTION_COLUMN: st.column_config.CheckboxColumn(
+                    "選取",
+                    help="先勾選要刪除的持股",
+                    default=False,
+                    width="small",
+                ),
                 "ETF 代號": st.column_config.TextColumn(
                     "ETF 代號",
                     help="限本網站收錄的台灣 ETF 代號",
@@ -708,59 +774,85 @@ def render_public_planner() -> None:
             },
         )
 
-        st.subheader("5. 股息再投入與否")
-        reinvestment_policy_label = st.segmented_control(
-            "股息再投入與否",
-            ["不再投入", "全部再投入"],
-            default="不再投入",
-            selection_mode="single",
-            label_visibility="collapsed",
-            key="public_planner_reinvestment_choice",
-        ) or "不再投入"
-
-        with st.expander("稅務與再投入假設（可調整）"):
-            st.caption(
-                "若不調整，系統會依合併計稅、5% 所得稅率及需要估算二代健保，"
-                "直接算出可能的所得稅與二代健保金額。"
-            )
-            tax_method_label = st.segmented_control(
-                "股利計稅方式",
-                ["合併計稅並試算抵減", "股利 28% 分開計稅"],
-                default="合併計稅並試算抵減",
-            ) or "合併計稅並試算抵減"
-            advanced_columns = st.columns(3)
-            with advanced_columns[0]:
-                marginal_tax_rate = st.number_input(
-                    "預估個人所得稅率（%）",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=5.0,
-                    step=1.0,
-                    disabled=tax_method_label == "股利 28% 分開計稅",
-                )
-            with advanced_columns[1]:
-                remaining_credit_cap = st.number_input(
-                    "今年剩餘股利抵減上限（TWD）",
-                    min_value=0.0,
-                    max_value=80000.0,
-                    value=80000.0,
-                    step=1000.0,
-                    disabled=tax_method_label == "股利 28% 分開計稅",
-                )
-                other_income_tax_rate = st.number_input(
-                    "其他配息組成稅率（%）",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=0.0,
-                    step=1.0,
-                )
-            with advanced_columns[2]:
-                premium_exempt = st.checkbox("不估算二代健保", value=False)
-        submitted = st.form_submit_button(
-            "產生配置結果",
-            type="primary",
-            icon=":material/calculate:",
+    selected_holding_count = int(
+        edited_holdings[HOLDING_SELECTION_COLUMN].fillna(False).sum()
+    )
+    with holding_actions:
+        add_holding_clicked = st.button(
+            "新增持股",
+            icon=":material/add:",
+            key="public_planner_add_holding",
         )
+        delete_holdings_clicked = False
+        if selected_holding_count:
+            delete_holdings_clicked = st.button(
+                f"刪除已選取（{selected_holding_count}）",
+                icon=":material/delete:",
+                type="secondary",
+                key="public_planner_delete_holdings",
+            )
+
+    if add_holding_clicked:
+        replace_holding_rows(add_empty_holding_row(edited_holdings))
+        st.rerun()
+    if delete_holdings_clicked:
+        replace_holding_rows(remove_selected_holding_rows(edited_holdings))
+        st.rerun()
+
+    st.subheader("5. 股息再投入與否")
+    reinvestment_policy_label = st.segmented_control(
+        "股息再投入與否",
+        ["不再投入", "全部再投入"],
+        default="不再投入",
+        selection_mode="single",
+        label_visibility="collapsed",
+        key="public_planner_reinvestment_choice",
+    ) or "不再投入"
+
+    with st.expander("稅務與再投入假設（可調整）"):
+        st.caption(
+            "若不調整，系統會依合併計稅、5% 所得稅率及需要估算二代健保，"
+            "直接算出可能的所得稅與二代健保金額。"
+        )
+        tax_method_label = st.segmented_control(
+            "股利計稅方式",
+            ["合併計稅並試算抵減", "股利 28% 分開計稅"],
+            default="合併計稅並試算抵減",
+        ) or "合併計稅並試算抵減"
+        advanced_columns = st.columns(3)
+        with advanced_columns[0]:
+            marginal_tax_rate = st.number_input(
+                "預估個人所得稅率（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=5.0,
+                step=1.0,
+                disabled=tax_method_label == "股利 28% 分開計稅",
+            )
+        with advanced_columns[1]:
+            remaining_credit_cap = st.number_input(
+                "今年剩餘股利抵減上限（TWD）",
+                min_value=0.0,
+                max_value=80000.0,
+                value=80000.0,
+                step=1000.0,
+                disabled=tax_method_label == "股利 28% 分開計稅",
+            )
+            other_income_tax_rate = st.number_input(
+                "其他配息組成稅率（%）",
+                min_value=0.0,
+                max_value=100.0,
+                value=0.0,
+                step=1.0,
+            )
+        with advanced_columns[2]:
+            premium_exempt = st.checkbox("不估算二代健保", value=False)
+    submitted = st.button(
+        "產生配置結果",
+        type="primary",
+        icon=":material/calculate:",
+        key="public_planner_submit",
+    )
 
     if submitted:
         selected_reinvestment_policy = (

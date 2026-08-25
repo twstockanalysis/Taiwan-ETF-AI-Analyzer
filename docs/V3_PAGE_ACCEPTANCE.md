@@ -22,6 +22,8 @@ data remains distinct from zero, and public safety boundaries remain visible.
 - Steps 1 through 5 use the same prominent heading level.
 - Holdings remain optional and only require ETF code plus integer units; the
   latest stored official close is supplied by the system.
+- Holding deletion requires selecting a row first; the delete action only
+  appears after selection, and the editor toolbar is hidden on this input table.
 - Month pills remain individually selectable, with every-month, odd-month and
   even-month shortcuts.
 - Dividend reinvestment is a separate choice between cash use and full

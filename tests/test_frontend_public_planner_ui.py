@@ -6,6 +6,7 @@ from inspect import getsource
 from streamlit.testing.v1 import AppTest
 
 from frontend.pages.public_planner import MONTH_OPTIONS, render_public_planner
+from frontend.ui.theme import GLOBAL_STYLES
 
 
 PLANNER_PAGE_SCRIPT = """
@@ -49,7 +50,14 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
         )
         self.assertIn('st.pills(', source)
         self.assertIn('selection_mode="multi"', source)
-        self.assertIn('enter_to_submit=False', source)
+        self.assertNotIn('st.form(', source)
+        self.assertNotIn('st.form_submit_button(', source)
+        self.assertIn('num_rows="fixed"', source)
+        self.assertIn('CheckboxColumn(', source)
+        self.assertIn(
+            '.st-key-public-planner-holdings [data-testid="stElementToolbar"]',
+            GLOBAL_STYLES,
+        )
 
         captions = [item.value for item in app.caption]
         self.assertIn(
@@ -67,6 +75,14 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
 
         self.assertEqual(len(app.exception), 0)
         self.assertEqual(app.pills[0].value, [1, 3, 5, 7, 9, 11])
+
+    def test_delete_action_is_hidden_until_a_holding_is_selected(self) -> None:
+        app = AppTest.from_string(PLANNER_PAGE_SCRIPT, default_timeout=10)
+        app.run()
+
+        button_labels = [item.label for item in app.button]
+        self.assertIn("新增持股", button_labels)
+        self.assertNotIn("刪除已選取（1）", button_labels)
 
     def test_technical_allocation_inputs_are_not_exposed(self) -> None:
         app = AppTest.from_string(PLANNER_PAGE_SCRIPT, default_timeout=10)

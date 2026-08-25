@@ -5,6 +5,8 @@ import unittest
 import pandas as pd
 
 from frontend.pages.public_planner import (
+    HOLDING_SELECTION_COLUMN,
+    add_empty_holding_row,
     build_addition_rows,
     build_allocation_month_rows,
     build_holding_payload,
@@ -12,6 +14,7 @@ from frontend.pages.public_planner import (
     build_monthly_rows,
     build_scenario_chart_rows,
     empty_holding_editor_rows,
+    remove_selected_holding_rows,
 )
 
 
@@ -22,6 +25,22 @@ class TestFrontendPublicPlanner(unittest.TestCase):
         self.assertEqual(str(rows["ETF 代號"].dtype), "string")
         self.assertEqual(str(rows["持有股數"].dtype), "Int64")
         self.assertEqual(build_holding_payload(rows), ([], []))
+
+    def test_holding_rows_require_selection_before_delete(self) -> None:
+        rows = add_empty_holding_row(empty_holding_editor_rows())
+        rows.loc[0, "ETF 代號"] = "0050"
+        rows.loc[0, "持有股數"] = 100
+        rows = add_empty_holding_row(rows)
+        rows.loc[1, "ETF 代號"] = "0056"
+        rows.loc[1, "持有股數"] = 200
+
+        untouched = remove_selected_holding_rows(rows)
+        self.assertEqual(untouched["ETF 代號"].tolist(), ["0050", "0056"])
+
+        rows.loc[0, HOLDING_SELECTION_COLUMN] = True
+        remaining = remove_selected_holding_rows(rows)
+        self.assertEqual(remaining["ETF 代號"].tolist(), ["0056"])
+        self.assertFalse(remaining[HOLDING_SELECTION_COLUMN].any())
 
     def test_holding_payload_normalizes_and_rejects_duplicates(self) -> None:
         rows = pd.DataFrame(
