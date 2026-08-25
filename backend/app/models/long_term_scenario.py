@@ -64,6 +64,9 @@ class LongTermScenarioBand(PublicPlannerBaseModel):
     calculation_basis: Literal["COMPOUNDED_TOTAL_RETURN_INDEX"] = (
         "COMPOUNDED_TOTAL_RETURN_INDEX"
     )
+    return_basis: Literal["GROSS_BEFORE_PORTFOLIO_TAX"] = (
+        "GROSS_BEFORE_PORTFOLIO_TAX"
+    )
     index_points: list[ScenarioIndexPoint] = Field(min_length=11, max_length=11)
 
 

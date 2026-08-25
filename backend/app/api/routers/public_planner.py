@@ -24,6 +24,11 @@ from backend.app.models.long_term_scenario import (
     LongTermScenarioResponse,
 )
 from backend.app.services.long_term_scenario import build_long_term_scenarios
+from backend.app.models.portfolio_projection import (
+    PortfolioProjectionRequest,
+    PortfolioProjectionResponse,
+)
+from backend.app.services.portfolio_projection import build_portfolio_projections
 from backend.app.services.integer_allocation import build_integer_allocation
 from backend.app.services.market_eligibility_index import (
     build_market_eligibility_index,
@@ -121,6 +126,25 @@ def create_long_term_scenarios(
 ) -> LongTermScenarioResponse:
     try:
         return build_long_term_scenarios(request, database_path)
+    except LookupError as error:
+        code = str(error.args[0]).strip().upper()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到 ETF：{code}",
+        ) from error
+
+
+@router.post(
+    "/portfolio-projections",
+    response_model=PortfolioProjectionResponse,
+    summary="建立整體組合 1 至 20 年稅務與再投入情境",
+)
+def create_portfolio_projections(
+    request: PortfolioProjectionRequest,
+    database_path: Path = Depends(get_database_path),
+) -> PortfolioProjectionResponse:
+    try:
+        return build_portfolio_projections(request, database_path)
     except LookupError as error:
         code = str(error.args[0]).strip().upper()
         raise HTTPException(

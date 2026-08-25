@@ -198,6 +198,39 @@ class TestLongTermScenario(unittest.TestCase):
         self.assertEqual(available.status, "UNAVAILABLE")
         self.assertIn("MISSING_PAYMENT_DATE", {item.code for item in available.issues})
 
+    @patch("backend.app.services.long_term_scenario.build_allocation_results")
+    def test_forward_bands_are_gross_before_portfolio_tax(
+        self,
+        build_results,
+    ) -> None:
+        allocation = self._allocation_results()
+        allocation.plans[0].result.assumptions.cash_deduction_rate_pct = Decimal("50")
+        build_results.return_value = allocation
+
+        response = build_long_term_scenarios(
+            LongTermScenarioRequest(
+                target_after_tax_cash_twd=100,
+                target_months=[1],
+                existing_holdings=[],
+                cash_deduction_rate_pct=50,
+            ),
+            self.database_path,
+            as_of_date=date(2026, 1, 3),
+        )
+
+        evidence = response.plan_evidence[0]
+        self.assertTrue(evidence.scenarios)
+        self.assertTrue(
+            all(
+                scenario.return_basis == "GROSS_BEFORE_PORTFOLIO_TAX"
+                for scenario in evidence.scenarios
+            )
+        )
+        self.assertEqual(
+            evidence.historical_periods[0].after_deduction_distributions,
+            Decimal("400.00"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

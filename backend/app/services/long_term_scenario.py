@@ -344,7 +344,9 @@ def _plan_evidence(
                 target_end=common_end,
             )
         )
-    annual_returns = _annual_observations(histories, deduction_rate)
+    # The forward-looking bands are gross total-return observations.  V3-6
+    # applies portfolio tax and supplementary premium once, during projection.
+    annual_returns = _annual_observations(histories, Decimal("0"))
     issues = list(load_issues)
     if histories:
         issues.append(

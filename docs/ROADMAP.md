@@ -1131,6 +1131,22 @@ Delivered:
 - Reconfirm the applicable treatment of official `54C` and `76W` against the
   then-current rules before implementing the portfolio tax model
 
+Delivered:
+
+- Added public stateless `POST /api/v1/allocation-plans/portfolio-projections`
+  and retained the aligned V3-5 allocation and historical evidence
+- Added 1-to-20-year conservative, base and optimistic portfolio projections,
+  each with spend, excess-only, custom-percentage and full-reinvestment results
+- Estimated dividend-related individual income tax and supplementary NHI once
+  for the complete resulting portfolio, with explicit user tax assumptions
+- Preserved ACTUAL and ESTIMATED component provenance, formal zero values and
+  unavailable states; estimated capital gain is never labeled official `76W`
+- Changed forward scenario observations to gross-before-portfolio-tax and kept
+  reinvested distributions as internal cash flow to prevent double counting
+- Added a beginner-facing public result table and chart without legal text,
+  internal quality scores, confidence labels or persisted inputs
+- Evidence: `V3_PORTFOLIO_TAX_REINVESTMENT_CONTRACT.md`
+
 ### V3-7 — Optional accounts and imports after core acceptance
 
 - Evaluate account isolation and portfolio import only after the public
