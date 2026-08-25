@@ -12,15 +12,9 @@ from frontend.ui.formatters import format_number
 from frontend.ui.states import loading_state, render_api_error
 
 
-MONTH_PRESETS: dict[str, list[int] | None] = {
-    "每月": list(range(1, 13)),
-    "單數月": [1, 3, 5, 7, 9, 11],
-    "雙數月": [2, 4, 6, 8, 10, 12],
-    "季領（3、6、9、12 月）": [3, 6, 9, 12],
-    "半年領（6、12 月）": [6, 12],
-    "年領（12 月）": [12],
-    "自訂": None,
-}
+MONTH_OPTIONS = list(range(1, 13))
+DEFAULT_HISTORY_YEARS = 10
+DEFAULT_CASH_DEDUCTION_RATE_PCT = 0.0
 
 
 def empty_holding_editor_rows() -> pd.DataFrame:
@@ -333,7 +327,6 @@ def render_allocation_results(payload: dict[str, Any]) -> str:
     assumptions = result.get("assumptions", {})
     st.caption(
         f"參考資料快照：{result.get('snapshot_id', '未提供')}。"
-        f"現金扣除率 {assumptions.get('cash_deduction_rate_pct', 0)}%；"
         f"{assumptions.get('transaction_cost_note', '交易成本假設未提供')}"
     )
 
@@ -423,8 +416,7 @@ def render_long_term_evidence(payload: dict[str, Any], strategy: str) -> None:
     )
     st.subheader("長期歷史與十年情境")
     st.caption(
-        "以上方配置後的整數股數回算；歷史配息不再投入，"
-        "且使用你輸入的現金扣除率。"
+        "以上方配置後的整數股數回算；歷史配息不再投入。"
     )
     st.dataframe(build_historical_evidence_rows(evidence), hide_index=True)
     has_available_history = any(
@@ -617,102 +609,32 @@ def render_portfolio_projection(payload: dict[str, Any], strategy: str) -> None:
 def render_public_planner() -> None:
     """Render the public, stateless V3-1 planning flow."""
 
-    st.title("現金流配置試算")
-    st.caption(
-        "從每月可用現金目標、想領息的月份與 0～N 檔現有持股開始。"
-        "輸入與結果不會寫入資料庫，也不連接券商或送出交易。"
-    )
-
-    preset_name = st.selectbox("領息月份方式", options=list(MONTH_PRESETS))
-    custom_months: list[int] = []
-    if MONTH_PRESETS[preset_name] is None:
-        custom_months = st.multiselect(
-            "選擇領息月份",
-            options=list(range(1, 13)),
-            format_func=lambda month: f"{month} 月",
-            placeholder="至少選擇一個月份",
-        )
+    st.title("股利試算")
+    st.caption("請依序選擇輸入")
 
     with st.form("public_cash_flow_planner"):
-        input_columns = st.columns(3)
-        with input_columns[0]:
-            target_cash = st.number_input(
-                "每個目標月的可用現金目標（TWD）",
-                min_value=0.0,
-                value=3000.0,
-                step=500.0,
-            )
-        with input_columns[1]:
-            history_years = st.number_input(
-                "歷史配息年數",
-                min_value=1,
-                max_value=10,
-                value=3,
-                step=1,
-            )
-        with input_columns[2]:
-            deduction_rate = st.number_input(
-                "配置階段現金扣除率（%）",
-                min_value=0.0,
-                max_value=100.0,
-                value=0.0,
-                step=1.0,
-                help="只用於判斷現金流目標；下方長期試算會另外估算整體組合稅務。",
-            )
-
-        st.markdown("#### 長期與稅務試算")
-        scenario_columns = st.columns(4)
-        with scenario_columns[0]:
-            projection_years = st.number_input(
-                "試算年數",
-                min_value=1,
-                max_value=20,
-                value=10,
-                step=1,
-            )
-        with scenario_columns[1]:
-            tax_method_label = st.selectbox(
-                "股利計稅方式",
-                ["合併計稅並試算抵減", "股利 28% 分開計稅"],
-            )
-        with scenario_columns[2]:
-            marginal_tax_rate = st.number_input(
-                "個人所得稅率（%）",
-                min_value=0.0,
-                max_value=100.0,
-                value=5.0,
-                step=1.0,
-                disabled=tax_method_label == "股利 28% 分開計稅",
-            )
-        with scenario_columns[3]:
-            custom_reinvestment_pct = st.number_input(
-                "按比例投入（%）",
-                min_value=0.0,
-                max_value=100.0,
-                value=50.0,
-                step=5.0,
-            )
-        with st.expander("其他試算設定"):
-            advanced_columns = st.columns(3)
-            with advanced_columns[0]:
-                remaining_credit_cap = st.number_input(
-                    "今年剩餘股利抵減上限（TWD）",
-                    min_value=0.0,
-                    max_value=80000.0,
-                    value=80000.0,
-                    step=1000.0,
-                    disabled=tax_method_label == "股利 28% 分開計稅",
-                )
-            with advanced_columns[1]:
-                other_income_tax_rate = st.number_input(
-                    "其他配息組成稅率（%）",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=0.0,
-                    step=1.0,
-                )
-            with advanced_columns[2]:
-                premium_exempt = st.checkbox("不估算二代健保", value=False)
+        target_cash = st.number_input(
+            "1. 每個目標月想領多少股利（TWD）",
+            min_value=0,
+            value=3000,
+            step=500,
+        )
+        selected_months = st.pills(
+            "2. 領息月份",
+            options=MONTH_OPTIONS,
+            default=MONTH_OPTIONS,
+            selection_mode="multi",
+            format_func=lambda month: f"{month} 月",
+            key="public_planner_target_months",
+            width="stretch",
+        )
+        projection_years = st.number_input(
+            "3. 想持有年限",
+            min_value=1,
+            max_value=20,
+            value=10,
+            step=1,
+        )
 
         st.markdown("#### 現有持股（可留空）")
         st.caption(
@@ -738,6 +660,52 @@ def render_public_planner() -> None:
                 ),
             },
         )
+
+        with st.expander("稅務與再投入假設（可調整）"):
+            st.caption(
+                "若不調整，系統會依合併計稅、5% 所得稅率及需要估算二代健保，"
+                "直接算出可能的所得稅與二代健保金額。"
+            )
+            tax_method_label = st.segmented_control(
+                "股利計稅方式",
+                ["合併計稅並試算抵減", "股利 28% 分開計稅"],
+                default="合併計稅並試算抵減",
+            ) or "合併計稅並試算抵減"
+            advanced_columns = st.columns(3)
+            with advanced_columns[0]:
+                marginal_tax_rate = st.number_input(
+                    "預估個人所得稅率（%）",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=5.0,
+                    step=1.0,
+                    disabled=tax_method_label == "股利 28% 分開計稅",
+                )
+                custom_reinvestment_pct = st.number_input(
+                    "按比例投入（%）",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=50.0,
+                    step=5.0,
+                )
+            with advanced_columns[1]:
+                remaining_credit_cap = st.number_input(
+                    "今年剩餘股利抵減上限（TWD）",
+                    min_value=0.0,
+                    max_value=80000.0,
+                    value=80000.0,
+                    step=1000.0,
+                    disabled=tax_method_label == "股利 28% 分開計稅",
+                )
+                other_income_tax_rate = st.number_input(
+                    "其他配息組成稅率（%）",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=0.0,
+                    step=1.0,
+                )
+            with advanced_columns[2]:
+                premium_exempt = st.checkbox("不估算二代健保", value=False)
         submitted = st.form_submit_button(
             "產生配置結果",
             type="primary",
@@ -745,9 +713,6 @@ def render_public_planner() -> None:
         )
 
     if submitted:
-        selected_months = MONTH_PRESETS[preset_name]
-        if selected_months is None:
-            selected_months = custom_months
         holdings, errors = build_holding_payload(edited_holdings)
         if not selected_months:
             errors.append("請至少選擇一個領息月份。")
@@ -764,8 +729,10 @@ def render_public_planner() -> None:
                             "target_after_tax_cash_twd": target_cash,
                             "target_months": selected_months,
                             "existing_holdings": holdings,
-                            "history_years": int(history_years),
-                            "cash_deduction_rate_pct": deduction_rate,
+                            "history_years": DEFAULT_HISTORY_YEARS,
+                            "cash_deduction_rate_pct": (
+                                DEFAULT_CASH_DEDUCTION_RATE_PCT
+                            ),
                             "currency": "TWD",
                             "projection_years": int(projection_years),
                             "custom_reinvestment_pct": custom_reinvestment_pct,
@@ -783,7 +750,7 @@ def render_public_planner() -> None:
                         },
                     )
             except (APIClientError, ValueError) as error:
-                render_api_error("無法完成公開現金流試算。", error)
+                render_api_error("無法完成股利試算。", error)
             else:
                 st.session_state["public_portfolio_projections"] = result
 

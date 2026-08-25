@@ -195,6 +195,20 @@ It shows:
 
 The homepage does not request operational data.
 
+### Dividend Planner
+
+The public `cash-flow-planner` route is titled `股利試算`. Its primary form
+asks, in order, for an integer target amount, one or more payment months, the
+intended holding period and optional current holdings. Month selection uses
+native pills, so all twelve months remain visible without dropdown keyboard
+instructions.
+
+The frontend automatically requests the longest supported ten-year dividend
+lookback and applies no separate allocation-stage cash deduction. Portfolio tax
+and supplementary-premium estimates are generated with the main result. Default
+tax assumptions remain transparent and can be adjusted in a collapsed advanced
+section.
+
 ### Website Administration
 
 The owner-unlocked page reads:

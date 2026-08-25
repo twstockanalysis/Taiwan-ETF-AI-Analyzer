@@ -7,7 +7,7 @@ data remains distinct from zero, and public safety boundaries remain visible.
 | Order | Page | Primary task | Initial audit | Status |
 | ---: | --- | --- | --- | --- |
 | 1 | Home | Start a cash-flow allocation or choose a simple ETF exploration path | Core planner was absent from the home entry cards; API URL, database type, import batches and technical coverage dominated the page | Revised, awaiting owner review |
-| 2 | Cash-flow planner | Enter target, months and 0-N holdings; understand allocation, capital, risks and long-term outcomes | Core function exists, but the single long form and result depth need progressive-disclosure review | Pending |
+| 2 | Dividend planner | Enter target, months, holding years and 0-N holdings; receive allocation, capital and tax estimates | Technical history and cash-deduction inputs obscured the beginner flow; tax assumptions dominated the primary row | Revised, awaiting owner review |
 | 3 | ETF detail | Understand one ETF's identity, performance, distributions, composition and risks | Target analysis and single-ETF tax forms overlap with the public portfolio planner and may need relocation or reduction | Pending |
 | 4 | ETF comparison | Compare 2-4 ETFs on decision-relevant facts | Monthly-gap solver overlaps with automatic allocation; input and result fields need review | Pending |
 | 5 | ETF search | Find an ETF and continue to detail or comparison | Filters and row fields need beginner relevance review | Pending |

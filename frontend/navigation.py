@@ -61,7 +61,7 @@ ETF_COMPARISON_ROUTE = PageRoute(
 
 PUBLIC_PLANNER_ROUTE = PageRoute(
     key="public-planner",
-    title="現金流配置試算",
+    title="股利試算",
     icon=":material/calculate:",
     url_path="cash-flow-planner",
 )
