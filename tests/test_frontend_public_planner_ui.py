@@ -55,6 +55,8 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
         self.assertIn('num_rows="fixed"', source)
         self.assertIn('width="content"', source)
         self.assertIn('CheckboxColumn(', source)
+        self.assertIn('st.expander("稅務假設（可調整）")', source)
+        self.assertNotIn("稅務與再投入假設", source)
         self.assertIn(
             '.st-key-public-planner-holdings [data-testid="stElementToolbar"]',
             GLOBAL_STYLES,

@@ -857,7 +857,7 @@ def render_public_planner() -> None:
         key="public_planner_reinvestment_choice",
     ) or "不再投入"
 
-    with st.expander("稅務與再投入假設（可調整）"):
+    with st.expander("稅務假設（可調整）"):
         st.caption(
             "若不調整，系統會依合併計稅、5% 所得稅率及需要估算二代健保，"
             "直接算出可能的所得稅與二代健保金額。"
