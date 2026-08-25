@@ -53,11 +53,14 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
         self.assertNotIn('st.form(', source)
         self.assertNotIn('st.form_submit_button(', source)
         self.assertIn('num_rows="fixed"', source)
+        self.assertIn('width="content"', source)
         self.assertIn('CheckboxColumn(', source)
         self.assertIn(
             '.st-key-public-planner-holdings [data-testid="stElementToolbar"]',
             GLOBAL_STYLES,
         )
+        self.assertIn('button[aria-label*="column menu" i]', GLOBAL_STYLES)
+        self.assertGreater(source.index('"新增持股"'), source.index("st.data_editor("))
 
         captions = [item.value for item in app.caption]
         self.assertIn(

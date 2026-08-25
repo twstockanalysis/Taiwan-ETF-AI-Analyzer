@@ -14,7 +14,9 @@ from frontend.pages.public_planner import (
     build_monthly_rows,
     build_scenario_chart_rows,
     empty_holding_editor_rows,
+    merge_holding_editor_changes,
     remove_selected_holding_rows,
+    sort_holding_editor_rows,
 )
 
 
@@ -41,6 +43,43 @@ class TestFrontendPublicPlanner(unittest.TestCase):
         remaining = remove_selected_holding_rows(rows)
         self.assertEqual(remaining["ETF 代號"].tolist(), ["0056"])
         self.assertFalse(remaining[HOLDING_SELECTION_COLUMN].any())
+
+    def test_holding_rows_sort_by_etf_code_and_keep_blank_rows_last(self) -> None:
+        rows = pd.DataFrame(
+            {
+                HOLDING_SELECTION_COLUMN: [False, False, False],
+                "ETF 代號": ["00878", pd.NA, " 0050 "],
+                "持有股數": [100, pd.NA, 200],
+            }
+        )
+
+        sorted_rows = sort_holding_editor_rows(rows)
+
+        self.assertEqual(
+            sorted_rows["ETF 代號"].dropna().tolist(), ["0050", "00878"]
+        )
+        self.assertTrue(pd.isna(sorted_rows.iloc[-1]["ETF 代號"]))
+
+    def test_editor_changes_are_merged_before_automatic_sorting(self) -> None:
+        rows = pd.DataFrame(
+            {
+                HOLDING_SELECTION_COLUMN: [False, False],
+                "ETF 代號": ["00878", pd.NA],
+                "持有股數": [100, pd.NA],
+            }
+        )
+
+        merged = merge_holding_editor_changes(
+            rows,
+            {
+                0: {HOLDING_SELECTION_COLUMN: True},
+                1: {"ETF 代號": "0050", "持有股數": 200},
+            },
+        )
+
+        self.assertEqual(merged["ETF 代號"].tolist(), ["0050", "00878"])
+        self.assertEqual(merged["持有股數"].tolist(), [200, 100])
+        self.assertEqual(merged[HOLDING_SELECTION_COLUMN].tolist(), [False, True])
 
     def test_holding_payload_normalizes_and_rejects_duplicates(self) -> None:
         rows = pd.DataFrame(

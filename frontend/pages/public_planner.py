@@ -62,6 +62,20 @@ def normalize_holding_editor_rows(rows: pd.DataFrame) -> pd.DataFrame:
     return normalized.reset_index(drop=True)
 
 
+def sort_holding_editor_rows(rows: pd.DataFrame) -> pd.DataFrame:
+    """依 ETF 代號排序，尚未輸入代號的空白列固定放在最後。"""
+
+    normalized = normalize_holding_editor_rows(rows)
+    codes = normalized["ETF 代號"].fillna("").str.strip().str.upper()
+    normalized["ETF 代號"] = codes.mask(codes.eq(""), pd.NA).astype("string")
+    return (
+        normalized.assign(_is_blank=codes.eq(""), _code_sort=codes)
+        .sort_values(["_is_blank", "_code_sort"], kind="stable")
+        .drop(columns=["_is_blank", "_code_sort"])
+        .reset_index(drop=True)
+    )
+
+
 def add_empty_holding_row(rows: pd.DataFrame) -> pd.DataFrame:
     """在庫存持股表加入一列空白輸入。"""
 
@@ -89,8 +103,36 @@ def remove_selected_holding_rows(rows: pd.DataFrame) -> pd.DataFrame:
 def replace_holding_rows(rows: pd.DataFrame) -> None:
     """更新庫存持股資料並重建編輯器，避免殘留舊列狀態。"""
 
-    st.session_state[HOLDING_ROWS_STATE_KEY] = normalize_holding_editor_rows(rows)
+    st.session_state[HOLDING_ROWS_STATE_KEY] = sort_holding_editor_rows(rows)
     st.session_state[HOLDING_EDITOR_VERSION_STATE_KEY] += 1
+
+
+def merge_holding_editor_changes(
+    rows: pd.DataFrame, edited_rows: dict[int | str, dict[str, Any]]
+) -> pd.DataFrame:
+    """將 Streamlit 編輯器的列級異動合併回明確型別資料。"""
+
+    merged = normalize_holding_editor_rows(rows)
+    for row_index, changes in edited_rows.items():
+        index = int(row_index)
+        if not 0 <= index < len(merged):
+            continue
+        for column, value in changes.items():
+            if column in merged.columns:
+                merged.at[index, column] = value
+    return sort_holding_editor_rows(merged)
+
+
+def apply_holding_editor_changes(editor_key: str) -> None:
+    """套用本次儲存格異動，並在完成輸入後重排 ETF 代號。"""
+
+    editor_state = st.session_state.get(editor_key, {})
+    replace_holding_rows(
+        merge_holding_editor_changes(
+            st.session_state[HOLDING_ROWS_STATE_KEY],
+            editor_state.get("edited_rows", {}),
+        )
+    )
 
 
 def build_holding_payload(
@@ -744,32 +786,38 @@ def render_public_planner() -> None:
         "請輸入代號＋股數，價格自動擷取最新收盤價，非即時報價；"
         "若在盤中，則為前一日收盤價。"
     )
-    holding_actions = st.container(horizontal=True)
     editor_version = st.session_state[HOLDING_EDITOR_VERSION_STATE_KEY]
+    holding_editor_key = f"public_planner_holding_editor_{editor_version}"
     with st.container(key="public-planner-holdings"):
         edited_holdings = st.data_editor(
             st.session_state[HOLDING_ROWS_STATE_KEY],
             num_rows="fixed",
             hide_index=True,
-            key=f"public_planner_holding_editor_{editor_version}",
+            key=holding_editor_key,
+            on_change=apply_holding_editor_changes,
+            args=(holding_editor_key,),
+            width="content",
             column_order=[HOLDING_SELECTION_COLUMN, "ETF 代號", "持有股數"],
             column_config={
                 HOLDING_SELECTION_COLUMN: st.column_config.CheckboxColumn(
                     "選取",
                     help="先勾選要刪除的持股",
                     default=False,
-                    width="small",
+                    width=75,
+                    pinned=True,
                 ),
                 "ETF 代號": st.column_config.TextColumn(
                     "ETF 代號",
                     help="限本網站收錄的台灣 ETF 代號",
                     max_chars=10,
+                    width=160,
                 ),
                 "持有股數": st.column_config.NumberColumn(
                     "持有股數",
                     min_value=1,
                     step=1,
                     format="%d",
+                    width=140,
                 ),
             },
         )
@@ -777,7 +825,7 @@ def render_public_planner() -> None:
     selected_holding_count = int(
         edited_holdings[HOLDING_SELECTION_COLUMN].fillna(False).sum()
     )
-    with holding_actions:
+    with st.container(horizontal=True):
         add_holding_clicked = st.button(
             "新增持股",
             icon=":material/add:",

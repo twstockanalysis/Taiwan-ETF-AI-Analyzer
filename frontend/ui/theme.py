@@ -90,6 +90,12 @@ GLOBAL_STYLES = f"""
     display: none !important;
 }}
 
+.st-key-public-planner-holdings button[aria-label*="column menu" i],
+.st-key-public-planner-holdings button[aria-label*="欄位選單" i],
+.st-key-public-planner-holdings .gdg-header-menu-button {{
+    display: none !important;
+}}
+
 @media (max-width: 1100px) {{
     [data-testid="stMetricValue"],
     [data-testid="stMetricValue"] > div {{
