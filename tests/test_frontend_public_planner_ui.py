@@ -35,6 +35,8 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
         )
         self.assertEqual(app.number_input[0].value, 3000)
         self.assertEqual(app.number_input[1].value, 10)
+        monthly_button = next(item for item in app.button if item.label == "每月")
+        self.assertEqual(monthly_button.proto.type, "primary")
 
         source = getsource(render_public_planner)
         self.assertEqual(MONTH_OPTIONS, list(range(1, 13)))
@@ -80,6 +82,10 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
 
         self.assertEqual(len(app.exception), 0)
         self.assertEqual(app.pills[0].value, [1, 3, 5, 7, 9, 11])
+        monthly_button = next(item for item in app.button if item.label == "每月")
+        odd_button = next(item for item in app.button if item.label == "單數月")
+        self.assertEqual(monthly_button.proto.type, "secondary")
+        self.assertEqual(odd_button.proto.type, "primary")
 
     def test_delete_action_is_hidden_until_a_holding_is_selected(self) -> None:
         app = AppTest.from_string(PLANNER_PAGE_SCRIPT, default_timeout=10)

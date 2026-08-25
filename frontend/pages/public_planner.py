@@ -754,9 +754,12 @@ def render_public_planner() -> None:
     st.subheader("2. 領息月份")
     with st.container(horizontal=True):
         for preset_label, preset_months in MONTH_PRESETS.items():
+            preset_is_active = set(st.session_state[TARGET_MONTHS_STATE_KEY]) == set(
+                preset_months
+            )
             st.button(
                 preset_label,
-                type="secondary",
+                type="primary" if preset_is_active else "secondary",
                 on_click=apply_month_preset,
                 args=(preset_months,),
                 key=f"public_planner_month_preset_{preset_label}",
