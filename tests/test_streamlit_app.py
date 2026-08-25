@@ -373,10 +373,10 @@ class TestStreamlitApp(unittest.TestCase):
         self.assertNotIn("SQLite", page_text)
         self.assertNotIn("最近匯入批次", page_text)
 
-    def test_search_page_renders_clickable_rows(
+    def test_search_page_renders_aligned_detail_rows(
         self,
     ) -> None:
-        """確認 ETF 查詢頁顯示可點擊資料列。"""
+        """確認搜尋頁顯示固定欄位與詳細資料入口。"""
 
         app = AppTest.from_string(
             SEARCH_PAGE_SCRIPT,
@@ -392,20 +392,31 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "ETF 查詢",
+            "搜尋&詳細資料",
         )
 
-        caption_values = [
-            item.value
-            for item in app.caption
+        selectbox_labels = [
+            item.label
+            for item in app.selectbox
         ]
 
-        self.assertTrue(
-            any(
-                "整列會顯示可點擊效果"
-                in caption
-                for caption in caption_values
-            )
+        self.assertNotIn(
+            "資產類型",
+            selectbox_labels,
+        )
+
+        markdown_text = "\n".join(
+            str(item.value)
+            for item in app.markdown
+        )
+
+        self.assertIn(
+            "名稱／代號",
+            markdown_text,
+        )
+        self.assertNotIn(
+            "搜尋及篩選臺灣 ETF 官方主資料",
+            markdown_text,
         )
 
     def test_performance_page_renders_ranking(

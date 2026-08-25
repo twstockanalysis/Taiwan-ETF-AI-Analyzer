@@ -40,7 +40,7 @@ HOME_ROUTE = PageRoute(
 
 ETF_SEARCH_ROUTE = PageRoute(
     key="etf-search",
-    title="ETF 查詢",
+    title="搜尋&詳細資料",
     icon=":material/search:",
     url_path="etf-search",
 )
