@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-08-25 — V3-2 full-market eligibility index
+
+- Added a server-built index over every ETF master row with explicit product-
+  scope exclusions for unsupported bond, leveraged, inverse, futures,
+  commodity and multi-asset products.
+- Applied fixed reference-price, completeness, freshness, payment-stability,
+  after-tax cash, total-return, downside, dividend-component and portfolio-
+  overlap gates before integer optimization.
+- Preserved ACTUAL versus estimated component basis, missing and future-dated
+  facts, source dates and stable exclusion/trade-off reasons.
+- Reused the deterministic ETF-quality calculation only for internal eligible-
+  candidate ordering and kept all scores, score components, ranks and
+  confidence labels out of the public API response.
+- Added a reproducible input-and-facts snapshot identity plus internal twelve-
+  month Decimal cash-per-share inputs for V3-3.
+- Verified the existing V2-12 isolated data snapshot yields three eligible
+  candidates while the older default database honestly yields none until its
+  official prices and calculation data are refreshed.
+
 ## 2026-08-25 — V3-1 public stateless planning baseline
 
 - Added a public `POST /api/v1/allocation-plans/baseline` boundary that accepts

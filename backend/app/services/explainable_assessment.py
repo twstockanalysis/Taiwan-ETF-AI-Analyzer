@@ -13,6 +13,7 @@ from backend.app.models.decision_profile import (
 from backend.app.models.monthly_combination import (
     CandidateReasonCode,
     MonthlyCombinationCalculationResult,
+    MonthlyCombinationCandidateInput,
     MonthlyCombinationCandidateResult,
     MonthlyCombinationEligibilityRules,
 )
@@ -87,8 +88,11 @@ def _weighted_score(
     ).quantize(_SCORE_QUANTUM, rounding=ROUND_HALF_UP)
 
 
-def _quality_score(
-    candidate: MonthlyCombinationCandidateResult,
+def calculate_etf_quality_score(
+    candidate: (
+        MonthlyCombinationCandidateResult
+        | MonthlyCombinationCandidateInput
+    ),
     actual_76w_summary: dict | None,
 ) -> tuple[
     Decimal | None,
@@ -298,9 +302,11 @@ def build_explainable_assessment(
 
     reason_codes = {reason.code for reason in candidate.reasons}
     factors: list[ExplainableAssessmentFactor] = []
-    quality_score, quality_components, quality_missing = _quality_score(
-        candidate,
-        actual_76w_summary,
+    quality_score, quality_components, quality_missing = (
+        calculate_etf_quality_score(
+            candidate,
+            actual_76w_summary,
+        )
     )
     fit_score, fit_components, fit_missing = _fit_score(
         quality_score,
