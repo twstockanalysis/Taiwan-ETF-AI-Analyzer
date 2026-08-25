@@ -6,7 +6,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from frontend.api_client import APIClientError, fetch_allocation_results
+from frontend.api_client import APIClientError, fetch_long_term_scenarios
 from frontend.config import get_api_base_url
 from frontend.ui.formatters import format_number
 from frontend.ui.states import loading_state, render_api_error
@@ -259,7 +259,7 @@ def build_resulting_holding_rows(result: dict[str, Any]) -> list[dict[str, str]]
     ]
 
 
-def render_allocation_results(payload: dict[str, Any]) -> None:
+def render_allocation_results(payload: dict[str, Any]) -> str:
     st.subheader("配置結果")
     plans = payload["plans"]
     labels = [plan["label"] for plan in plans]
@@ -361,6 +361,121 @@ def render_allocation_results(payload: dict[str, Any]) -> None:
             )
 
     st.caption(payload["estimate_label"])
+    return plan["strategy"]
+
+
+def build_historical_evidence_rows(evidence: dict[str, Any]) -> list[dict[str, str]]:
+    labels = {
+        "AVAILABLE_HISTORY": "最長可用歷史",
+        "3Y": "近 3 年",
+        "5Y": "近 5 年",
+        "10Y": "近 10 年",
+    }
+    rows = []
+    for item in evidence.get("historical_periods", []):
+        available = item.get("status") == "AVAILABLE"
+        period_start = item.get("period_start")
+        period_end = item.get("period_end")
+        issue_messages = [
+            issue["message"] for issue in item.get("issues", [])
+        ]
+        rows.append(
+            {
+                "期間": labels.get(item.get("period"), item.get("period", "")),
+                "實際資料範圍": (
+                    f"{period_start} 至 {period_end}"
+                    if available and period_start and period_end
+                    else "歷史資料不足"
+                ),
+                "含息總報酬估算": format_number(
+                    item.get("total_return_pct") if available else None,
+                    decimal_places=2,
+                    suffix="%",
+                    missing_text="無法計算",
+                ),
+                "年化含息報酬估算": format_number(
+                    item.get("annualized_total_return_pct") if available else None,
+                    decimal_places=2,
+                    suffix="%",
+                    missing_text="無法計算",
+                ),
+                "說明": "、".join(issue_messages) if issue_messages else "可用",
+            }
+        )
+    return rows
+
+
+def build_scenario_chart_rows(evidence: dict[str, Any]) -> list[dict[str, Any]]:
+    rows_by_year: dict[int, dict[str, Any]] = {}
+    for scenario in evidence.get("scenarios", []):
+        label = scenario["label"]
+        for point in scenario.get("index_points", []):
+            year = int(point["year"])
+            rows_by_year.setdefault(year, {"年數": year})[label] = float(
+                point["total_value_index"]
+            )
+    return [rows_by_year[year] for year in sorted(rows_by_year)]
+
+
+def render_long_term_evidence(payload: dict[str, Any], strategy: str) -> None:
+    evidence = next(
+        item for item in payload["plan_evidence"] if item["strategy"] == strategy
+    )
+    st.subheader("長期歷史與十年情境")
+    st.caption(
+        "以上方配置後的整數股數回算；歷史配息不再投入，"
+        "且使用你輸入的現金扣除率。"
+    )
+    st.dataframe(build_historical_evidence_rows(evidence), hide_index=True)
+    has_available_history = any(
+        item.get("status") == "AVAILABLE"
+        for item in evidence.get("historical_periods", [])
+    )
+    if has_available_history:
+        st.warning(
+            "歷史價格目前是官方原始收盤價，尚未調整 ETF 分割或反分割；"
+            "如果期間發生股數變動，報酬估算可能失真。"
+        )
+
+    scenarios = evidence.get("scenarios", [])
+    if not scenarios:
+        st.info("完整一年期觀察少於 2 筆，因此不產生十年情境。")
+    else:
+        with st.container(horizontal=True):
+            for scenario in scenarios:
+                st.metric(
+                    scenario["label"],
+                    format_number(
+                        scenario["annual_total_return_assumption_pct"],
+                        decimal_places=2,
+                        suffix="% / 年",
+                    ),
+                    border=True,
+                )
+        chart_rows = build_scenario_chart_rows(evidence)
+        st.line_chart(
+            pd.DataFrame(chart_rows),
+            x="年數",
+            y=[scenario["label"] for scenario in scenarios],
+            x_label="配置後年數",
+            y_label="含息總價值指數",
+        )
+        st.caption(
+            f"指數從 100 起算，不是實際金額。三種情境來自 "
+            f"{int(evidence.get('annual_observation_count', 0))} 筆完整一年期歷史觀察的"
+            "25／50／75 百分位，再以每年複利延伸。"
+        )
+
+    issue_messages = [item["message"] for item in evidence.get("issues", [])]
+    extra_messages = [
+        message
+        for message in dict.fromkeys(issue_messages)
+        if "分割或反分割" not in message
+        and "少於兩個完整一年期" not in message
+    ]
+    if extra_messages:
+        st.info("長期資料提醒：" + "、".join(extra_messages))
+    st.caption(payload["estimate_label"])
 
 
 def render_public_planner() -> None:
@@ -453,7 +568,7 @@ def render_public_planner() -> None:
             try:
                 api_base_url = get_api_base_url()
                 with loading_state("正在檢查全市場資料並計算整數股數..."):
-                    result = fetch_allocation_results(
+                    result = fetch_long_term_scenarios(
                         api_base_url,
                         {
                             "target_after_tax_cash_twd": target_cash,
@@ -467,8 +582,9 @@ def render_public_planner() -> None:
             except (APIClientError, ValueError) as error:
                 render_api_error("無法完成公開現金流試算。", error)
             else:
-                st.session_state["public_allocation_results"] = result
+                st.session_state["public_long_term_scenarios"] = result
 
-    result = st.session_state.get("public_allocation_results")
+    result = st.session_state.get("public_long_term_scenarios")
     if isinstance(result, dict):
-        render_allocation_results(result)
+        selected_strategy = render_allocation_results(result["allocation_results"])
+        render_long_term_evidence(result, selected_strategy)

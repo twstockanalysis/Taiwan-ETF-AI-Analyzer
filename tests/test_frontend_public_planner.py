@@ -8,7 +8,9 @@ from frontend.pages.public_planner import (
     build_addition_rows,
     build_allocation_month_rows,
     build_holding_payload,
+    build_historical_evidence_rows,
     build_monthly_rows,
+    build_scenario_chart_rows,
     empty_holding_editor_rows,
 )
 
@@ -91,6 +93,40 @@ class TestFrontendPublicPlanner(unittest.TestCase):
         )
         self.assertEqual(months[0]["配置後現金"], "300.00 TWD")
         self.assertEqual(months[0]["尚缺"], "0.00 TWD")
+
+    def test_long_term_rows_keep_unavailable_distinct_from_zero(self) -> None:
+        evidence = {
+            "historical_periods": [
+                {
+                    "period": "AVAILABLE_HISTORY",
+                    "status": "AVAILABLE",
+                    "period_start": "2022-01-03",
+                    "period_end": "2026-01-03",
+                    "total_return_pct": "28",
+                    "annualized_total_return_pct": "6.4",
+                },
+                {
+                    "period": "3Y",
+                    "status": "UNAVAILABLE",
+                    "issues": [{"message": "共同價格歷史不足。"}],
+                },
+            ],
+            "scenarios": [
+                {
+                    "label": "保守情境",
+                    "index_points": [
+                        {"year": 0, "total_value_index": "100"},
+                        {"year": 1, "total_value_index": "104"},
+                    ],
+                }
+            ],
+        }
+        rows = build_historical_evidence_rows(evidence)
+        self.assertEqual(rows[0]["含息總報酬估算"], "28.00%")
+        self.assertEqual(rows[1]["含息總報酬估算"], "無法計算")
+        self.assertEqual(rows[1]["說明"], "共同價格歷史不足。")
+        chart_rows = build_scenario_chart_rows(evidence)
+        self.assertEqual(chart_rows[1], {"年數": 1, "保守情境": 104.0})
 
 
 if __name__ == "__main__":

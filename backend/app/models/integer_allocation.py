@@ -59,6 +59,8 @@ class IntegerAllocationHoldingResult(PublicPlannerBaseModel):
     additional_shares: int = Field(ge=0)
     resulting_shares: int = Field(gt=0)
     reference_price: Decimal = Field(gt=0)
+    reference_price_as_of: date
+    reference_price_source_id: str
     resulting_value: Decimal = Field(gt=0)
     allocation_pct: Decimal = Field(ge=0, le=100)
 

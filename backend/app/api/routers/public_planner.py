@@ -19,6 +19,11 @@ from backend.app.models.allocation_results import (
     AllocationResultsResponse,
 )
 from backend.app.services.allocation_results import build_allocation_results
+from backend.app.models.long_term_scenario import (
+    LongTermScenarioRequest,
+    LongTermScenarioResponse,
+)
+from backend.app.services.long_term_scenario import build_long_term_scenarios
 from backend.app.services.integer_allocation import build_integer_allocation
 from backend.app.services.market_eligibility_index import (
     build_market_eligibility_index,
@@ -97,6 +102,25 @@ def create_allocation_results(
 ) -> AllocationResultsResponse:
     try:
         return build_allocation_results(request, database_path)
+    except LookupError as error:
+        code = str(error.args[0]).strip().upper()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到 ETF：{code}",
+        ) from error
+
+
+@router.post(
+    "/long-term-scenarios",
+    response_model=LongTermScenarioResponse,
+    summary="建立配置後組合的歷史含息績效與十年情境",
+)
+def create_long_term_scenarios(
+    request: LongTermScenarioRequest,
+    database_path: Path = Depends(get_database_path),
+) -> LongTermScenarioResponse:
+    try:
+        return build_long_term_scenarios(request, database_path)
     except LookupError as error:
         code = str(error.args[0]).strip().upper()
         raise HTTPException(
