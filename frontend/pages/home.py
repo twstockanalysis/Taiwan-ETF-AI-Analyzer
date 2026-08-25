@@ -67,6 +67,3 @@ def render_home() -> None:
     st.caption(SITE_SLOGAN)
     render_primary_action()
     render_exploration_links()
-    st.caption(
-        "本站不下單、不提供即時交易訊號，也不保證未來配息、報酬或本金。"
-    )

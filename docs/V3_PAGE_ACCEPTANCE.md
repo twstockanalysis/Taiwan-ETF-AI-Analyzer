@@ -23,8 +23,7 @@ Keep:
 
 - `ETF nano cat` brand name and the approved slogan;
 - one prominent link to the public cash-flow planner;
-- secondary links to search, ranking, comparison and data completeness;
-- a concise no-order, no-signal and no-guarantee statement.
+- secondary links to search, ranking, comparison and data completeness.
 
 Remove from the home page:
 

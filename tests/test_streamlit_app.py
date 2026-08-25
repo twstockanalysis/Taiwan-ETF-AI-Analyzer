@@ -367,7 +367,7 @@ class TestStreamlitApp(unittest.TestCase):
         self.assertIn("先算出適合你的 ETF 配置", page_text)
         self.assertIn("運用AI評分系統", page_text)
         self.assertIn("所有資料皆來源自證交所及投信", page_text)
-        self.assertIn("不下單", page_text)
+        self.assertNotIn("本站不下單", page_text)
         self.assertNotIn("目前可用資料", page_text)
         self.assertNotIn("FastAPI", page_text)
         self.assertNotIn("SQLite", page_text)

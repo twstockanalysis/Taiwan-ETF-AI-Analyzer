@@ -192,7 +192,6 @@ It shows:
 - One prominent link to the public cash-flow planner
 - Secondary links to ETF search, performance ranking, comparison and data quality
 - A small source and decision-responsibility notice
-- No-order, no-signal and no-guarantee boundaries
 
 The homepage does not request operational data.
 
