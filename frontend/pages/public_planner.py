@@ -23,7 +23,9 @@ REINVESTMENT_POLICY_STATE_KEY = "public_planner_reinvestment_policy"
 HOLDING_ROWS_STATE_KEY = "public_planner_holding_rows"
 HOLDING_EDITOR_VERSION_STATE_KEY = "public_planner_holding_editor_version"
 HOLDING_SELECTION_COLUMN = "選取"
-DEFAULT_HISTORY_YEARS = 10
+# 配息歷史觀察期與使用者選擇的未來持有年限是不同概念；目前正式資料
+# 最長可穩定比較三年，後續資料覆蓋擴充時再同步提高。
+DEFAULT_HISTORY_YEARS = 3
 DEFAULT_CASH_DEDUCTION_RATE_PCT = 0.0
 DEFAULT_CUSTOM_REINVESTMENT_PCT = 50.0
 

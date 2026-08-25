@@ -5,7 +5,11 @@ from inspect import getsource
 
 from streamlit.testing.v1 import AppTest
 
-from frontend.pages.public_planner import MONTH_OPTIONS, render_public_planner
+from frontend.pages.public_planner import (
+    DEFAULT_HISTORY_YEARS,
+    MONTH_OPTIONS,
+    render_public_planner,
+)
 from frontend.ui.theme import GLOBAL_STYLES
 
 
@@ -40,6 +44,7 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
 
         source = getsource(render_public_planner)
         self.assertEqual(MONTH_OPTIONS, list(range(1, 13)))
+        self.assertEqual(DEFAULT_HISTORY_YEARS, 3)
         self.assertEqual(
             [item.value for item in app.subheader[:5]],
             [
