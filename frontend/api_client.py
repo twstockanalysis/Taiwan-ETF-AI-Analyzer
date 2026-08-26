@@ -99,6 +99,12 @@ from frontend.api.public_planner import (
     validate_portfolio_projections,
     validate_public_planner_result,
 )
+from frontend.api.quality_grades import (
+    fetch_historical_quality_grades,
+    quality_grade_lookup,
+    validate_historical_quality_grade,
+    validate_quality_grade_response,
+)
 from frontend.api.system_overview import (
     SYSTEM_OVERVIEW_BATCH_STATUSES,
     SYSTEM_OVERVIEW_PERIODS,

@@ -45,6 +45,7 @@ class TestFrontendETFClickableRows(
             {
                 "code": "0050",
                 "name": "元大台灣50",
+                "historical_quality": "暫不評等",
                 "management_type": "被動式",
                 "listing_date": "2003-06-30",
                 "fund_size": "—",
@@ -62,6 +63,19 @@ class TestFrontendETFClickableRows(
         )
 
         self.assertNotIn("asset_type", row)
+
+    def test_row_shows_public_letter_grade(self) -> None:
+        """確認搜尋結果顯示公開字母評等。"""
+
+        row = format_etf_result_row(
+            self.build_item(),
+            {
+                "status": "RATED",
+                "grade": "A+",
+                "explanation": "歷史證據完整。",
+            },
+        )
+        self.assertEqual(row["historical_quality"], "A+")
 
     @patch(
         "frontend.pages.etf_search."

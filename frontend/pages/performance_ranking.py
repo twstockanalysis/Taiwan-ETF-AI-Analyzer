@@ -33,6 +33,10 @@ from frontend.ui.states import (
     render_api_error,
     render_empty_state,
 )
+from frontend.ui.quality_grade import (
+    load_historical_quality_grade_lookup,
+    quality_grade_short_label,
+)
 
 
 PERFORMANCE_PERIOD_OPTIONS = (
@@ -249,6 +253,7 @@ def format_performance_ranking_row(
 def render_clickable_performance_rows(
     items: list[dict[str, Any]],
     query_state: PerformanceQueryState | None = None,
+    grade_lookup: dict[str, dict[str, Any]] | None = None,
 ) -> None:
     """以固定欄位資料表顯示績效排行榜。"""
 
@@ -263,16 +268,23 @@ def render_clickable_performance_rows(
     )
 
     rows = [
-        build_performance_table_row(item)
+        build_performance_table_row(
+            item,
+            (grade_lookup or {}).get(
+                str(item["etf_code"]).strip().upper()
+            ),
+        )
         for item in items
     ]
 
-    st.dataframe(
+    selection = st.dataframe(
         rows,
         column_order=(
             "rank",
-            "detail",
+            "code",
+            "name",
             "period_return",
+            "historical_quality",
             "as_of_date",
             "management_type",
         ),
@@ -281,21 +293,25 @@ def render_clickable_performance_rows(
                 "排名",
                 width="small",
             ),
-            "detail": st.column_config.ButtonColumn(
-                "名稱／代號",
+            "code": st.column_config.TextColumn(
+                "代號",
+                width="small",
+                pinned=True,
+            ),
+            "name": st.column_config.TextColumn(
+                "名稱",
                 width="large",
                 pinned=True,
-                alignment="left",
-                type="tertiary",
-                on_click=open_performance_detail,
-                args=(items, source_state),
-                key=RANKING_ACTION_KEY,
             ),
             "period_return": (
                 st.column_config.TextColumn(
                     f"{source_state.period} 報酬率",
                     width="medium",
                 )
+            ),
+            "historical_quality": st.column_config.TextColumn(
+                "歷史品質評等",
+                width="medium",
             ),
             "as_of_date": (
                 st.column_config.TextColumn(
@@ -314,11 +330,23 @@ def render_clickable_performance_rows(
         width="stretch",
         height="content",
         row_height=58,
+        key=RANKING_ACTION_KEY,
+        on_select="rerun",
+        selection_mode="single-row",
     )
+
+    selected_rows = selection.selection.rows
+    if selected_rows:
+        open_performance_detail(
+            items,
+            source_state,
+            row_index=int(selected_rows[0]),
+        )
 
 
 def build_performance_table_row(
     item: dict[str, Any],
+    grade_payload: object = None,
 ) -> dict[str, str]:
     """建立單一排行榜資料表列。"""
 
@@ -352,8 +380,12 @@ def build_performance_table_row(
 
     return {
         "rank": f"#{rank}",
-        "detail": f"{name}\n{code}",
+        "code": code,
+        "name": name,
         "period_return": period_return,
+        "historical_quality": quality_grade_short_label(
+            grade_payload
+        ),
         "as_of_date": as_of_date or "—",
         "management_type": management_type_label(
             item["is_active"]
@@ -364,17 +396,29 @@ def build_performance_table_row(
 def open_performance_detail(
     items: list[dict[str, Any]],
     source_state: PerformanceQueryState,
+    *,
+    row_index: int | None = None,
 ) -> None:
     """由排行榜資料表開啟所選 ETF 詳細資料。"""
 
-    action = st.session_state.get(
-        RANKING_ACTION_KEY
-    )
+    if row_index is None:
+        action = st.session_state.get(
+            RANKING_ACTION_KEY
+        )
 
-    if action is None:
-        return
+        if action is None:
+            return
 
-    row_index = int(action["row"])
+        selected_rows = action.get(
+            "selection",
+            {},
+        ).get("rows", [])
+        if selected_rows:
+            row_index = int(selected_rows[0])
+        elif "row" in action:
+            row_index = int(action["row"])
+        else:
+            return
 
     if not 0 <= row_index < len(items):
         return
@@ -661,6 +705,7 @@ def render_performance_action_buttons() -> None:
 
     if refresh_clicked:
         load_performance_ranking.clear()
+        load_historical_quality_grade_lookup.clear()
         st.rerun()
 
 
@@ -749,10 +794,27 @@ def render_performance_ranking() -> None:
         )
         return
 
+    grade_lookup: dict[str, dict[str, Any]] = {}
+    grade_error = False
+    try:
+        grade_lookup = load_historical_quality_grade_lookup(
+            api_base_url,
+            tuple(str(item["etf_code"]) for item in items),
+        )
+    except (APIClientError, ValueError):
+        grade_error = True
+
     render_clickable_performance_rows(
         items,
         query_state=state,
+        grade_lookup=grade_lookup,
     )
+
+    if grade_error:
+        st.caption(
+            "歷史品質評等暫時無法取得；"
+            "排行榜仍依所選期間正常排序。"
+        )
 
     st.caption(
         f"符合條件共 {total:,} 檔，"

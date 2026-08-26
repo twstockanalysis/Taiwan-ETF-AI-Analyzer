@@ -163,7 +163,6 @@ class TestFrontendETFDetailInformationArchitecture(
             "render_base_target_analysis(",
             "render_tax_reinvestment_analysis(",
             "render_dividend_history(",
-            "render_data_profile(",
             "render_comparison_entry_point(",
         ]
 
@@ -175,6 +174,11 @@ class TestFrontendETFDetailInformationArchitecture(
         self.assertEqual(
             positions,
             sorted(positions),
+        )
+
+        self.assertNotIn(
+            "render_data_profile(",
+            source,
         )
 
     def test_comparison_entry_is_enabled(

@@ -1300,18 +1300,63 @@ Delivered:
 - Evidence: `frontend/ui/assessment.py`,
   `frontend/pages/public_planner.py` and focused assessment/AppTest coverage
 
-### V4-5 — Explore and evidence pages
+### V4-5 — Explore and evidence pages — Completed locally
 
 - Redesign search, ranking, detail and comparison around consistent ETF cards
 - Apply the same grade semantics and missing-data states across every page
 - Keep operational data-quality fields in owner-only administration
 
-### V4-6 — V4 acceptance and pre-launch candidate
+Delivered:
 
-- Review each rebuilt page with the owner against the V4 contract
+- Added a batch public historical-quality-grade endpoint that reuses the V4-1
+  full-market publication gate and returns only versioned letter-grade evidence
+- Added the same `A+` through `F` or `暫不評等` semantics to search results,
+  performance ranking, ETF detail and comparison without exposing score, rank
+  or confidence
+- Kept search and ranking as aligned, whole-row selectable lists with code
+  before name, and added consistent ETF identity and evidence cards to detail
+  and comparison
+- Removed operational freshness and completeness rendering from public detail
+  and comparison while retaining those data contracts for owner administration
+- Made the grade lookup non-blocking so an unavailable grade service does not
+  hide the primary ETF data
+- Evidence: `frontend/ui/quality_grade.py`,
+  `frontend/pages/etf_search.py`, `frontend/pages/performance_ranking.py`,
+  `frontend/pages/etf_detail.py` and `frontend/pages/etf_comparison.py`
+
+### V4-6 — Functional integration acceptance
+
+- Verify the complete V4 journey from public input through allocation results,
+  ETF exploration, evidence and owner administration
 - Pass frontend, API, calculation, data-quality and local security regression
-- Select one exact release candidate only after the page experience is accepted
-- Deploy that exact candidate and complete SEC-4 on a real host before launch
+- Recheck grade, missing-data, tax, risk and stateless-request contracts across
+  page boundaries
+- Record functional defects and resolve them before starting subjective page
+  review; this milestone does not select a release candidate
+
+### V4-7 — Page-by-page UI and UX acceptance
+
+- Start the local frontend and backend so the owner can inspect the real
+  Streamlit experience without waiting for a public domain
+- Review home, planner input, allocation result, search, ranking, detail,
+  comparison and owner-administration pages one at a time
+- For each page, decide which fields should be removed, added, renamed,
+  reordered or moved to another page before marking that page accepted
+- Review beginner comprehension, visual hierarchy, GoodCat interaction,
+  primary actions, responsive behavior and empty, loading, error and missing-
+  data states
+- Track page decisions and acceptance evidence in `V4_PAGE_ACCEPTANCE.md`
+- Keep all accepted page adjustments in one V4-7 pull request and merge only
+  after every in-scope page has been reviewed
+
+### V4-8 — Pre-launch candidate and real-environment gate
+
+- Run the final frontend, API, calculation, data-quality and local security
+  regression after V4-7 page acceptance
+- Select one exact release candidate only after both functional and page-level
+  experience acceptance are complete
+- Deploy that exact candidate to the real host and domain
+- Complete SEC-4 on the deployed candidate before public launch
 
 ## Post-security optional integrations
 

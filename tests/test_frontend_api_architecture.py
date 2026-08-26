@@ -25,6 +25,7 @@ EXPECTED_API_MODULES = {
     "normalizers.py",
     "performance.py",
     "public_planner.py",
+    "quality_grades.py",
     "system_overview.py",
     "transport.py",
     "validators.py",

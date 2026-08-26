@@ -106,6 +106,20 @@ sample, coverage and score-saturation gates before any letter is published.
 Raw quality scores, components, internal ranks and confidence labels remain
 absent. The endpoint remains stateless and requires no owner token.
 
+### Public historical-quality grade lookup
+
+```http
+GET /api/v1/etfs/historical-quality-grades?codes=0050,0056
+```
+
+V4-5 lets public search, ranking, detail and comparison pages request one to
+100 ETF grades in input order. The server builds the same full-market V4-1
+catalog used by allocation eligibility and applies the same market-wide
+publication gate. Each item contains only `etf_code` and the public-safe
+`historical_quality_grade`; raw scores, score components, ranks and confidence
+fields are never serialized. Unknown codes return `404`, invalid or oversized
+requests return `422`, and the endpoint is read-only and stateless.
+
 ### Allocation results and long-term scenarios
 
 ```http

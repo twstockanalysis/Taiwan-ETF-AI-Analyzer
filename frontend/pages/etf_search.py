@@ -36,6 +36,10 @@ from frontend.ui.states import (
     render_api_error,
     render_empty_state,
 )
+from frontend.ui.quality_grade import (
+    load_historical_quality_grade_lookup,
+    quality_grade_short_label,
+)
 
 
 ACTIVE_FILTER_OPTIONS: dict[
@@ -74,6 +78,7 @@ def format_optional_number(
 
 def format_etf_result_row(
     item: dict[str, Any],
+    grade_payload: object = None,
 ) -> dict[str, str]:
     """建立欄位固定的 ETF 搜尋結果。"""
 
@@ -110,6 +115,9 @@ def format_etf_result_row(
     return {
         "code": code,
         "name": name,
+        "historical_quality": quality_grade_short_label(
+            grade_payload
+        ),
         "management_type": management_type,
         "listing_date": listing_date,
         "fund_size": fund_size,
@@ -120,6 +128,7 @@ def format_etf_result_row(
 def render_clickable_etf_rows(
     items: list[dict[str, Any]],
     query_state: ETFSearchQueryState | None = None,
+    grade_lookup: dict[str, dict[str, Any]] | None = None,
 ) -> None:
     """以固定欄位資料表顯示 ETF 清單。"""
 
@@ -132,7 +141,12 @@ def render_clickable_etf_rows(
     )
 
     rows = [
-        format_etf_result_row(item)
+        format_etf_result_row(
+            item,
+            (grade_lookup or {}).get(
+                str(item["code"]).strip().upper()
+            ),
+        )
         for item in items
     ]
 
@@ -141,6 +155,7 @@ def render_clickable_etf_rows(
         column_order=(
             "code",
             "name",
+            "historical_quality",
             "management_type",
             "listing_date",
             "fund_size",
@@ -156,6 +171,10 @@ def render_clickable_etf_rows(
                 "名稱",
                 width="large",
                 pinned=True,
+            ),
+            "historical_quality": st.column_config.TextColumn(
+                "歷史品質評等",
+                width="medium",
             ),
             "management_type": (
                 st.column_config.TextColumn(
@@ -498,6 +517,7 @@ def render_action_buttons() -> None:
 
     if refresh_clicked:
         load_etf_page.clear()
+        load_historical_quality_grade_lookup.clear()
         st.rerun()
 
 
@@ -649,10 +669,27 @@ def render_etf_search() -> None:
         )
         return
 
+    grade_lookup: dict[str, dict[str, Any]] = {}
+    grade_error = False
+    try:
+        grade_lookup = load_historical_quality_grade_lookup(
+            api_base_url,
+            tuple(str(item["code"]) for item in items),
+        )
+    except (APIClientError, ValueError):
+        grade_error = True
+
     render_clickable_etf_rows(
         items,
         query_state=state,
+        grade_lookup=grade_lookup,
     )
+
+    if grade_error:
+        st.caption(
+            "歷史品質評等暫時無法取得；"
+            "其他 ETF 資料仍可正常查看。"
+        )
 
     st.caption(
         f"目前顯示第 "

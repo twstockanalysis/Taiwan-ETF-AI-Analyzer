@@ -267,12 +267,28 @@ class TestFrontendPerformanceRanking(
             ),
             {
                 "rank": "#1",
-                "detail": "元大台灣50\n0050",
+                "code": "0050",
+                "name": "元大台灣50",
                 "period_return": "+20.00%",
+                "historical_quality": "暫不評等",
                 "as_of_date": "2026-07-29",
                 "management_type": "被動式",
             },
         )
+
+    def test_table_row_shows_public_letter_grade(self) -> None:
+        """確認列表只顯示公開字母評等。"""
+
+        row = build_performance_table_row(
+            self.build_item(),
+            {
+                "status": "RATED",
+                "grade": "A",
+                "explanation": "歷史證據完整。",
+            },
+        )
+        self.assertEqual(row["historical_quality"], "A")
+        self.assertNotIn("score", row)
 
     @patch(
         "frontend.pages.performance_ranking."
