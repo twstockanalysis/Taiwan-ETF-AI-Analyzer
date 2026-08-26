@@ -1,4 +1,4 @@
-"""V3-8 公開股利試算頁資訊架構測試。"""
+"""V4-3 公開股利試算頁資訊架構測試。"""
 
 import unittest
 from inspect import getsource
@@ -19,6 +19,19 @@ from frontend.pages.public_planner import render_public_planner
 render_public_planner()
 """
 
+PLANNER_API_ERROR_SCRIPT = """
+from unittest.mock import patch
+
+from frontend.api.errors import APIClientError
+from frontend.pages.public_planner import render_public_planner
+
+with patch(
+    "frontend.pages.public_planner.fetch_portfolio_projections",
+    side_effect=APIClientError("offline"),
+):
+    render_public_planner()
+"""
+
 
 class TestFrontendPublicPlannerUI(unittest.TestCase):
     def test_primary_inputs_follow_beginner_order(self) -> None:
@@ -27,7 +40,10 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
 
         self.assertEqual(len(app.exception), 0)
         self.assertEqual(app.title[0].value, "股利試算")
-        self.assertEqual(app.caption[0].value, "請依序選擇輸入")
+        self.assertEqual(
+            app.caption[0].value,
+            "先選領息月份，再設定目標；不用自己先挑候選 ETF。",
+        )
 
         number_labels = [item.label for item in app.number_input]
         self.assertEqual(
@@ -48,15 +64,19 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
         self.assertEqual(
             [item.value for item in app.subheader[:5]],
             [
-                "1. 每個目標月想領多少股利（TWD）",
-                "2. 領息月份",
+                "1. 想在哪些月份領股利",
+                "2. 每個目標月想領多少股利（TWD）",
                 "3. 想持有年限",
-                "4. 庫存ETF持股 (可留空)",
+                "4. 庫存 ETF 持股（可留空）",
                 "5. 股息再投入與否",
             ],
         )
         self.assertIn('st.pills(', source)
         self.assertIn('selection_mode="multi"', source)
+        self.assertIn('key="public-planner-guided-form"', source)
+        self.assertIn("GoodCatState.ATTENTIVE", source)
+        self.assertIn("GoodCatState.WORKING", source)
+        self.assertIn("GoodCatState.CAUTION", source)
         self.assertNotIn('st.form(', source)
         self.assertNotIn('st.form_submit_button(', source)
         self.assertIn('num_rows="fixed"', source)
@@ -75,6 +95,10 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
         self.assertIn(
             "請輸入代號＋股數，價格自動擷取最新收盤價，非即時報價；"
             "若在盤中，則為前一日收盤價。",
+            captions,
+        )
+        self.assertIn(
+            "不需登入，輸入只用於本次試算；結果不是下單指示，也不保證未來配息或報酬。",
             captions,
         )
 
@@ -114,6 +138,25 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
             + [item.value for item in app.markdown]
         )
         self.assertIn("直接算出可能的所得稅與二代健保金額", page_text)
+
+    def test_service_error_keeps_inputs_and_uses_plain_language_caution(self) -> None:
+        app = AppTest.from_string(PLANNER_API_ERROR_SCRIPT, default_timeout=10)
+        app.run()
+
+        submit = next(
+            item for item in app.button if item.label == "讓股利喵產生配置"
+        )
+        submit.click().run()
+
+        self.assertEqual(len(app.exception), 0)
+        self.assertEqual(app.number_input[0].value, 3000)
+        self.assertIn(
+            "暫時無法完成股利試算，請確認服務已啟動後再試一次。",
+            [item.value for item in app.error],
+        )
+        page_text = "\n".join(item.value for item in app.markdown)
+        self.assertIn("主人剛才的輸入仍留在畫面上", page_text)
+        self.assertNotIn("offline", page_text)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import pandas as pd
 from frontend.pages.public_planner import (
     HOLDING_SELECTION_COLUMN,
     add_empty_holding_row,
+    allocation_goodcat_feedback,
     build_addition_rows,
     build_allocation_month_rows,
     build_holding_payload,
@@ -18,9 +19,42 @@ from frontend.pages.public_planner import (
     remove_selected_holding_rows,
     sort_holding_editor_rows,
 )
+from frontend.ui.goodcat import GoodCatState
 
 
 class TestFrontendPublicPlanner(unittest.TestCase):
+    def test_goodcat_feedback_distinguishes_ready_partial_and_missing(self) -> None:
+        def payload(status: str, additions: list[dict] | None = None) -> dict:
+            return {
+                "long_term_scenarios": {
+                    "allocation_results": {
+                        "plans": [
+                            {
+                                "strategy": "RECOMMENDED",
+                                "result": {
+                                    "status": status,
+                                    "additions": additions or [],
+                                },
+                            }
+                        ]
+                    }
+                }
+            }
+
+        state, message = allocation_goodcat_feedback(
+            payload("TARGET_MET", [{"etf_code": "0056"}])
+        )
+        self.assertEqual(state, GoodCatState.READY)
+        self.assertIn("ETF、股數", message)
+
+        state, message = allocation_goodcat_feedback(payload("PARTIAL"))
+        self.assertEqual(state, GoodCatState.CAUTION)
+        self.assertIn("仍有缺口", message)
+
+        state, message = allocation_goodcat_feedback({})
+        self.assertEqual(state, GoodCatState.CAUTION)
+        self.assertIn("沒有足夠資料", message)
+
     def test_empty_editor_supports_zero_holdings_with_explicit_dtypes(self) -> None:
         rows = empty_holding_editor_rows()
         self.assertTrue(rows.empty)
