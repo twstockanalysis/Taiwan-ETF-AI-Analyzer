@@ -1274,12 +1274,31 @@ Delivered:
 - Evidence: `frontend/pages/home.py`, `frontend/pages/public_planner.py` and
   focused Streamlit information-architecture tests
 
-### V4-4 — Allocation result and assessment experience
+### V4-4 — Allocation result and assessment experience — Completed locally
 
 - Present recommended, balanced and concentrated plans as clear result cards
 - Show whole shares, capital, cash coverage, shortfall, reasons and primary risk
 - Show ETF grade separately from owner-goal fit without recommendation language
 - Move detailed assumptions, exclusions and evidence into secondary disclosure
+
+Delivered:
+
+- Added compact cards for every materially different recommended, balanced or
+  concentrated plan, followed by one selected plan's complete detail card
+- Added a separate owner-goal fit presentation for target met, partial,
+  unavailable and no-eligible-allocation outcomes without treating it as ETF
+  historical quality
+- Replaced the dense addition table with per-ETF cards showing whole shares,
+  required capital, supported months, inclusion reasons and the primary risk
+- Added public-safe `A+` through `F` or `暫不評等` historical-quality badges and
+  evidence disclosures without exposing raw score, rank or confidence fields
+- Kept monthly coverage and total remaining shortfall in the primary result,
+  while moving holdings, assumptions, excluded ETFs, historical evidence and
+  tax/reinvestment scenarios into labeled secondary disclosures
+- Preserved the existing V3 allocation API and deterministic calculation
+  engine; V4-4 changes presentation semantics only
+- Evidence: `frontend/ui/assessment.py`,
+  `frontend/pages/public_planner.py` and focused assessment/AppTest coverage
 
 ### V4-5 — Explore and evidence pages
 

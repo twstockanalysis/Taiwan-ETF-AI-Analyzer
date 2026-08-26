@@ -18,11 +18,27 @@ from frontend.pages.public_planner import (
     merge_holding_editor_changes,
     remove_selected_holding_rows,
     sort_holding_editor_rows,
+    summarize_allocation_result,
 )
 from frontend.ui.goodcat import GoodCatState
 
 
 class TestFrontendPublicPlanner(unittest.TestCase):
+    def test_allocation_summary_counts_met_months_and_shortfall(self) -> None:
+        summary = summarize_allocation_result(
+            {
+                "monthly_results": [
+                    {"month": 1, "shortfall": "0"},
+                    {"month": 3, "shortfall": "125.5"},
+                    {"month": 5, "shortfall": "0"},
+                ]
+            }
+        )
+
+        self.assertEqual(summary["target_month_count"], 3)
+        self.assertEqual(summary["met_month_count"], 2)
+        self.assertEqual(str(summary["total_shortfall"]), "125.5")
+
     def test_goodcat_feedback_distinguishes_ready_partial_and_missing(self) -> None:
         def payload(status: str, additions: list[dict] | None = None) -> dict:
             return {
