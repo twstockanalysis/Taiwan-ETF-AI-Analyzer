@@ -1,9 +1,9 @@
-"""ETF nano cat 初學者首頁。"""
+"""GoodCat 股利喵初學者首頁。"""
 
 import streamlit as st
 
+from frontend.branding import SITE_NAME
 from frontend.navigation import (
-    DIVIDEND_DATA_QUALITY_ROUTE,
     ETF_COMPARISON_ROUTE,
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
@@ -12,7 +12,6 @@ from frontend.navigation import (
 )
 
 
-SITE_NAME = "ETF nano cat"
 SITE_SLOGAN = "運用AI評分系統，讓奈米戶自己也能月月領錢"
 PLANNER_INTRO = (
     "告訴咪想要在哪些月份領股利 → 目標是多少，輸入目前持有的 "
@@ -47,9 +46,8 @@ def render_exploration_links() -> None:
         (ETF_SEARCH_ROUTE, "查 ETF 基本資料", ":material/search:"),
         (PERFORMANCE_RANKING_ROUTE, "看歷史績效", ":material/query_stats:"),
         (ETF_COMPARISON_ROUTE, "並排比較 ETF", ":material/compare_arrows:"),
-        (DIVIDEND_DATA_QUALITY_ROUTE, "了解資料完整度", ":material/database:"),
     )
-    columns = st.columns(4)
+    columns = st.columns(3)
     for column, (route, label, icon) in zip(columns, routes, strict=True):
         with column:
             st.page_link(

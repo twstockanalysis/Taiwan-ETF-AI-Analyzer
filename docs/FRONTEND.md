@@ -192,7 +192,7 @@ submit action, so focused number and text inputs do not show or trigger the
 
 It shows:
 
-- The `ETF nano cat` brand and approved slogan
+- The `GoodCat 股利喵` brand and approved slogan
 - One prominent link to the public cash-flow planner
 - Secondary links to ETF search, performance ranking, comparison and data quality
 - A small source and decision-responsibility notice

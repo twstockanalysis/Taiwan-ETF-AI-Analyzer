@@ -7,6 +7,7 @@ from typing import Any
 
 import streamlit as st
 
+from frontend.branding import SITE_NAME
 from frontend.query_state import (
     get_query_value,
     normalize_comparison_codes,
@@ -16,7 +17,7 @@ from frontend.query_state import (
 )
 
 
-NAVIGATION_GROUP = "ETF nano cat"
+NAVIGATION_GROUP = SITE_NAME
 
 
 @dataclass(frozen=True)

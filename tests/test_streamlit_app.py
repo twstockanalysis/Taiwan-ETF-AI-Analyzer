@@ -353,7 +353,7 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "ETF nano cat",
+            "GoodCat 股利喵",
         )
 
         self.assertEqual(len(app.success), 0)

@@ -37,7 +37,7 @@ data remains distinct from zero, and public safety boundaries remain visible.
 
 Keep:
 
-- `ETF nano cat` brand name and the approved slogan;
+- `GoodCat 股利喵` brand name and the approved slogan;
 - one prominent link to the public cash-flow planner;
 - secondary links to search, ranking, comparison and data completeness.
 
