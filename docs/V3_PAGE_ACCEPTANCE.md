@@ -12,7 +12,7 @@ data remains distinct from zero, and public safety boundaries remain visible.
 | 4 | ETF comparison | Compare 2-4 ETFs on decision-relevant facts | Source-specific return controls and technical metric copy added clutter; the code-input label repeated the placeholder's meaning | Revised, awaiting owner review |
 | 5 | ETF search | Find an ETF and continue to its detailed information | Asset-type filtering and comparison entry distracted from the direct search-to-detail path; pipe-separated rows did not keep fields aligned | Revised, awaiting owner review |
 | 6 | Performance ranking | View the top 20 non-bond ETFs for one selected performance period | Asset type, page-size, pagination and comparison controls obscured the ranking task; pipe-separated results were difficult to scan | Revised, awaiting owner review |
-| 7 | Dividend data quality | Understand whether official distribution data is available | Public transparency is useful, but operational review-queue fields may belong to owner operations | Pending |
+| 7 | Dividend data quality | Review official distribution coverage and operational queues | Review-queue fields are operational rather than beginner-facing content | Relocated to owner navigation, awaiting owner review |
 | 8 | Owner profile | Maintain optional saved conditions and records | Deferred account/broker work must stay out; overlap with the public stateless planner needs review | Pending |
 | 9 | Website administration | Inspect data coverage, freshness and import failures | Operational data was exposed on the public homepage | Relocated, awaiting owner review |
 | 10 | Global navigation and responsive acceptance | Reach public tasks without exposing internal concepts | Material icons adopted with the home review; final route order and public/private boundaries remain pending | In progress |
@@ -57,6 +57,10 @@ page no longer requests the system-overview endpoint.
 The underlying API fields are not deleted. During the dividend-quality and
 owner-page reviews, public transparency fields and owner-only operational fields
 will be assigned to their final destinations.
+
+The detailed `Dividend data quality` page is no longer part of public
+navigation. After owner access is unlocked, it appears under `管理者功能` with
+the other administrative pages.
 
 ## ETF search acceptance decision
 

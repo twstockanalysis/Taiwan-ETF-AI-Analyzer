@@ -6,6 +6,7 @@ from frontend.navigation import (
     ADMIN_OVERVIEW_ROUTE,
     ALL_ROUTES,
     DECISION_PROFILE_ROUTE,
+    DIVIDEND_DATA_QUALITY_ROUTE,
     ETF_DETAIL_ROUTE,
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
@@ -13,6 +14,7 @@ from frontend.navigation import (
     build_detail_query_params,
     normalize_detail_source,
     resolve_detail_return,
+    navigation_groups,
     navigation_routes,
 )
 
@@ -88,6 +90,26 @@ class TestFrontendNavigation(
         self.assertEqual(ADMIN_OVERVIEW_ROUTE.url_path, "admin-overview")
         self.assertNotIn(ADMIN_OVERVIEW_ROUTE, navigation_routes(False))
         self.assertIn(ADMIN_OVERVIEW_ROUTE, navigation_routes(True))
+
+    def test_dividend_quality_is_grouped_under_admin(self) -> None:
+        """確認配息資料品質只出現在管理者功能。"""
+
+        self.assertNotIn(
+            DIVIDEND_DATA_QUALITY_ROUTE,
+            navigation_routes(False),
+        )
+        self.assertIn(
+            DIVIDEND_DATA_QUALITY_ROUTE,
+            navigation_routes(True),
+        )
+        self.assertNotIn(
+            "管理者功能",
+            navigation_groups(False),
+        )
+        self.assertIn(
+            DIVIDEND_DATA_QUALITY_ROUTE,
+            navigation_groups(True)["管理者功能"],
+        )
 
     def test_public_planner_is_always_available(self) -> None:
         self.assertIn(PUBLIC_PLANNER_ROUTE, navigation_routes(False))

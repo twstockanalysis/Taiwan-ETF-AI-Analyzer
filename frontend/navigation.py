@@ -101,12 +101,12 @@ PUBLIC_ROUTES = (
     PERFORMANCE_RANKING_ROUTE,
     ETF_SEARCH_ROUTE,
     ETF_COMPARISON_ROUTE,
-    DIVIDEND_DATA_QUALITY_ROUTE,
 )
 
 OWNER_ROUTES = (
     DECISION_PROFILE_ROUTE,
     ADMIN_OVERVIEW_ROUTE,
+    DIVIDEND_DATA_QUALITY_ROUTE,
 )
 
 ALL_ROUTES = (
@@ -225,6 +225,24 @@ def navigation_routes(owner_unlocked: bool) -> tuple[PageRoute, ...]:
     )
 
 
+def navigation_groups(
+    owner_unlocked: bool,
+) -> dict[str, tuple[PageRoute, ...]]:
+    """依公開與管理者權限建立導覽群組。"""
+
+    groups = {
+        NAVIGATION_GROUP: (
+            *PUBLIC_ROUTES,
+            ETF_DETAIL_ROUTE,
+        ),
+    }
+
+    if owner_unlocked:
+        groups["管理者功能"] = OWNER_ROUTES
+
+    return groups
+
+
 def create_navigation(owner_unlocked: bool = False) -> Any:
     """建立網站唯一的 Streamlit 導覽表。"""
 
@@ -234,16 +252,17 @@ def create_navigation(owner_unlocked: bool = False) -> Any:
 
     apply_global_styles()
 
-    pages = [
-        create_streamlit_page(route)
-        for route in navigation_routes(owner_unlocked)
-    ]
+    pages = {
+        group: [
+            create_streamlit_page(route)
+            for route in routes
+        ]
+        for group, routes in navigation_groups(
+            owner_unlocked
+        ).items()
+    }
 
-    return st.navigation(
-        {
-            NAVIGATION_GROUP: pages,
-        }
-    )
+    return st.navigation(pages)
 
 
 def normalize_detail_source(
