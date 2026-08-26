@@ -1,6 +1,7 @@
 """ETF 比較頁純顯示邏輯測試。"""
 
 import unittest
+import inspect
 
 from frontend.pages.etf_comparison import (
     build_candidate_result_rows,
@@ -10,6 +11,7 @@ from frontend.pages.etf_comparison import (
     build_target_payment_months,
     build_performance_rows,
     format_percentage,
+    render_etf_comparison,
 )
 
 
@@ -221,6 +223,13 @@ class TestFrontendETFComparison(
         self.assertEqual(rows[1]["目標"], "是")
         self.assertEqual(rows[2]["目標"], "否")
         self.assertEqual(rows[2]["組合情境"], "不列入目標")
+
+    def test_public_comparison_hides_operational_completeness(self) -> None:
+        """確認公開比較頁不渲染管理用途的完整度區塊。"""
+
+        source = inspect.getsource(render_etf_comparison)
+        self.assertNotIn('st.subheader("資料完整度")', source)
+        self.assertNotIn("build_completeness_rows(", source)
 
 
 if __name__ == "__main__":

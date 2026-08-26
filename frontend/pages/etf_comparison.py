@@ -34,6 +34,10 @@ from frontend.ui.states import (
     loading_state,
     render_api_error,
 )
+from frontend.ui.quality_grade import (
+    load_historical_quality_grade_lookup,
+    render_historical_quality_evidence,
+)
 
 
 COMPARISON_PERIODS = (
@@ -404,9 +408,8 @@ def build_identity_rows(
 
         rows.append(
             {
-                "ETF": (
-                    f"{etf['code']} {etf['name']}"
-                ),
+                "代號": str(etf["code"]),
+                "名稱": str(etf["name"]),
                 "管理方式": (
                     management_type_label(
                         etf["is_active"]
@@ -438,6 +441,32 @@ def build_identity_rows(
         )
 
     return rows
+
+
+def render_comparison_summary_cards(
+    comparison: dict[str, Any],
+    grade_lookup: dict[str, dict[str, Any]],
+) -> None:
+    """以一致卡片呈現各 ETF 身分與公開歷史評等。"""
+
+    items = comparison["items"]
+    columns = st.columns(len(items))
+    for column, item in zip(columns, items, strict=True):
+        etf = item["etf"]
+        code = str(etf["code"]).strip().upper()
+        with column:
+            with st.container(border=True):
+                st.subheader(code)
+                st.write(str(etf["name"]))
+                render_historical_quality_evidence(
+                    grade_lookup.get(code),
+                    compact=True,
+                )
+                st.caption(
+                    management_type_label(etf["is_active"])
+                    + "　｜　上市 "
+                    + format_optional_date(etf["listing_date"])
+                )
 
 
 def build_performance_rows(
@@ -831,6 +860,19 @@ def render_etf_comparison() -> None:
         )
         return
 
+    grade_lookup: dict[str, dict[str, Any]] = {}
+    grade_error = False
+    try:
+        grade_lookup = load_historical_quality_grade_lookup(
+            api_base_url,
+            tuple(
+                str(item["etf"]["code"])
+                for item in comparison["items"]
+            ),
+        )
+    except (APIClientError, ValueError):
+        grade_error = True
+
     refresh_column, _ = st.columns(
         [1, 4]
     )
@@ -841,7 +883,19 @@ def render_etf_comparison() -> None:
             key="refresh_etf_comparison",
         ):
             load_etf_comparison.clear()
+            load_historical_quality_grade_lookup.clear()
             st.rerun()
+
+    render_comparison_summary_cards(
+        comparison,
+        grade_lookup,
+    )
+
+    if grade_error:
+        st.caption(
+            "歷史品質評等暫時無法取得；"
+            "其他比較資料仍可正常查看。"
+        )
 
     st.subheader("基本資料")
     st.table(
@@ -870,18 +924,6 @@ def render_etf_comparison() -> None:
     )
     st.table(
         build_dividend_rows(
-            comparison
-        )
-    )
-
-    st.divider()
-    st.subheader("資料完整度")
-    st.caption(
-        "完整度只代表目前五個比較資料區塊的"
-        "可用情況，不是投資評分。"
-    )
-    st.table(
-        build_completeness_rows(
             comparison
         )
     )

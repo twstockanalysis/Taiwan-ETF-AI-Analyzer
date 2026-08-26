@@ -1300,11 +1300,29 @@ Delivered:
 - Evidence: `frontend/ui/assessment.py`,
   `frontend/pages/public_planner.py` and focused assessment/AppTest coverage
 
-### V4-5 — Explore and evidence pages
+### V4-5 — Explore and evidence pages — Completed locally
 
 - Redesign search, ranking, detail and comparison around consistent ETF cards
 - Apply the same grade semantics and missing-data states across every page
 - Keep operational data-quality fields in owner-only administration
+
+Delivered:
+
+- Added a batch public historical-quality-grade endpoint that reuses the V4-1
+  full-market publication gate and returns only versioned letter-grade evidence
+- Added the same `A+` through `F` or `暫不評等` semantics to search results,
+  performance ranking, ETF detail and comparison without exposing score, rank
+  or confidence
+- Kept search and ranking as aligned, whole-row selectable lists with code
+  before name, and added consistent ETF identity and evidence cards to detail
+  and comparison
+- Removed operational freshness and completeness rendering from public detail
+  and comparison while retaining those data contracts for owner administration
+- Made the grade lookup non-blocking so an unavailable grade service does not
+  hide the primary ETF data
+- Evidence: `frontend/ui/quality_grade.py`,
+  `frontend/pages/etf_search.py`, `frontend/pages/performance_ranking.py`,
+  `frontend/pages/etf_detail.py` and `frontend/pages/etf_comparison.py`
 
 ### V4-6 — V4 acceptance and pre-launch candidate
 

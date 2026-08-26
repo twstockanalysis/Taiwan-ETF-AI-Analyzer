@@ -238,6 +238,14 @@ not replace accessible labels, evidence or risk messages. The implementation
 remains within Streamlit and does not require a language migration or real-
 domain deployment for local review.
 
+Search, performance ranking, ETF detail and ETF comparison use the same public
+historical-quality language. Lists place ETF code before name and show only the
+letter grade or `暫不評等`; detail and comparison may add short strengths, risks
+and unavailable-evidence explanations. A grade-service failure must not block
+the underlying ETF information. Operational import freshness, pipeline
+coverage and calculated completeness belong to owner administration rather
+than these consumer pages.
+
 The public journey begins with one primary planning action and three simple
 preparation steps: choose payment months, set the cash target and optionally
 enter existing holdings. The planner then keeps months, target, holding years,

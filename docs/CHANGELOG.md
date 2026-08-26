@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-26 — V4-5 explore and evidence pages
+
+- Added one batch ETF historical-quality-grade endpoint for search, ranking,
+  detail and comparison pages, reusing the V4-1 publication gate and never
+  exposing raw score, rank or confidence fields.
+- Added consistent `A+` through `F` or `暫不評等` presentation to public ETF
+  discovery tables, detail evidence and comparison summary cards.
+- Separated code and name columns and made performance-ranking rows selectable
+  as a whole, matching the existing search-result interaction.
+- Moved operational data freshness and completeness displays out of public ETF
+  detail and comparison pages while preserving their backend/admin contracts.
+- Kept primary ETF content available when the independent grade request fails.
+
 ## 2026-08-26 — V4-4 allocation result and assessment experience
 
 - Added compact comparison cards for every materially different recommended,

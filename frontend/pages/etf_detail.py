@@ -53,6 +53,10 @@ from frontend.ui.states import (
     render_not_found_state,
     render_warning_state,
 )
+from frontend.ui.quality_grade import (
+    load_historical_quality_grade_lookup,
+    render_historical_quality_evidence,
+)
 
 
 @st.cache_data(
@@ -329,6 +333,7 @@ def render_code_form(
 
 def render_etf_information(
     etf: dict[str, Any],
+    grade_payload: object = None,
 ) -> None:
     """顯示 ETF 身分、分類與核心資料。"""
 
@@ -350,52 +355,57 @@ def render_etf_information(
         or "尚無資料"
     )
 
-    st.header(
-        f"{code}　{name}"
-    )
-
-    st.caption(
-        f"{management_type}　｜　"
-        f"{asset_type}"
-    )
-
-    st.subheader("核心資料概覽")
-
-    date_column, size_column, fee_column = (
-        st.columns(3)
-    )
-
-    with date_column:
-        st.metric(
-            "上市日期",
-            listing_date,
+    with st.container(border=True):
+        st.header(
+            f"{code}　{name}"
         )
 
-    with size_column:
-        st.metric(
-            "基金規模",
-            format_fund_size(
-                etf["fund_size"]
-            ),
+        st.caption(
+            f"{management_type}　｜　"
+            f"{asset_type}"
         )
 
-    with fee_column:
-        st.metric(
-            "費用率",
-            format_expense_ratio(
-                etf["expense_ratio"]
-            ),
+        render_historical_quality_evidence(
+            grade_payload
         )
 
-    if (
-        etf["fund_size"] is None
-        or etf["expense_ratio"] is None
-    ):
-        st.info(
-            "基金規模或費用率顯示「尚無資料」，"
-            "代表目前 ETF 主資料來源尚未提供或"
-            "尚未匯入該項指標。"
+        st.subheader("核心資料概覽")
+
+        date_column, size_column, fee_column = (
+            st.columns(3)
         )
+
+        with date_column:
+            st.metric(
+                "上市日期",
+                listing_date,
+            )
+
+        with size_column:
+            st.metric(
+                "基金規模",
+                format_fund_size(
+                    etf["fund_size"]
+                ),
+            )
+
+        with fee_column:
+            st.metric(
+                "費用率",
+                format_expense_ratio(
+                    etf["expense_ratio"]
+                ),
+            )
+
+        if (
+            etf["fund_size"] is None
+            or etf["expense_ratio"] is None
+        ):
+            st.info(
+                "基金規模或費用率顯示「尚無資料」，"
+                "代表目前 ETF 主資料來源尚未提供或"
+                "尚未匯入該項指標。"
+            )
 
 
 
@@ -2057,17 +2067,16 @@ def render_etf_detail() -> None:
         )
         return
 
-    profile: dict[str, Any] | None = None
-    profile_error: APIClientError | None = None
-
+    grade_payload: object = None
+    grade_error = False
     try:
-        profile = load_etf_data_profile(
-            api_base_url=api_base_url,
-            code=requested_code,
+        grade_lookup = load_historical_quality_grade_lookup(
+            api_base_url,
+            (requested_code,),
         )
-
-    except APIClientError as error:
-        profile_error = error
+        grade_payload = grade_lookup.get(requested_code)
+    except (APIClientError, ValueError):
+        grade_error = True
 
     performance: dict[str, Any] | None = None
     performance_error: APIClientError | None = None
@@ -2150,11 +2159,19 @@ def render_etf_detail() -> None:
             load_etf_actual_76w.clear()
             load_etf_latest_close.clear()
             load_dividend_detail.clear()
+            load_historical_quality_grade_lookup.clear()
             st.rerun()
 
     render_etf_information(
-        etf
+        etf,
+        grade_payload,
     )
+
+    if grade_error:
+        st.caption(
+            "歷史品質評等服務暫時無法取得；"
+            "本頁其他資料仍可正常查看。"
+        )
 
     if performance_error is not None:
         render_detail_section_error(
@@ -2208,18 +2225,6 @@ def render_etf_detail() -> None:
         render_dividend_history(
             api_base_url=api_base_url,
             history=dividend_history,
-        )
-
-    if profile_error is not None:
-        render_detail_section_error(
-            "資料來源與新鮮度",
-            "無法取得 ETF 資料概況。",
-            profile_error,
-        )
-
-    elif profile is not None:
-        render_data_profile(
-            profile
         )
 
     render_comparison_entry_point(

@@ -148,6 +148,36 @@ class TestETFAPI(unittest.TestCase):
             3,
         )
 
+    def test_historical_quality_grades_are_public_safe_and_ordered(self) -> None:
+        response = self.client.get(
+            "/api/v1/etfs/historical-quality-grades",
+            params={"codes": "TEST002A,TEST001"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            [item["etf_code"] for item in payload["items"]],
+            ["TEST002A", "TEST001"],
+        )
+        self.assertTrue(
+            all(
+                item["historical_quality_grade"]["status"] == "UNRATED"
+                for item in payload["items"]
+            )
+        )
+        serialized = response.text.lower()
+        self.assertNotIn("quality_score", serialized)
+        self.assertNotIn("confidence", serialized)
+
+    def test_historical_quality_grades_reject_unknown_code(self) -> None:
+        response = self.client.get(
+            "/api/v1/etfs/historical-quality-grades",
+            params={"codes": "UNKNOWN"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+
     def test_list_etfs_converts_boolean_values(
         self,
     ) -> None:

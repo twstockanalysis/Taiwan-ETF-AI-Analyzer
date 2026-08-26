@@ -156,6 +156,9 @@ def fake_fetch_etfs(**kwargs):
 
 page.fetch_etfs = fake_fetch_etfs
 page.load_etf_page.clear()
+page.load_historical_quality_grade_lookup = (
+    lambda api_base_url, codes: {}
+)
 
 # AppTest.from_string 沒有建立完整的多頁導航註冊表。
 # 整列 page_link 參數由獨立單元測試負責驗證；
@@ -222,6 +225,9 @@ page.fetch_etf_latest_close = fake_fetch_etf_latest_close
 page.load_etf_detail.clear()
 page.load_etf_performance.clear()
 page.load_etf_latest_close.clear()
+page.load_historical_quality_grade_lookup = (
+    lambda api_base_url, codes: {}
+)
 page.render_etf_detail()
 """
 
@@ -296,6 +302,9 @@ page.fetch_multi_period_performance_ranking = (
     fake_fetch_multi_period_performance_ranking
 )
 page.load_performance_ranking.clear()
+page.load_historical_quality_grade_lookup = (
+    lambda api_base_url, codes: {}
+)
 
 with patch(
     "frontend.pages.performance_ranking."
@@ -415,6 +424,7 @@ class TestStreamlitApp(unittest.TestCase):
             [
                 "code",
                 "name",
+                "historical_quality",
                 "management_type",
                 "listing_date",
                 "fund_size",
@@ -497,8 +507,10 @@ class TestStreamlitApp(unittest.TestCase):
             list(app.dataframe[0].value.columns),
             [
                 "rank",
-                "detail",
+                "code",
+                "name",
                 "period_return",
+                "historical_quality",
                 "as_of_date",
                 "management_type",
             ],

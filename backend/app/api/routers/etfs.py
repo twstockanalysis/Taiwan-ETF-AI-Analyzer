@@ -1,5 +1,6 @@
 """ETF 主資料 API 路由。"""
 
+from datetime import date
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -24,6 +25,9 @@ from backend.app.models.etf_comparison_api import (
 from backend.app.models.etf_data_profile_api import (
     ETFDataProfileResponse,
 )
+from backend.app.models.quality_grade_api import (
+    ETFHistoricalQualityGradeResponse,
+)
 from backend.app.repositories.etf_comparison_repository import (
     build_etf_comparison,
     parse_comparison_codes,
@@ -35,6 +39,11 @@ from backend.app.repositories.etf_repository import (
     count_etfs,
     get_etf_by_code,
     list_etfs,
+)
+from backend.app.services.quality_grade_catalog import (
+    DEFAULT_PUBLIC_GRADE_HISTORY_YEARS,
+    build_quality_grade_catalog,
+    normalize_quality_grade_codes,
 )
 
 
@@ -48,6 +57,53 @@ router = APIRouter(
     prefix="/api/v1/etfs",
     tags=["ETFs"],
 )
+
+
+@router.get(
+    "/historical-quality-grades",
+    response_model=ETFHistoricalQualityGradeResponse,
+    summary="取得 ETF 歷史品質評等",
+)
+def read_historical_quality_grades(
+    database_path: DatabasePath,
+    codes: Annotated[
+        str,
+        Query(
+            min_length=1,
+            max_length=1099,
+            description="逗號分隔的 1 至 100 個 ETF 代號",
+        ),
+    ],
+) -> dict[str, Any]:
+    """為公開探索頁提供與配置流程相同的版本化評等語意。"""
+
+    try:
+        normalized_codes = normalize_quality_grade_codes(codes)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(error),
+        ) from error
+
+    catalog = build_quality_grade_catalog(database_path)
+    unknown_codes = [code for code in normalized_codes if code not in catalog]
+    if unknown_codes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="找不到 ETF：" + "、".join(unknown_codes),
+        )
+
+    return {
+        "analysis_date": date.today(),
+        "history_years": DEFAULT_PUBLIC_GRADE_HISTORY_YEARS,
+        "items": [
+            {
+                "etf_code": code,
+                "historical_quality_grade": catalog[code],
+            }
+            for code in normalized_codes
+        ],
+    }
 
 
 @router.get(
