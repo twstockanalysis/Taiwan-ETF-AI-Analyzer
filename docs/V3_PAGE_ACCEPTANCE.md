@@ -69,8 +69,9 @@ the other administrative pages.
   is removed because this search experience currently covers non-bond ETFs.
 - Remove the comparison-page shortcut so the primary path is search to detail.
 - Present results in stable columns for name/code, management type, listing
-  date, fund size and expense ratio. Selecting the name/code opens detail while
-  preserving the search state.
+  date, fund size and expense ratio. Code and name are separate columns with
+  code first. Selecting any cell in a row opens detail while preserving the
+  search state; the table toolbar is hidden.
 - Do not imitate quote, price-change or volume fields from the visual reference
   until the list API provides verified values for those fields.
 

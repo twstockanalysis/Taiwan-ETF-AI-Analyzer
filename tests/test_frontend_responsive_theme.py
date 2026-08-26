@@ -37,6 +37,17 @@ class TestFrontendResponsiveTheme(
             GLOBAL_STYLES,
         )
 
+    def test_search_results_hide_table_toolbar(
+        self,
+    ) -> None:
+        """確認 ETF 搜尋結果不顯示表格控制列。"""
+
+        self.assertIn(
+            ".st-key-etf_search_detail_action "
+            '[data-testid="stElementToolbar"]',
+            GLOBAL_STYLES,
+        )
+
     @patch(
         "frontend.ui.theme.st.markdown"
     )

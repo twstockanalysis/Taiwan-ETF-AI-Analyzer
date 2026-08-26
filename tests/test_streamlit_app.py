@@ -412,7 +412,8 @@ class TestStreamlitApp(unittest.TestCase):
         self.assertEqual(
             list(result_table.columns),
             [
-                "detail",
+                "code",
+                "name",
                 "management_type",
                 "listing_date",
                 "fund_size",

@@ -72,8 +72,9 @@ class TestFrontendETFClickableRows(
         "st.session_state",
         {
             RESULT_ACTION_KEY: {
-                "row": 0,
-                "label": "元大台灣50\n0050",
+                "selection": {
+                    "rows": [0],
+                },
             }
         },
     )
@@ -81,7 +82,7 @@ class TestFrontendETFClickableRows(
         self,
         mock_switch_page,
     ) -> None:
-        """確認名稱代號按鈕保留搜尋狀態後導向詳細頁。"""
+        """確認選取整列會保留搜尋狀態並導向詳細頁。"""
 
         open_etf_detail(
             [self.build_item()],

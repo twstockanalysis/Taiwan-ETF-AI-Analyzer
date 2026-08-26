@@ -90,6 +90,10 @@ GLOBAL_STYLES = f"""
     display: none !important;
 }}
 
+.st-key-etf_search_detail_action [data-testid="stElementToolbar"] {{
+    display: none !important;
+}}
+
 .st-key-public-planner-holdings button[aria-label*="column menu" i],
 .st-key-public-planner-holdings button[aria-label*="欄位選單" i],
 .st-key-public-planner-holdings .gdg-header-menu-button {{

@@ -132,42 +132,30 @@ def render_clickable_etf_rows(
     )
 
     rows = [
-        {
-            "detail": (
-                f"{row['name']}\n{row['code']}"
-            ),
-            "management_type": (
-                row["management_type"]
-            ),
-            "listing_date": row["listing_date"],
-            "fund_size": row["fund_size"],
-            "expense_ratio": row["expense_ratio"],
-        }
-        for row in (
-            format_etf_result_row(item)
-            for item in items
-        )
+        format_etf_result_row(item)
+        for item in items
     ]
 
-    st.dataframe(
+    selection = st.dataframe(
         rows,
         column_order=(
-            "detail",
+            "code",
+            "name",
             "management_type",
             "listing_date",
             "fund_size",
             "expense_ratio",
         ),
         column_config={
-            "detail": st.column_config.ButtonColumn(
-                "名稱／代號",
+            "code": st.column_config.TextColumn(
+                "代號",
+                width="small",
+                pinned=True,
+            ),
+            "name": st.column_config.TextColumn(
+                "名稱",
                 width="large",
                 pinned=True,
-                alignment="left",
-                type="tertiary",
-                on_click=open_etf_detail,
-                args=(items, source_state),
-                key=RESULT_ACTION_KEY,
             ),
             "management_type": (
                 st.column_config.TextColumn(
@@ -195,24 +183,40 @@ def render_clickable_etf_rows(
         hide_index=True,
         width="stretch",
         height="content",
-        row_height=58,
+        key=RESULT_ACTION_KEY,
+        on_select="rerun",
+        selection_mode="single-row",
     )
+
+    selected_rows = selection.selection.rows
+    if selected_rows:
+        open_etf_detail(
+            items,
+            source_state,
+            row_index=int(selected_rows[0]),
+        )
 
 
 def open_etf_detail(
     items: list[dict[str, Any]],
     source_state: ETFSearchQueryState,
+    *,
+    row_index: int | None = None,
 ) -> None:
-    """由資料表按鈕開啟所選 ETF 詳細資料。"""
+    """由資料表選取列開啟 ETF 詳細資料。"""
 
-    action = st.session_state.get(
-        RESULT_ACTION_KEY
-    )
-
-    if action is None:
-        return
-
-    row_index = int(action["row"])
+    if row_index is None:
+        selection = st.session_state.get(
+            RESULT_ACTION_KEY,
+            {},
+        ).get("selection", {})
+        selected_rows = selection.get(
+            "rows",
+            [],
+        )
+        if not selected_rows:
+            return
+        row_index = int(selected_rows[0])
 
     if not 0 <= row_index < len(items):
         return
@@ -658,7 +662,7 @@ def render_etf_search() -> None:
     )
 
     st.caption(
-        "點選名稱／代號即可查看詳細資料。"
+        "點選即可查看詳細資料。"
     )
 
     render_pagination(
