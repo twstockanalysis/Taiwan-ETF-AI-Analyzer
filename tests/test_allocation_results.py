@@ -26,6 +26,12 @@ def allocation_result(code: str) -> IntegerAllocationResponse:
             {
                 "etf_code": code,
                 "name": f"ETF {code}",
+                "historical_quality_grade": {
+                    "status": "RATED",
+                    "grade": "A",
+                    "evidence_period_years": 3,
+                    "explanation": "歷史品質評等。",
+                },
                 "additional_shares": 100,
                 "reference_price": 20,
                 "reference_price_as_of": "2026-01-01",

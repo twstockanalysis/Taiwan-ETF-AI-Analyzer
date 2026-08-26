@@ -78,8 +78,8 @@ currencies keeps the dependent value `null` and returns explicit issues.
 
 This endpoint does not yet select ETFs or recommend additional shares. Its
 `AUTO_ALLOCATION_PENDING` next step reserves that boundary for V3-2 and V3-3.
-ETF-quality scores and assessment-confidence fields are not part of the public
-response.
+Raw ETF-quality scores and assessment-confidence fields are not part of the
+public response.
 
 ### Full-market eligibility index
 
@@ -99,9 +99,12 @@ Allocation-dependent concentration is returned as a mandatory V3-3 constraint.
 
 The server retains a deterministic quality score and twelve Decimal-safe
 cash-per-share values only in its internal index for the next solver stage.
-Quality scores, components, internal ranks and confidence labels are absent
-from the public response. The endpoint remains stateless and requires no owner
-token.
+V4-1 adds a nested `historical_quality_grade` to each public candidate. It
+contains only a versioned `A+` through `F` grade or `UNRATED`, short evidence
+and missing-data reasons. The complete market snapshot must pass minimum
+sample, coverage and score-saturation gates before any letter is published.
+Raw quality scores, components, internal ranks and confidence labels remain
+absent. The endpoint remains stateless and requires no owner token.
 
 ### Allocation results and long-term scenarios
 
@@ -116,6 +119,10 @@ The V3-4 allocation endpoint returns one to three materially different
 includes the required additional capital, selected-month cash and shortfall,
 resulting holdings, assumptions and risks. It returns fewer plans rather than
 fabricating duplicate alternatives.
+
+Each added ETF carries the same public-safe `historical_quality_grade`. This
+grade does not change the integer solution and remains distinct from the
+owner-goal allocation result.
 
 The V3-5 endpoint includes the same allocation response and one aligned
 long-term-evidence record per returned strategy. Historical portfolio evidence

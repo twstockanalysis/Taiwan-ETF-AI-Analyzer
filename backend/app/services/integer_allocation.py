@@ -425,6 +425,9 @@ def build_integer_allocation(
             IntegerAllocationAddition(
                 etf_code=code,
                 name=candidate.public_item.name,
+                historical_quality_grade=(
+                    candidate.public_item.historical_quality_grade
+                ),
                 additional_shares=quantity,
                 reference_price=price,
                 reference_price_as_of=candidate.public_item.reference_price_as_of,

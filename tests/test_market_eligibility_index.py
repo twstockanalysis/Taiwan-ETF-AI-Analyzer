@@ -135,9 +135,24 @@ class TestMarketEligibilityIndex(unittest.TestCase):
                 for item in built.ranked_eligible_candidates
             )
         )
+        self.assertTrue(
+            all(
+                item.public_item.historical_quality_grade.status == "UNRATED"
+                for item in built.ranked_eligible_candidates
+            )
+        )
+        self.assertTrue(
+            all(
+                "低於校準門檻" in (
+                    item.public_item.historical_quality_grade.unavailable_evidence[0]
+                )
+                for item in built.ranked_eligible_candidates
+            )
+        )
         serialized = response.model_dump(mode="json")
         self.assertNotIn("quality_score", json_text(serialized))
         self.assertNotIn("confidence", json_text(serialized))
+        self.assertIn("historical_quality_grade", json_text(serialized))
 
     def test_unsupported_and_missing_data_have_stable_exclusion_codes(self) -> None:
         response = build_market_eligibility_index(
@@ -154,6 +169,10 @@ class TestMarketEligibilityIndex(unittest.TestCase):
         self.assertIn("MISSING_REFERENCE_PRICE", missing_codes)
         self.assertIn("MISSING_COMPLETE_DIVIDEND_COMPONENTS", missing_codes)
         self.assertFalse(by_code["00878"].eligible_for_addition)
+        self.assertEqual(
+            by_code["00878"].historical_quality_grade.status,
+            "UNRATED",
+        )
 
     def test_existing_holdings_require_real_portfolio_overlap(self) -> None:
         response = build_market_eligibility_index(

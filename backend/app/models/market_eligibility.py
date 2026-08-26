@@ -11,6 +11,7 @@ from backend.app.models.public_planner import (
     PublicPlannerBaseModel,
     PublicPlannerRequest,
 )
+from backend.app.models.quality_grade import ETFHistoricalQualityGrade
 
 
 class MarketEligibilityReasonKind(StrEnum):
@@ -54,6 +55,7 @@ class MarketEligibilityItem(PublicPlannerBaseModel):
     existing_holding: bool
     supported_product: bool
     eligible_for_addition: bool
+    historical_quality_grade: ETFHistoricalQualityGrade
     reference_price: Decimal | None = Field(default=None, gt=0)
     reference_price_as_of: date | None = None
     reference_price_source_id: str | None = None

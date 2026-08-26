@@ -82,6 +82,8 @@ The grade must:
 - show `暫不評等` rather than `F` when required evidence is missing;
 - use fixed, versioned thresholds rather than a market-relative percentile
   that changes merely because another ETF is added;
+- remain `暫不評等` for every ETF until the market snapshot passes the minimum
+  sample, coverage and score-saturation publication gates;
 - disclose the methodology version, evidence period and data date;
 - include short plain-language strengths, risks and missing-evidence notes;
 - never allow yield, dividend amount, tax composition or payment timing to
@@ -147,6 +149,12 @@ The calibration report must separately measure:
 - selected-month target coverage, capital and remaining shortfall;
 - deterministic reproducibility.
 
+The first calibration gate requires at least 30 trustworthy scored ETFs, at
+least 20% coverage of the supported product universe and no more than 50% of
+total-return component scores at the scoring ceiling. These minimums prevent a
+small or saturated sample from producing consumer-facing grades that look more
+precise than the evidence supports.
+
 ## Streamlit implementation boundary
 
 V4 remains a Streamlit frontend over the existing FastAPI backend.
@@ -179,4 +187,3 @@ A V4 page is accepted only when it passes all of the following:
 - the two assessment outcomes cannot be mistaken for each other;
 - public/private navigation and stateless planner boundaries remain intact;
 - focused frontend, API contract, calculation and security regressions pass.
-
