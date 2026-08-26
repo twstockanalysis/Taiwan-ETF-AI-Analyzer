@@ -11,7 +11,8 @@ from frontend.ui.components import render_page_title
 from frontend.api_client import APIClientError, fetch_portfolio_projections
 from frontend.config import get_api_base_url
 from frontend.ui.formatters import format_number
-from frontend.ui.states import loading_state, render_api_error
+from frontend.ui.goodcat import GoodCatState, render_goodcat_companion
+from frontend.ui.states import loading_state
 
 
 MONTH_OPTIONS = list(range(1, 13))
@@ -24,12 +25,107 @@ TARGET_MONTHS_STATE_KEY = "public_planner_target_months"
 REINVESTMENT_POLICY_STATE_KEY = "public_planner_reinvestment_policy"
 HOLDING_ROWS_STATE_KEY = "public_planner_holding_rows"
 HOLDING_EDITOR_VERSION_STATE_KEY = "public_planner_holding_editor_version"
+RESULT_STATE_KEY = "public_portfolio_projections"
+RESULT_INPUT_SIGNATURE_STATE_KEY = "public_planner_result_input_signature"
 HOLDING_SELECTION_COLUMN = "選取"
 # 配息歷史觀察期與使用者選擇的未來持有年限是不同概念；目前正式資料
 # 最長可穩定比較三年，後續資料覆蓋擴充時再同步提高。
 DEFAULT_HISTORY_YEARS = 3
 DEFAULT_CASH_DEDUCTION_RATE_PCT = 0.0
 DEFAULT_CUSTOM_REINVESTMENT_PCT = 50.0
+
+
+def allocation_goodcat_feedback(
+    payload: dict[str, Any],
+) -> tuple[GoodCatState, str]:
+    """依公開配置狀態選擇簡單、不誇大的角色回饋。"""
+
+    allocation = payload.get("long_term_scenarios", {}).get(
+        "allocation_results", {}
+    )
+    plans = allocation.get("plans", [])
+    if not plans:
+        return (
+            GoodCatState.CAUTION,
+            "目前沒有足夠資料完成配置，咪把能確認的原因留在下方。",
+        )
+
+    recommended = next(
+        (
+            plan
+            for plan in plans
+            if plan.get("strategy") == "RECOMMENDED"
+        ),
+        plans[0],
+    )
+    result = recommended.get("result", {})
+    status = result.get("status")
+
+    if status == "TARGET_MET":
+        if result.get("additions"):
+            message = "算好囉！咪已整理要增加的 ETF、股數與所需資金。"
+        else:
+            message = "算好囉！依目前資料，主人的庫存已能覆蓋設定目標。"
+        return GoodCatState.READY, message
+
+    if status == "PARTIAL":
+        return (
+            GoodCatState.CAUTION,
+            "咪找到目前較接近的配置，但部分月份仍有缺口，請一起看原因。",
+        )
+
+    return (
+        GoodCatState.CAUTION,
+        "目前資料下還找不到合適的新增配置，咪把排除原因整理在下方。",
+    )
+
+
+def planner_input_signature(
+    *,
+    target_cash: int,
+    selected_months: list[int],
+    projection_years: int,
+    holdings: list[dict[str, Any]],
+    reinvestment_policy: str,
+    tax_method: str,
+    marginal_tax_rate: float,
+    other_income_tax_rate: float,
+    remaining_credit_cap: float,
+    premium_exempt: bool,
+) -> tuple[Any, ...]:
+    """辨識本頁輸入，避免條件改變後仍顯示舊配置。"""
+
+    return (
+        int(target_cash),
+        tuple(sorted(int(month) for month in selected_months)),
+        int(projection_years),
+        tuple(
+            (str(item["etf_code"]), int(item["held_units"]))
+            for item in holdings
+        ),
+        reinvestment_policy,
+        tax_method,
+        float(marginal_tax_rate),
+        float(other_income_tax_rate),
+        float(remaining_credit_cap),
+        bool(premium_exempt),
+    )
+
+
+def render_planner_goodcat(
+    slot: Any,
+    state: GoodCatState,
+    message: str,
+) -> None:
+    """在固定位置替換規劃流程的角色狀態。"""
+
+    slot.empty()
+    with slot.container():
+        render_goodcat_companion(
+            state,
+            message=message,
+            image_width=132,
+        )
 
 
 def apply_month_preset(months: list[int]) -> None:
@@ -734,10 +830,10 @@ def render_portfolio_projection(
 
 
 def render_public_planner() -> None:
-    """Render the public, stateless V3-1 planning flow."""
+    """顯示公開、不儲存資料的 GoodCat 引導式規劃流程。"""
 
     render_page_title("股利試算")
-    st.caption("請依序選擇輸入")
+    st.caption("先選領息月份，再設定目標；不用自己先挑候選 ETF。")
 
     st.session_state.setdefault(TARGET_MONTHS_STATE_KEY, MONTH_OPTIONS)
     st.session_state.setdefault(
@@ -746,185 +842,239 @@ def render_public_planner() -> None:
     )
     st.session_state.setdefault(HOLDING_EDITOR_VERSION_STATE_KEY, 0)
 
-    st.subheader("1. 每個目標月想領多少股利（TWD）")
-    target_cash = st.number_input(
-        "每個目標月想領多少股利（TWD）",
-        min_value=0,
-        value=3000,
-        step=500,
-        label_visibility="collapsed",
+    goodcat_slot = st.empty()
+    render_planner_goodcat(
+        goodcat_slot,
+        GoodCatState.ATTENTIVE,
+        "主人告訴咪月份、目標與庫存就好；沒有庫存也可以直接算。",
     )
 
-    st.subheader("2. 領息月份")
-    with st.container(horizontal=True):
-        for preset_label, preset_months in MONTH_PRESETS.items():
-            preset_is_active = set(st.session_state[TARGET_MONTHS_STATE_KEY]) == set(
-                preset_months
-            )
-            st.button(
-                preset_label,
-                type="primary" if preset_is_active else "secondary",
-                on_click=apply_month_preset,
-                args=(preset_months,),
-                key=f"public_planner_month_preset_{preset_label}",
-            )
-    selected_months = st.pills(
-        "領息月份",
-        options=MONTH_OPTIONS,
-        selection_mode="multi",
-        format_func=lambda month: f"{month} 月",
-        key=TARGET_MONTHS_STATE_KEY,
-        label_visibility="collapsed",
-        width="stretch",
-    )
-
-    st.subheader("3. 想持有年限")
-    projection_years = st.number_input(
-        "想持有年限",
-        min_value=1,
-        max_value=20,
-        value=10,
-        step=1,
-        label_visibility="collapsed",
-    )
-
-    st.subheader("4. 庫存ETF持股 (可留空)")
-    st.caption(
-        "請輸入代號＋股數，價格自動擷取最新收盤價，非即時報價；"
-        "若在盤中，則為前一日收盤價。"
-    )
-    editor_version = st.session_state[HOLDING_EDITOR_VERSION_STATE_KEY]
-    holding_editor_key = f"public_planner_holding_editor_{editor_version}"
-    with st.container(key="public-planner-holdings"):
-        edited_holdings = st.data_editor(
-            st.session_state[HOLDING_ROWS_STATE_KEY],
-            num_rows="fixed",
-            hide_index=True,
-            key=holding_editor_key,
-            on_change=apply_holding_editor_changes,
-            args=(holding_editor_key,),
-            width="content",
-            column_order=[HOLDING_SELECTION_COLUMN, "ETF 代號", "持有股數"],
-            column_config={
-                HOLDING_SELECTION_COLUMN: st.column_config.CheckboxColumn(
-                    "選取",
-                    help="先勾選要刪除的持股",
-                    default=False,
-                    width=75,
-                    pinned=True,
-                ),
-                "ETF 代號": st.column_config.TextColumn(
-                    "ETF 代號",
-                    help="限本網站收錄的台灣 ETF 代號",
-                    max_chars=10,
-                    width=160,
-                ),
-                "持有股數": st.column_config.NumberColumn(
-                    "持有股數",
-                    min_value=1,
-                    step=1,
-                    format="%d",
-                    width=140,
-                ),
-            },
+    with st.container(border=True, key="public-planner-guided-form"):
+        st.subheader("1. 想在哪些月份領股利")
+        st.caption("可以用快速選取，再逐月調整。")
+        with st.container(horizontal=True):
+            for preset_label, preset_months in MONTH_PRESETS.items():
+                preset_is_active = set(
+                    st.session_state[TARGET_MONTHS_STATE_KEY]
+                ) == set(preset_months)
+                st.button(
+                    preset_label,
+                    type="primary" if preset_is_active else "secondary",
+                    on_click=apply_month_preset,
+                    args=(preset_months,),
+                    key=f"public_planner_month_preset_{preset_label}",
+                )
+        selected_months = st.pills(
+            "領息月份",
+            options=MONTH_OPTIONS,
+            selection_mode="multi",
+            format_func=lambda month: f"{month} 月",
+            key=TARGET_MONTHS_STATE_KEY,
+            label_visibility="collapsed",
+            width="stretch",
         )
 
-    selected_holding_count = int(
-        edited_holdings[HOLDING_SELECTION_COLUMN].fillna(False).sum()
-    )
-    with st.container(horizontal=True):
-        add_holding_clicked = st.button(
-            "新增持股",
-            icon=":material/add:",
-            key="public_planner_add_holding",
+        st.subheader("2. 每個目標月想領多少股利（TWD）")
+        target_cash = st.number_input(
+            "每個目標月想領多少股利（TWD）",
+            min_value=0,
+            value=3000,
+            step=500,
+            label_visibility="collapsed",
         )
-        delete_holdings_clicked = False
-        if selected_holding_count:
-            delete_holdings_clicked = st.button(
-                f"刪除已選取（{selected_holding_count}）",
-                icon=":material/delete:",
-                type="secondary",
-                key="public_planner_delete_holdings",
-            )
 
-    if add_holding_clicked:
-        replace_holding_rows(add_empty_holding_row(edited_holdings))
-        st.rerun()
-    if delete_holdings_clicked:
-        replace_holding_rows(remove_selected_holding_rows(edited_holdings))
-        st.rerun()
+        st.subheader("3. 想持有年限")
+        st.caption("用來呈現長期情境，不會改變歷史資料長度。")
+        projection_years = st.number_input(
+            "想持有年限",
+            min_value=1,
+            max_value=20,
+            value=10,
+            step=1,
+            label_visibility="collapsed",
+        )
 
-    st.subheader("5. 股息再投入與否")
-    reinvestment_policy_label = st.segmented_control(
-        "股息再投入與否",
-        ["不再投入", "全部再投入"],
-        default="不再投入",
-        selection_mode="single",
-        label_visibility="collapsed",
-        key="public_planner_reinvestment_choice",
-    ) or "不再投入"
-
-    with st.expander("稅務假設（可調整）"):
+        st.subheader("4. 庫存 ETF 持股（可留空）")
         st.caption(
-            "若不調整，系統會依合併計稅、5% 所得稅率及需要估算二代健保，"
-            "直接算出可能的所得稅與二代健保金額。"
+            "請輸入代號＋股數，價格自動擷取最新收盤價，非即時報價；"
+            "若在盤中，則為前一日收盤價。"
         )
-        tax_method_label = st.segmented_control(
-            "股利計稅方式",
-            ["合併計稅並試算抵減", "股利 28% 分開計稅"],
-            default="合併計稅並試算抵減",
-        ) or "合併計稅並試算抵減"
-        advanced_columns = st.columns(3)
-        with advanced_columns[0]:
-            marginal_tax_rate = st.number_input(
-                "預估個人所得稅率（%）",
-                min_value=0.0,
-                max_value=100.0,
-                value=5.0,
-                step=1.0,
-                disabled=tax_method_label == "股利 28% 分開計稅",
+        editor_version = st.session_state[HOLDING_EDITOR_VERSION_STATE_KEY]
+        holding_editor_key = f"public_planner_holding_editor_{editor_version}"
+        with st.container(key="public-planner-holdings"):
+            edited_holdings = st.data_editor(
+                st.session_state[HOLDING_ROWS_STATE_KEY],
+                num_rows="fixed",
+                hide_index=True,
+                key=holding_editor_key,
+                on_change=apply_holding_editor_changes,
+                args=(holding_editor_key,),
+                width="content",
+                column_order=[HOLDING_SELECTION_COLUMN, "ETF 代號", "持有股數"],
+                column_config={
+                    HOLDING_SELECTION_COLUMN: st.column_config.CheckboxColumn(
+                        "選取",
+                        help="先勾選要刪除的持股",
+                        default=False,
+                        width=75,
+                        pinned=True,
+                    ),
+                    "ETF 代號": st.column_config.TextColumn(
+                        "ETF 代號",
+                        help="限本網站收錄的台灣 ETF 代號",
+                        max_chars=10,
+                        width=160,
+                    ),
+                    "持有股數": st.column_config.NumberColumn(
+                        "持有股數",
+                        min_value=1,
+                        step=1,
+                        format="%d",
+                        width=140,
+                    ),
+                },
             )
-        with advanced_columns[1]:
-            remaining_credit_cap = st.number_input(
-                "今年剩餘股利抵減上限（TWD）",
-                min_value=0.0,
-                max_value=80000.0,
-                value=80000.0,
-                step=1000.0,
-                disabled=tax_method_label == "股利 28% 分開計稅",
+
+        selected_holding_count = int(
+            edited_holdings[HOLDING_SELECTION_COLUMN].fillna(False).sum()
+        )
+        with st.container(horizontal=True):
+            add_holding_clicked = st.button(
+                "新增持股",
+                icon=":material/add:",
+                key="public_planner_add_holding",
             )
-            other_income_tax_rate = st.number_input(
-                "其他配息組成稅率（%）",
-                min_value=0.0,
-                max_value=100.0,
-                value=0.0,
-                step=1.0,
+            delete_holdings_clicked = False
+            if selected_holding_count:
+                delete_holdings_clicked = st.button(
+                    f"刪除已選取（{selected_holding_count}）",
+                    icon=":material/delete:",
+                    type="secondary",
+                    key="public_planner_delete_holdings",
+                )
+
+        if add_holding_clicked:
+            replace_holding_rows(add_empty_holding_row(edited_holdings))
+            st.rerun()
+        if delete_holdings_clicked:
+            replace_holding_rows(remove_selected_holding_rows(edited_holdings))
+            st.rerun()
+
+        st.subheader("5. 股息再投入與否")
+        reinvestment_policy_label = st.segmented_control(
+            "股息再投入與否",
+            ["不再投入", "全部再投入"],
+            default="不再投入",
+            selection_mode="single",
+            label_visibility="collapsed",
+            key="public_planner_reinvestment_choice",
+        ) or "不再投入"
+
+        with st.expander("稅務假設（可調整）"):
+            st.caption(
+                "若不調整，系統會依合併計稅、5% 所得稅率及需要估算二代健保，"
+                "直接算出可能的所得稅與二代健保金額。"
             )
-        with advanced_columns[2]:
-            premium_exempt = st.checkbox("不估算二代健保", value=False)
-    submitted = st.button(
-        "產生配置結果",
-        type="primary",
-        icon=":material/calculate:",
-        key="public_planner_submit",
+            tax_method_label = st.segmented_control(
+                "股利計稅方式",
+                ["合併計稅並試算抵減", "股利 28% 分開計稅"],
+                default="合併計稅並試算抵減",
+            ) or "合併計稅並試算抵減"
+            advanced_columns = st.columns(3)
+            with advanced_columns[0]:
+                marginal_tax_rate = st.number_input(
+                    "預估個人所得稅率（%）",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=5.0,
+                    step=1.0,
+                    disabled=tax_method_label == "股利 28% 分開計稅",
+                )
+            with advanced_columns[1]:
+                remaining_credit_cap = st.number_input(
+                    "今年剩餘股利抵減上限（TWD）",
+                    min_value=0.0,
+                    max_value=80000.0,
+                    value=80000.0,
+                    step=1000.0,
+                    disabled=tax_method_label == "股利 28% 分開計稅",
+                )
+                other_income_tax_rate = st.number_input(
+                    "其他配息組成稅率（%）",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=0.0,
+                    step=1.0,
+                )
+            with advanced_columns[2]:
+                premium_exempt = st.checkbox("不估算二代健保", value=False)
+
+        submitted = st.button(
+            "讓股利喵產生配置",
+            type="primary",
+            icon=":material/calculate:",
+            key="public_planner_submit",
+            width="stretch",
+        )
+
+        st.caption(
+            "不需登入，輸入只用於本次試算；結果不是下單指示，也不保證未來配息或報酬。"
+        )
+
+    selected_reinvestment_policy = (
+        "FULL_REINVESTMENT"
+        if reinvestment_policy_label == "全部再投入"
+        else "NO_REINVESTMENT"
     )
+    tax_method = (
+        "SEPARATE_28"
+        if tax_method_label == "股利 28% 分開計稅"
+        else "COMBINED_WITH_CREDIT"
+    )
+    holdings, errors = build_holding_payload(edited_holdings)
+    current_input_signature = planner_input_signature(
+        target_cash=target_cash,
+        selected_months=selected_months,
+        projection_years=projection_years,
+        holdings=holdings,
+        reinvestment_policy=selected_reinvestment_policy,
+        tax_method=tax_method,
+        marginal_tax_rate=marginal_tax_rate,
+        other_income_tax_rate=other_income_tax_rate,
+        remaining_credit_cap=remaining_credit_cap,
+        premium_exempt=premium_exempt,
+    )
+    saved_result = st.session_state.get(RESULT_STATE_KEY)
+    saved_signature = st.session_state.get(RESULT_INPUT_SIGNATURE_STATE_KEY)
+    if isinstance(saved_result, dict) and saved_signature != current_input_signature:
+        st.session_state.pop(RESULT_STATE_KEY, None)
+        st.session_state.pop(RESULT_INPUT_SIGNATURE_STATE_KEY, None)
+        saved_result = None
+
+    if isinstance(saved_result, dict):
+        state, message = allocation_goodcat_feedback(saved_result)
+        render_planner_goodcat(goodcat_slot, state, message)
 
     if submitted:
-        selected_reinvestment_policy = (
-            "FULL_REINVESTMENT"
-            if reinvestment_policy_label == "全部再投入"
-            else "NO_REINVESTMENT"
-        )
         st.session_state[REINVESTMENT_POLICY_STATE_KEY] = (
             selected_reinvestment_policy
         )
-        holdings, errors = build_holding_payload(edited_holdings)
         if not selected_months:
             errors.append("請至少選擇一個領息月份。")
         if errors:
+            render_planner_goodcat(
+                goodcat_slot,
+                GoodCatState.CAUTION,
+                "有幾個欄位需要主人再確認，修好後咪就能開始計算。",
+            )
             for message in errors:
                 st.warning(message)
         else:
+            render_planner_goodcat(
+                goodcat_slot,
+                GoodCatState.WORKING,
+                "咪正在核對全市場 ETF、整數股數與所需資金。",
+            )
             try:
                 api_base_url = get_api_base_url()
                 with loading_state("正在檢查全市場資料並計算整數股數..."):
@@ -944,9 +1094,7 @@ def render_public_planner() -> None:
                                 DEFAULT_CUSTOM_REINVESTMENT_PCT
                             ),
                             "dividend_tax_method": (
-                                "SEPARATE_28"
-                                if tax_method_label == "股利 28% 分開計稅"
-                                else "COMBINED_WITH_CREDIT"
+                                tax_method
                             ),
                             "marginal_income_tax_rate_pct": marginal_tax_rate,
                             "other_income_tax_rate_pct": other_income_tax_rate,
@@ -957,17 +1105,28 @@ def render_public_planner() -> None:
                         },
                     )
             except (APIClientError, ValueError) as error:
-                render_api_error("無法完成股利試算。", error)
+                render_planner_goodcat(
+                    goodcat_slot,
+                    GoodCatState.CAUTION,
+                    "咪暫時無法完成計算，請稍後再試；主人剛才的輸入仍留在畫面上。",
+                )
+                st.error("暫時無法完成股利試算，請確認服務已啟動後再試一次。")
+                st.caption(f"錯誤類型：{type(error).__name__}")
             else:
-                st.session_state["public_portfolio_projections"] = result
+                st.session_state[RESULT_STATE_KEY] = result
+                st.session_state[RESULT_INPUT_SIGNATURE_STATE_KEY] = (
+                    current_input_signature
+                )
+                saved_result = result
+                state, message = allocation_goodcat_feedback(result)
+                render_planner_goodcat(goodcat_slot, state, message)
 
-    result = st.session_state.get("public_portfolio_projections")
-    if isinstance(result, dict):
-        long_term = result["long_term_scenarios"]
+    if isinstance(saved_result, dict):
+        long_term = saved_result["long_term_scenarios"]
         selected_strategy = render_allocation_results(long_term["allocation_results"])
         render_long_term_evidence(long_term, selected_strategy)
         render_portfolio_projection(
-            result,
+            saved_result,
             selected_strategy,
             st.session_state.get(
                 REINVESTMENT_POLICY_STATE_KEY,

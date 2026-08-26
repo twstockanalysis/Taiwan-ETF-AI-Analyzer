@@ -12,6 +12,7 @@ from frontend.navigation import (
 )
 from frontend.ui.goodcat import (
     GoodCatState,
+    render_beginner_card,
     render_goodcat_companion,
 )
 
@@ -35,14 +36,51 @@ def render_primary_action() -> None:
     """將核心配置流程放在首頁第一個可操作位置。"""
 
     with st.container(border=True, key="home-primary-action"):
+        st.markdown("### 主人不用先挑 ETF")
         st.write(PLANNER_INTRO)
         st.page_link(
             create_streamlit_page(PUBLIC_PLANNER_ROUTE),
-            label="開始配置",
+            label="開始讓股利喵規劃",
             icon=":material/calculate:",
             width="stretch",
         )
         st.caption(PLANNER_NOTICE)
+
+
+def render_planning_steps() -> None:
+    """用三張短卡說明初學者開始規劃前只要準備什麼。"""
+
+    st.subheader("三步就能開始")
+    columns = st.columns(3)
+    steps = (
+        (
+            "1. 選領息月份",
+            "勾選想收到股利的月份，也可以直接選每月、單數月或雙數月。",
+            ":material/calendar_month:",
+        ),
+        (
+            "2. 告訴咪目標",
+            "輸入每個目標月想領多少，咪會用相同目標逐月試算。",
+            ":material/payments:",
+        ),
+        (
+            "3. 庫存可留空",
+            "有 ETF 就輸入代號與股數；還沒開始投資也能直接規劃。",
+            ":material/account_balance_wallet:",
+        ),
+    )
+    for index, (column, step) in enumerate(
+        zip(columns, steps, strict=True),
+        start=1,
+    ):
+        title, body, icon = step
+        with column:
+            render_beginner_card(
+                title,
+                body,
+                icon=icon,
+                key=f"home-planning-step-{index}",
+            )
 
 
 def render_exploration_links() -> None:
@@ -69,10 +107,14 @@ def render_home() -> None:
     """顯示以初學者核心任務為主的首頁。"""
 
     st.title(SITE_NAME)
-    st.caption(SITE_SLOGAN)
+    slogan_zh, slogan_en = SITE_SLOGAN.split("\n\n", maxsplit=1)
+    st.subheader(slogan_zh)
+    st.caption(slogan_en)
     render_goodcat_companion(
         GoodCatState.IDLE,
+        message="主人先想想想在哪幾個月領股利，剩下的交給咪。",
         key="home-goodcat",
     )
     render_primary_action()
+    render_planning_steps()
     render_exploration_links()

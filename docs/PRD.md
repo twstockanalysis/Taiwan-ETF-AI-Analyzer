@@ -238,6 +238,14 @@ not replace accessible labels, evidence or risk messages. The implementation
 remains within Streamlit and does not require a language migration or real-
 domain deployment for local review.
 
+The public journey begins with one primary planning action and three simple
+preparation steps: choose payment months, set the cash target and optionally
+enter existing holdings. The planner then keeps months, target, holding years,
+zero-to-N holdings and reinvestment in one ordered input card. Changing any
+submitted condition invalidates the visible prior result so an old allocation
+cannot be mistaken for a newly calculated one. Inputs and results remain
+session-only and are never written to owner profile tables.
+
 ## Analysis modes and data semantics
 
 The product must distinguish:

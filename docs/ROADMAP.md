@@ -1250,12 +1250,29 @@ Delivered:
 - Evidence: `frontend/ui/goodcat.py`, `.streamlit/config.toml` and
   `frontend/assets/goodcat/README.md`
 
-### V4-3 — Home and planning journey
+### V4-3 — Home and planning journey — Completed locally
 
 - Rebuild the home page as a consumer landing and immediate planning entry
 - Present months, target and zero-to-N holdings as one guided Streamlit form
 - Use GoodCat states to support input, calculation, empty and error feedback
 - Preserve stateless submission and existing FastAPI boundaries
+
+Delivered:
+
+- Rebuilt the home page around one primary GoodCat planning action and three
+  beginner preparation cards for months, target cash and optional holdings
+- Reordered the public planner into one bordered five-step journey beginning
+  with payment months and retaining the approved fixed-width, zero-to-N
+  holdings editor with deliberate selection-before-delete behavior
+- Connected attentive, working, ready and caution GoodCat states to input,
+  calculation, target-met, partial, no-allocation and error outcomes without
+  changing the backend calculation contract
+- Added a session-only input signature that removes stale visible results as
+  soon as months, target, holdings, tax or reinvestment assumptions change
+- Kept public requests anonymous and non-persistent, preserved the existing
+  FastAPI portfolio-projection boundary and added plain-language limitations
+- Evidence: `frontend/pages/home.py`, `frontend/pages/public_planner.py` and
+  focused Streamlit information-architecture tests
 
 ### V4-4 — Allocation result and assessment experience
 

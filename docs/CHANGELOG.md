@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-26 — V4-3 home and planning journey
+
+- Rebuilt the consumer home page around one primary GoodCat planning action
+  and three short preparation cards for payment months, cash target and
+  optional existing holdings.
+- Reordered the public planner into one beginner-facing five-step input card
+  while preserving the fixed-width zero-to-N holdings editor and deliberate
+  selection-before-delete interaction.
+- Added attentive, working, ready and caution GoodCat feedback for input,
+  calculation, target-met, partial, no-allocation and service-error states.
+- Added session-only input signatures so changing any submitted condition
+  immediately hides the old result instead of presenting a stale allocation.
+- Preserved the anonymous, non-persistent FastAPI request boundary and kept all
+  calculation, whole-share and data-missing semantics unchanged.
+
 ## 2026-08-26 — V4-2 GoodCat theme and shared components
 
 - Added five original flat gray-and-white GoodCat state illustrations with

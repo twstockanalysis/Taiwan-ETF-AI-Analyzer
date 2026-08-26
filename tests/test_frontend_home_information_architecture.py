@@ -9,6 +9,7 @@ from frontend.pages.home import (
     SITE_NAME,
     SITE_SLOGAN,
     render_exploration_links,
+    render_planning_steps,
     render_primary_action,
 )
 from frontend.ui.theme import GLOBAL_STYLES
@@ -37,6 +38,15 @@ class TestFrontendHomeInformationArchitecture(unittest.TestCase):
 
         source = getsource(render_primary_action)
         self.assertNotIn("先算出適合你的 ETF 配置", source)
+        self.assertIn("主人不用先挑 ETF", source)
+        self.assertIn("開始讓股利喵規劃", source)
+
+    def test_home_explains_the_three_beginner_steps(self) -> None:
+        source = getsource(render_planning_steps)
+        self.assertIn("選領息月份", source)
+        self.assertIn("告訴咪目標", source)
+        self.assertIn("庫存可留空", source)
+        self.assertIn("render_beginner_card", source)
 
     def test_admin_data_quality_is_not_linked_from_home(self) -> None:
         """確認首頁不會繞過管理者限定導覽。"""
