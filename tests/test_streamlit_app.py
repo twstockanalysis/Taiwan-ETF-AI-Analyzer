@@ -364,8 +364,9 @@ class TestStreamlitApp(unittest.TestCase):
             [item.value for item in app.subheader]
             + [item.value for item in app.caption]
         )
-        self.assertIn("先算出適合你的 ETF 配置", page_text)
-        self.assertIn("運用AI評分系統", page_text)
+        self.assertNotIn("先算出適合你的 ETF 配置", page_text)
+        self.assertIn("股利喵幫你算", page_text)
+        self.assertIn("Your GoodCat, Easy ETF planning!", page_text)
         self.assertIn("所有資料皆來源自證交所及投信", page_text)
         self.assertNotIn("本站不下單", page_text)
         self.assertNotIn("目前可用資料", page_text)

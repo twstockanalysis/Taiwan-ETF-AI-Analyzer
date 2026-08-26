@@ -12,10 +12,14 @@ from frontend.navigation import (
 )
 
 
-SITE_SLOGAN = "運用AI評分系統，讓奈米戶自己也能月月領錢"
+SITE_SLOGAN = (
+    "股利喵幫你算，ETF規劃不踩雷！\n\n"
+    "Your GoodCat, Easy ETF planning!"
+)
 PLANNER_INTRO = (
-    "告訴咪想要在哪些月份領股利 → 目標是多少，輸入目前持有的 "
-    "ETF，或直接空白；奈米貓會幫忙計算並推薦 ETF＋股數，以及所需資金！"
+    "咪想知道主人要在哪些月份領股利 → 目標是多少，幫咪輸入目前持有的 "
+    "ETF，或直接空白；\n\n"
+    "咪會幫忙計算並推薦以及所需資金唷，喵~"
 )
 PLANNER_NOTICE = (
     "不需登入，所有資料皆來源自證交所及投信，計算結果僅供用戶參考，"
@@ -27,7 +31,6 @@ def render_primary_action() -> None:
     """將核心配置流程放在首頁第一個可操作位置。"""
 
     with st.container(border=True, key="home-primary-action"):
-        st.subheader("先算出適合你的 ETF 配置")
         st.write(PLANNER_INTRO)
         st.page_link(
             create_streamlit_page(PUBLIC_PLANNER_ROUTE),
