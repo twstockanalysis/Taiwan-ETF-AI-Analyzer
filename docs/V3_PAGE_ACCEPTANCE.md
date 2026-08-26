@@ -1,5 +1,9 @@
 # V3-8 Page acceptance matrix
 
+> Historical status: on 2026-08-26 the owner accepted the completed cleanup as
+> the V3 baseline and closed further V3 page acceptance. Remaining page changes
+> move to the V4 product-experience contract and are not V3 release blockers.
+
 V3-8 reviews one page at a time. A page is accepted only when its primary
 beginner task is clear, nonessential fields are removed or relocated, missing
 data remains distinct from zero, and public safety boundaries remain visible.

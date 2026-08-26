@@ -1156,7 +1156,7 @@ Delivered:
 - Do not implement broker API connectivity before real-domain testing; assess
   it later only when a concrete need exists
 
-### V3-8 — Page-by-page and release acceptance
+### V3-8 — Page-by-page and release acceptance — Closed for V4 transition
 
 - Review every page with the owner before launch
 - Remove fields that do not help the page's beginner decision task
@@ -1175,6 +1175,71 @@ Acceptance log:
   database engine, import batches and detailed pipeline coverage removed from
   the beginner view. Public data counts, dates and safety boundaries retained.
 - Remaining page decisions and order are tracked in `V3_PAGE_ACCEPTANCE.md`.
+- On 2026-08-26 the owner accepted the completed cleanup as the V3 baseline and
+  closed further V3 page acceptance because V4 will replace the page experience.
+
+## V4 — GoodCat consumer experience and dual assessment
+
+V4 rebuilds the visible Streamlit experience around ETF beginners while
+preserving the V3 FastAPI contracts, deterministic gates, whole-share solver
+and stateless public-planner boundary. Local V4 implementation and page review
+come before real-domain deployment; SEC-4 `READY` remains mandatory before
+public launch.
+
+### V4-0 — Product experience and dual-assessment contract
+
+- Define the relaxed gray-and-white GoodCat character and state-driven role
+- Define the light neutral visual direction and accessible presentation rules
+- Separate ETF historical quality grade from owner-goal allocation fit
+- Permit `A+` through `F` grades while hiding raw scores, ranks and confidence
+- Define `暫不評等` for missing core evidence rather than treating it as `F`
+- Preserve current hard gates and treat the external score formula as research
+  input pending replay and sensitivity evidence
+- Confirm Streamlit implementation boundaries and page-level acceptance rules
+- Evidence: `V4_PRODUCT_EXPERIENCE_CONTRACT.md`
+
+### V4-1 — Assessment calibration and grade contract
+
+- Replay the current methodology and candidate revisions over dated evidence
+- Evaluate fill success, fill duration and survivorship-safe observation rules
+- Add individual-ETF and resulting-portfolio concentration evidence
+- Test missing ACTUAL composition and weight sensitivity before changing weights
+- Version fixed grade thresholds and expose grades without public raw scores
+
+### V4-2 — Brand theme and shared GoodCat components
+
+- Create original, licensed gray-and-white GoodCat assets for idle, attentive,
+  working, ready and caution states
+- Add a native Streamlit light theme and reusable beginner-facing containers
+- Keep character state, accessibility text and backend calculation independent
+- Recheck navigation and responsive behavior against the new visual hierarchy
+
+### V4-3 — Home and planning journey
+
+- Rebuild the home page as a consumer landing and immediate planning entry
+- Present months, target and zero-to-N holdings as one guided Streamlit form
+- Use GoodCat states to support input, calculation, empty and error feedback
+- Preserve stateless submission and existing FastAPI boundaries
+
+### V4-4 — Allocation result and assessment experience
+
+- Present recommended, balanced and concentrated plans as clear result cards
+- Show whole shares, capital, cash coverage, shortfall, reasons and primary risk
+- Show ETF grade separately from owner-goal fit without recommendation language
+- Move detailed assumptions, exclusions and evidence into secondary disclosure
+
+### V4-5 — Explore and evidence pages
+
+- Redesign search, ranking, detail and comparison around consistent ETF cards
+- Apply the same grade semantics and missing-data states across every page
+- Keep operational data-quality fields in owner-only administration
+
+### V4-6 — V4 acceptance and pre-launch candidate
+
+- Review each rebuilt page with the owner against the V4 contract
+- Pass frontend, API, calculation, data-quality and local security regression
+- Select one exact release candidate only after the page experience is accepted
+- Deploy that exact candidate and complete SEC-4 on a real host before launch
 
 ## Post-security optional integrations
 

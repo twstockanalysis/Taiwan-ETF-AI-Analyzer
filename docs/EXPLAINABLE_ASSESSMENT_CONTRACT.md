@@ -1,5 +1,18 @@
 # Explainable Assessment Contract
 
+## V4 transition
+
+This document describes the currently implemented
+`DETERMINISTIC_MULTI_SCORE_V2` calculation. V4 may expose the ETF-quality
+outcome as a fixed, versioned `A+` through `F` grade while continuing to hide
+the raw score, rank and confidence label. Missing core evidence must produce
+`暫不評等`, not `F`.
+
+Any change to factors, weights, score ranges or grade thresholds requires a
+new methodology identifier and the replay, missing-data and sensitivity
+evidence defined in `V4_PRODUCT_EXPERIENCE_CONTRACT.md`. Until that evidence is
+accepted, this V2 calculation and the V3 public payload remain unchanged.
+
 The second-version assessment combines deterministic evidence gates with two
 transparent 0–100 scores. It is returned with the existing read-only
 candidate-holding analysis and does not require an external model, API key or

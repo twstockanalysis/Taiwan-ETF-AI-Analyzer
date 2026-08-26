@@ -48,8 +48,10 @@ For a user-defined target and current portfolio, the website must:
    conclusion.
 8. Reject or warn about combinations that improve payment-month coverage or
    apparent tax efficiency at the expense of total-return quality.
-9. Explain inclusions, exclusions, alternatives, assumptions and risks without
-   exposing an ETF-quality score or assessment-confidence label in the UI.
+9. Explain inclusions, exclusions, alternatives, assumptions and risks. V4 may
+   show a versioned `A+` through `F` historical ETF-quality grade, but keeps the
+   raw score, rank and assessment-confidence label out of the UI and separates
+   ETF quality from owner-goal allocation fit.
 
 The website provides historical analysis and scenario estimates. It does not
 guarantee future distributions, tax outcomes, market value or principal.
@@ -209,6 +211,33 @@ total-return evidence and similar constituent exposure without weakening the
 same data, downside or concentration gates. Explanations remain short and use
 plain language.
 
+### V4 dual assessment and product experience
+
+V4 presents two explicitly separate outcomes:
+
+1. An ETF historical quality grade using `A+`, `A`, `B`, `C`, `D`, `E` or `F`.
+2. An owner-goal allocation result based on the submitted months, fixed cash
+   target, zero to N holdings, whole shares and required capital.
+
+The grade is deterministic and explainable. Its internal numeric score and
+rank are not displayed. Missing core evidence produces `暫不評等`, never `F`.
+The grade cannot bypass a data, total-return, downside or principal-risk gate,
+and a high grade does not mean an ETF fits every owner's payment months or
+capital needs.
+
+V4 keeps the current total-return-led assessment and V3 allocation engine as
+its baseline. Candidate improvements may add tested fill success, fill duration
+and portfolio-level concentration evidence. The external formula is research
+input rather than an automatically adopted production formula; revised weights
+must pass historical replay, missing-data and sensitivity checks first.
+
+The visual experience uses an original gray-and-white GoodCat character that
+is normally relaxed and becomes attentive while helping the owner. Character
+states may support empty, input, working, result and caution states, but must
+not replace accessible labels, evidence or risk messages. The implementation
+remains within Streamlit and does not require a language migration or real-
+domain deployment for local review.
+
 ## Analysis modes and data semantics
 
 The product must distinguish:
@@ -267,8 +296,9 @@ the page-by-page information-architecture review, before public launch.
 9. Keep calculations deterministic and explainable before adding AI assistance.
 10. Access public frontend data only through FastAPI and protect contracts with
     automated tests.
-11. Keep internal ETF-quality scores and confidence labels out of the frontend;
-    show allocation fit, reasons, evidence limits and risks instead.
+11. Keep raw ETF-quality scores, ranks and confidence labels out of the
+    frontend. V4 may show the versioned letter grade separately from allocation
+    fit, reasons, evidence limits and risks.
 12. A public planning request must not persist holdings, targets or results.
 
 ## Out of current core scope
