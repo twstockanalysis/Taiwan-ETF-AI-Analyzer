@@ -9,7 +9,7 @@ data remains distinct from zero, and public safety boundaries remain visible.
 | 1 | Home | Start a cash-flow allocation or choose a simple ETF exploration path | Core planner was absent from the home entry cards; API URL, database type, import batches and technical coverage dominated the page | Revised, awaiting owner review |
 | 2 | Dividend planner | Enter target, months, holding years and 0-N holdings; receive allocation, capital and tax estimates | Technical history and cash-deduction inputs obscured the beginner flow; tax assumptions dominated the primary row | Revised, awaiting owner review |
 | 3 | ETF detail | Understand one ETF's identity, performance, distributions, composition and risks | Target analysis and single-ETF tax forms overlap with the public portfolio planner and may need relocation or reduction | Pending |
-| 4 | ETF comparison | Compare 2-4 ETFs on decision-relevant facts | Monthly-gap solver overlaps with automatic allocation; input and result fields need review | Pending |
+| 4 | ETF comparison | Compare 2-4 ETFs on decision-relevant facts | Source-specific return controls and technical metric copy added clutter; the code-input label repeated the placeholder's meaning | Revised, awaiting owner review |
 | 5 | ETF search | Find an ETF and continue to its detailed information | Asset-type filtering and comparison entry distracted from the direct search-to-detail path; pipe-separated rows did not keep fields aligned | Revised, awaiting owner review |
 | 6 | Performance ranking | View the top 20 non-bond ETFs for one selected performance period | Asset type, page-size, pagination and comparison controls obscured the ranking task; pipe-separated results were difficult to scan | Revised, awaiting owner review |
 | 7 | Dividend data quality | Understand whether official distribution data is available | Public transparency is useful, but operational review-queue fields may belong to owner operations | Pending |
@@ -80,3 +80,13 @@ will be assigned to their final destinations.
   pagination and the comparison-page shortcut.
 - Present rank, name/code, selected-period return, data date and management type
   in a stable table. Selecting the name/code opens ETF detail.
+
+## ETF comparison acceptance decision
+
+- Remove the technical PRICE_RETURN introduction and the source-specific return
+  button from the comparison page.
+- Keep the 2-4 code input functional but hide its redundant visible label; the
+  placeholder continues to explain the accepted input.
+- Every non-home page now uses the same `返回首頁` entry immediately above its
+  title. Context-specific return state remains in URLs for backward-compatible
+  shared links, but is no longer rendered as a separate page button.

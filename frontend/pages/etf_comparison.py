@@ -6,6 +6,8 @@ from typing import Any
 
 import streamlit as st
 
+from frontend.ui.components import render_page_title
+
 from frontend.api_client import (
     APIClientError,
     fetch_etf_comparison,
@@ -13,11 +15,6 @@ from frontend.api_client import (
 )
 from frontend.config import (
     get_api_base_url,
-)
-from frontend.navigation import (
-    build_comparison_query_params,
-    create_streamlit_page,
-    resolve_comparison_return,
 )
 from frontend.query_state import (
     ETFComparisonQueryState,
@@ -675,25 +672,6 @@ def update_comparison_codes(
     )
 
 
-def render_return_button() -> None:
-    """返回原始頁面並保留其 URL 狀態。"""
-
-    route, params = (
-        resolve_comparison_return(
-            st.query_params
-        )
-    )
-
-    if st.button(
-        f"← 返回 {route.title}",
-        type="secondary",
-    ):
-        st.switch_page(
-            create_streamlit_page(route),
-            query_params=params,
-        )
-
-
 def render_code_form(
     codes: tuple[str, ...],
 ) -> None:
@@ -714,6 +692,7 @@ def render_code_form(
                 "使用半形逗號分隔；"
                 "重複代號會自動移除。"
             ),
+            label_visibility="collapsed",
         )
 
         submitted = (
@@ -796,14 +775,7 @@ def render_code_form(
 def render_etf_comparison() -> None:
     """顯示 ETF 比較頁。"""
 
-    st.title("ETF 比較")
-    st.caption(
-        "並列比較 2 至 4 檔 ETF；"
-        "目前績效為 PRICE_RETURN，"
-        "不包含配息再投資。"
-    )
-
-    render_return_button()
+    render_page_title("ETF 比較")
 
     state = parse_etf_comparison_query_state(
         st.query_params

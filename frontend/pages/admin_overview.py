@@ -4,6 +4,8 @@ from typing import Any
 
 import streamlit as st
 
+from frontend.ui.components import render_page_title
+
 from frontend.api_client import APIClientError, fetch_system_overview
 from frontend.config import get_api_base_url
 from frontend.ui.formatters import (
@@ -147,7 +149,7 @@ def render_admin_metrics(overview: dict[str, Any]) -> None:
 def render_admin_overview() -> None:
     """顯示僅管理者導覽可進入的網站資料總覽。"""
 
-    st.title("網站管理")
+    render_page_title("網站管理")
     st.caption("資料覆蓋、更新日期與最近匯入批次，僅供網站管理者檢查。")
 
     try:

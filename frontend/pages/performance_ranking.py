@@ -4,6 +4,8 @@ from typing import Any
 
 import streamlit as st
 
+from frontend.ui.components import render_page_title
+
 from frontend.api_client import (
     APIClientError,
     fetch_multi_period_performance_ranking,
@@ -667,7 +669,7 @@ def render_performance_ranking() -> None:
 
     initialize_performance_state()
 
-    st.title("績效排行榜")
+    render_page_title("績效排行榜")
 
     st.caption("預設為6M")
 

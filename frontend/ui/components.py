@@ -8,7 +8,9 @@ from typing import Any, Literal
 import streamlit as st
 
 from frontend.navigation import (
+    HOME_ROUTE,
     build_detail_query_params,
+    create_streamlit_page,
 )
 
 
@@ -17,6 +19,18 @@ PaginationAction = Literal[
     "next",
     "none",
 ]
+
+
+def render_page_title(title: str) -> None:
+    """在個別頁面標題上方顯示一致的首頁入口。"""
+
+    st.page_link(
+        create_streamlit_page(HOME_ROUTE),
+        label="返回首頁",
+        icon=":material/arrow_back:",
+        width="content",
+    )
+    st.title(title)
 
 
 def render_etf_detail_links(

@@ -5,6 +5,8 @@ from typing import Any
 
 import streamlit as st
 
+from frontend.ui.components import render_page_title
+
 from frontend.api_client import (
     APIClientError,
     APIResourceNotFoundError,
@@ -1993,7 +1995,7 @@ def render_tax_reinvestment_analysis(
 def render_etf_detail() -> None:
     """顯示 ETF 詳細資料頁。"""
 
-    st.title("ETF 詳細資料")
+    render_page_title("ETF 詳細資料")
 
     render_back_button()
 

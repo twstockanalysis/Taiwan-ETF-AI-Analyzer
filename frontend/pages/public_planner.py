@@ -6,6 +6,8 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from frontend.ui.components import render_page_title
+
 from frontend.api_client import APIClientError, fetch_portfolio_projections
 from frontend.config import get_api_base_url
 from frontend.ui.formatters import format_number
@@ -734,7 +736,7 @@ def render_portfolio_projection(
 def render_public_planner() -> None:
     """Render the public, stateless V3-1 planning flow."""
 
-    st.title("股利試算")
+    render_page_title("股利試算")
     st.caption("請依序選擇輸入")
 
     st.session_state.setdefault(TARGET_MONTHS_STATE_KEY, MONTH_OPTIONS)

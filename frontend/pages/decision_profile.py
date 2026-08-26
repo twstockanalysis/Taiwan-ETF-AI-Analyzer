@@ -6,6 +6,8 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from frontend.ui.components import render_page_title
+
 from frontend.api_client import (
     APIClientError,
     fetch_candidate_holding_analysis,
@@ -438,7 +440,7 @@ def render_candidate_holding_analysis_result(
 def render_decision_profile() -> None:
     """顯示單一使用者條件與無券商連線的手動持有部位。"""
 
-    st.title("我的條件與持有部位")
+    render_page_title("我的條件與持有部位")
     st.caption(
         "M11-1 為單一使用者、手動輸入模式；"
         "不連接券商、不讀取帳戶，也不會送出交易。"

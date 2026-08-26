@@ -23,7 +23,10 @@ from frontend.query_state import (
     parse_etf_search_query_state,
     sync_query_params,
 )
-from frontend.ui.components import render_pagination_controls
+from frontend.ui.components import (
+    render_page_title,
+    render_pagination_controls,
+)
 from frontend.ui.formatters import (
     format_number,
     management_type_label,
@@ -531,7 +534,7 @@ def render_etf_search() -> None:
 
     initialize_search_state()
 
-    st.title("搜尋&詳細資料")
+    render_page_title("搜尋&詳細資料")
 
     render_search_form()
     render_action_buttons()

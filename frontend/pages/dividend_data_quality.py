@@ -16,6 +16,7 @@ from frontend.config import (
     get_api_base_url,
 )
 from frontend.ui.components import (
+    render_page_title,
     render_pagination_controls,
 )
 from frontend.ui.formatters import (
@@ -941,7 +942,7 @@ def render_dividend_data_quality() -> None:
 
     initialize_quality_state()
 
-    st.title("配息資料品質")
+    render_page_title("配息資料品質")
 
     st.caption(
         "檢視正式 ACTUAL、76W 與"
