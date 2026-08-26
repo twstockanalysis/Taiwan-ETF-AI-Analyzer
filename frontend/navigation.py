@@ -7,7 +7,6 @@ from typing import Any
 
 import streamlit as st
 
-from frontend.branding import SITE_NAME
 from frontend.query_state import (
     get_query_value,
     normalize_comparison_codes,
@@ -17,7 +16,7 @@ from frontend.query_state import (
 )
 
 
-NAVIGATION_GROUP = SITE_NAME
+PUBLIC_NAVIGATION_GROUP = ""
 
 
 @dataclass(frozen=True)
@@ -232,7 +231,7 @@ def navigation_groups(
     """依公開與管理者權限建立導覽群組。"""
 
     groups = {
-        NAVIGATION_GROUP: (
+        PUBLIC_NAVIGATION_GROUP: (
             *PUBLIC_ROUTES,
             ETF_DETAIL_ROUTE,
         ),

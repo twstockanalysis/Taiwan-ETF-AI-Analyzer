@@ -66,6 +66,12 @@ class TestFrontendNavigation(
             ),
         )
 
+    def test_public_navigation_is_not_collapsible_group(self) -> None:
+        """確認公開導覽不顯示可收合的群組標題。"""
+
+        groups = navigation_groups(False)
+        self.assertEqual(list(groups), [""])
+
     def test_detail_route_is_hidden(
         self,
     ) -> None:

@@ -95,3 +95,5 @@ the other administrative pages.
 - Every non-home page now uses the same `返回首頁` entry immediately above its
   title. Context-specific return state remains in URLs for backward-compatible
   shared links, but is no longer rendered as a separate page button.
+- Public sidebar pages use Streamlit's ungrouped navigation so there is no
+  collapsible brand section; owner-only pages remain grouped under `管理者功能`.
