@@ -1324,7 +1324,7 @@ Delivered:
   `frontend/pages/etf_search.py`, `frontend/pages/performance_ranking.py`,
   `frontend/pages/etf_detail.py` and `frontend/pages/etf_comparison.py`
 
-### V4-6 — Functional integration acceptance
+### V4-6 — Functional integration acceptance — In progress
 
 - Verify the complete V4 journey from public input through allocation results,
   ETF exploration, evidence and owner administration
@@ -1333,6 +1333,8 @@ Delivered:
   page boundaries
 - Record functional defects and resolve them before starting subjective page
   review; this milestone does not select a release candidate
+- Track bounded verification slices, unresolved gates and final evidence in
+  `V4_FUNCTIONAL_ACCEPTANCE.md`
 
 ### V4-7 — Page-by-page UI and UX acceptance
 

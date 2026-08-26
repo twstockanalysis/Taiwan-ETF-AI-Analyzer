@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-27 — V4-6 functional acceptance baseline
+
+- Added a bounded functional-integration acceptance matrix that separates
+  automated contract evidence from the later owner-led page experience review.
+- Defined the first smoke-test slice for public planning, whole-share results,
+  dual assessment, ETF grade lookup and public/private API boundaries.
+- Kept portfolio tax, data quality, local security, running integration and the
+  complete regression explicitly pending instead of treating partial evidence
+  as V4-6 completion.
+
 ## 2026-08-26 — V4-5 explore and evidence pages
 
 - Added one batch ETF historical-quality-grade endpoint for search, ranking,
