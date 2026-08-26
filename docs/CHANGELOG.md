@@ -12,6 +12,9 @@
 - Moved operational data freshness and completeness displays out of public ETF
   detail and comparison pages while preserving their backend/admin contracts.
 - Kept primary ETF content available when the independent grade request fails.
+- Split post-V4 development into functional integration acceptance, a separate
+  owner-led page-by-page UI/UX adjustment stage, and the final real-environment
+  release-candidate and SEC-4 gate.
 
 ## 2026-08-26 — V4-4 allocation result and assessment experience
 
