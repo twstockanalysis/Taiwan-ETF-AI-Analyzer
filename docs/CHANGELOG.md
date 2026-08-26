@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-26 — V4-1 assessment calibration and grade gate
+
+- Added a versioned public-safe `A+` through `F` historical quality grade while
+  keeping raw scores, ranks and confidence labels private.
+- Added explicit `UNRATED` semantics and market-wide publication gates for
+  sample size, supported-universe coverage and score saturation.
+- Added a read-only calibration report and command with aggregate factor
+  coverage, score distribution, boundary sensitivity and adoption decisions.
+- Confirmed the current database has only six trustworthy provisional grades
+  across 192 supported products and a saturated total-return factor, so no
+  consumer-facing letter grade is published yet.
+- Kept the current deterministic risk gates, deferred fill scoring and retained
+  constituent concentration as separate ETF and portfolio risk evidence.
+
 ## 2026-08-26 — V4-0 product experience contract
 
 - Closed further V3-8 page acceptance after the owner accepted its cleanup as

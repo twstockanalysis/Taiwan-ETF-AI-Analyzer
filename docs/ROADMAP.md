@@ -1198,13 +1198,31 @@ public launch.
 - Confirm Streamlit implementation boundaries and page-level acceptance rules
 - Evidence: `V4_PRODUCT_EXPERIENCE_CONTRACT.md`
 
-### V4-1 — Assessment calibration and grade contract
+### V4-1 — Assessment calibration and grade contract — Completed locally
 
 - Replay the current methodology and candidate revisions over dated evidence
 - Evaluate fill success, fill duration and survivorship-safe observation rules
 - Add individual-ETF and resulting-portfolio concentration evidence
 - Test missing ACTUAL composition and weight sensitivity before changing weights
 - Version fixed grade thresholds and expose grades without public raw scores
+
+Delivered:
+
+- Added fixed `A+` through `F` grade thresholds over the existing deterministic
+  quality score while keeping raw scores, ranks and confidence private
+- Added `UNRATED` semantics so missing evidence and a complete low `F` grade
+  cannot be confused
+- Added a read-only calibration report with factor coverage, aggregate score
+  distribution, boundary sensitivity and explicit factor-adoption decisions
+- Added publication gates requiring 30 trustworthy samples, 20% supported-
+  market coverage and no more than 50% total-return score saturation
+- Measured the current database at 6 provisional grades across 192 supported
+  products, with the total-return component saturated; public grades therefore
+  correctly remain `UNRATED`
+- Deferred fill scoring until adjusted event evidence exists and retained ETF
+  and portfolio concentration as risk evidence rather than a blunt score
+- Added the safe grade object to eligibility candidates and allocation additions
+- Evidence: `V4_ASSESSMENT_CALIBRATION.md`
 
 ### V4-2 — Brand theme and shared GoodCat components
 

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 import hashlib
 import json
 from pathlib import Path
 
+from backend.app.models.decision_profile import (
+    ExplainableAssessmentScoreComponent,
+)
 from backend.app.models.market_eligibility import (
     MarketEligibilityConstraint,
     MarketEligibilityIndexRequest,
@@ -48,6 +51,11 @@ from backend.app.services.monthly_combination_calculator import (
     evaluate_candidate_eligibility,
 )
 from backend.app.services.monthly_combination_data import build_candidate_input
+from backend.app.services.quality_grading import (
+    build_historical_quality_grade,
+    build_unrated_quality_grade,
+    evaluate_quality_grade_publication_readiness,
+)
 from backend.app.services.tax_reinvestment_data import (
     select_calculation_component_mix,
 )
@@ -63,6 +71,9 @@ class InternalMarketCandidate:
 
     public_item: MarketEligibilityItem
     quality_score: Decimal | None
+    quality_grade_eligible: bool
+    quality_components: tuple[ExplainableAssessmentScoreComponent, ...]
+    quality_missing: tuple[str, ...]
     monthly_after_tax_cash_per_share: tuple[Decimal, ...]
 
 
@@ -70,6 +81,7 @@ class InternalMarketCandidate:
 class BuiltMarketEligibilityIndex:
     response: MarketEligibilityIndexResponse
     ranked_eligible_candidates: tuple[InternalMarketCandidate, ...]
+    internal_candidates: tuple[InternalMarketCandidate, ...]
 
 
 def _date(value: object) -> date | None:
@@ -222,6 +234,10 @@ def build_market_eligibility_index(
                     existing_holding=code in existing_codes,
                     supported_product=False,
                     eligible_for_addition=False,
+                    historical_quality_grade=build_unrated_quality_grade(
+                        history_years=request.history_years,
+                        reason="此產品類型尚未納入一般股票型 ETF 評等範圍。",
+                    ),
                     holding_overlap_status=(
                         "UNAVAILABLE" if current_holdings else "NOT_APPLICABLE"
                     ),
@@ -406,6 +422,42 @@ def build_market_eligibility_index(
             for row in performance
             if row.get("metric_code") == "PRICE_RETURN"
         }
+        actual_76w_date = None
+        if actual_76w["items"]:
+            latest_76w = actual_76w["items"][0]
+            actual_76w_date = next(
+                (
+                    parsed
+                    for field in (
+                        "payment_date",
+                        "ex_dividend_date",
+                        "record_date",
+                        "announcement_date",
+                    )
+                    if (parsed := _date(latest_76w.get(field))) is not None
+                ),
+                None,
+            )
+        scored_actual_76w = (
+            actual_76w
+            if actual_76w_date is not None
+            and actual_76w_date <= analysis_date
+            and not is_dividend_data_stale(actual_76w_date, analysis_date)
+            else None
+        )
+        quality_score, quality_components, quality_missing = (
+            calculate_etf_quality_score(
+                candidate,
+                scored_actual_76w,
+            )
+        )
+        quality_grade = build_historical_quality_grade(
+            score=quality_score,
+            components=quality_components,
+            missing_metrics=quality_missing,
+            history_years=request.history_years,
+            blocking_reason_codes=(reason.code for reason in all_reasons),
+        )
         item = MarketEligibilityItem(
             etf_code=code,
             name=name,
@@ -414,6 +466,7 @@ def build_market_eligibility_index(
             existing_holding=code in existing_codes,
             supported_product=True,
             eligible_for_addition=eligible,
+            historical_quality_grade=quality_grade,
             reference_price=reference_price,
             reference_price_as_of=close_date,
             reference_price_source_id=(str(close["source_id"]) if close else None),
@@ -438,38 +491,14 @@ def build_market_eligibility_index(
             constituent_snapshot_dates=snapshot_dates,
             reasons=all_reasons,
         )
-        actual_76w_date = None
-        if actual_76w["items"]:
-            latest_76w = actual_76w["items"][0]
-            actual_76w_date = next(
-                (
-                    parsed
-                    for field in (
-                        "payment_date",
-                        "ex_dividend_date",
-                        "record_date",
-                        "announcement_date",
-                    )
-                    if (parsed := _date(latest_76w.get(field))) is not None
-                ),
-                None,
-            )
-        scored_actual_76w = (
-            actual_76w
-            if actual_76w_date is not None
-            and actual_76w_date <= analysis_date
-            and not is_dividend_data_stale(actual_76w_date, analysis_date)
-            else None
-        )
-        quality_score, _, _ = calculate_etf_quality_score(
-            candidate,
-            scored_actual_76w,
-        )
         public_items.append(item)
         internal_items.append(
             InternalMarketCandidate(
                 public_item=item,
                 quality_score=quality_score,
+                quality_grade_eligible=(quality_grade.status == "RATED"),
+                quality_components=tuple(quality_components),
+                quality_missing=tuple(quality_missing),
                 monthly_after_tax_cash_per_share=_monthly_after_tax_per_share(
                     monthly,
                     history_years=request.history_years,
@@ -477,6 +506,40 @@ def build_market_eligibility_index(
                 ),
             )
         )
+
+    supported_product_count = sum(item.supported_product for item in public_items)
+    grade_readiness = evaluate_quality_grade_publication_readiness(
+        scores=(
+            item.quality_score if item.quality_grade_eligible else None
+            for item in internal_items
+        ),
+        supported_product_count=supported_product_count,
+        total_return_component_scores=(
+            component.score
+            for item in internal_items
+            for component in item.quality_components
+            if component.code == "AFTER_TAX_TOTAL_RETURN"
+        ),
+    )
+    if not grade_readiness.ready:
+        public_items = [
+            item.model_copy(
+                update={
+                    "historical_quality_grade": build_unrated_quality_grade(
+                        history_years=request.history_years,
+                        reason="；".join(grade_readiness.reasons),
+                    )
+                }
+            )
+            if item.historical_quality_grade.status == "RATED"
+            else item
+            for item in public_items
+        ]
+        items_by_code = {item.etf_code: item for item in public_items}
+        internal_items = [
+            replace(item, public_item=items_by_code[item.public_item.etf_code])
+            for item in internal_items
+        ]
 
     public_items.sort(key=lambda item: item.etf_code)
     ranked = tuple(
@@ -500,7 +563,7 @@ def build_market_eligibility_index(
         cash_deduction_rate_pct=request.cash_deduction_rate_pct,
         rules=public_rules,
         universe_count=len(public_items),
-        supported_product_count=sum(item.supported_product for item in public_items),
+        supported_product_count=supported_product_count,
         eligible_count=sum(item.eligible_for_addition for item in public_items),
         excluded_count=sum(not item.eligible_for_addition for item in public_items),
         actual_component_count=sum(
@@ -519,4 +582,5 @@ def build_market_eligibility_index(
     return BuiltMarketEligibilityIndex(
         response=response,
         ranked_eligible_candidates=ranked,
+        internal_candidates=tuple(internal_items),
     )

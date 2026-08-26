@@ -9,6 +9,7 @@ from pydantic import Field
 
 from backend.app.models.market_eligibility import MarketEligibilityIndexRequest
 from backend.app.models.public_planner import PublicPlannerBaseModel, PublicPlannerIssue
+from backend.app.models.quality_grade import ETFHistoricalQualityGrade
 
 
 class IntegerAllocationStatus(StrEnum):
@@ -31,6 +32,7 @@ class IntegerAllocationRequest(MarketEligibilityIndexRequest):
 class IntegerAllocationAddition(PublicPlannerBaseModel):
     etf_code: str
     name: str
+    historical_quality_grade: ETFHistoricalQualityGrade
     additional_shares: int = Field(gt=0)
     reference_price: Decimal = Field(gt=0)
     reference_price_as_of: date
