@@ -1,11 +1,12 @@
-"""ETF 整列點擊介面測試。"""
+"""ETF 搜尋結果欄位測試。"""
 
 import unittest
 from unittest.mock import patch
 
 from frontend.pages.etf_search import (
-    format_clickable_etf_row,
-    render_clickable_etf_rows,
+    RESULT_ACTION_KEY,
+    format_etf_result_row,
+    open_etf_detail,
 )
 from frontend.query_state import (
     ETFSearchQueryState,
@@ -15,7 +16,7 @@ from frontend.query_state import (
 class TestFrontendETFClickableRows(
     unittest.TestCase
 ):
-    """測試 ETF 搜尋結果整列導航。"""
+    """測試 ETF 搜尋結果的固定欄位內容。"""
 
     def build_item(self) -> dict:
         """建立 ETF 測試資料。"""
@@ -30,113 +31,79 @@ class TestFrontendETFClickableRows(
             "expense_ratio": None,
         }
 
-    def test_row_label_contains_etf_data(
+    def test_row_contains_aligned_etf_data(
         self,
     ) -> None:
-        """確認資料列包含主要 ETF 資訊。"""
+        """確認資料列保留主要官方欄位。"""
 
-        label = format_clickable_etf_row(
+        row = format_etf_result_row(
             self.build_item()
         )
 
-        self.assertIn(
-            "0050",
-            label,
+        self.assertEqual(
+            row,
+            {
+                "code": "0050",
+                "name": "元大台灣50",
+                "management_type": "被動式",
+                "listing_date": "2003-06-30",
+                "fund_size": "—",
+                "expense_ratio": "—",
+            },
         )
 
-        self.assertIn(
-            "元大台灣50",
-            label,
-        )
-
-        self.assertIn(
-            "被動式",
-            label,
-        )
-
-        self.assertIn(
-            "2003-06-30",
-            label,
-        )
-
-    @patch(
-        "frontend.pages.etf_search."
-        "st.caption"
-    )
-    @patch(
-        "frontend.pages.etf_search."
-        "st.page_link"
-    )
-    def test_whole_row_uses_stretched_page_link(
+    def test_row_does_not_expose_asset_type(
         self,
-        mock_page_link,
-        mock_caption,
     ) -> None:
-        """確認整列使用全寬頁面連結。"""
+        """確認結果資料不再產生資產類型欄位。"""
 
-        render_clickable_etf_rows(
-            [
-                self.build_item(),
-            ],
-            query_state=(
-                ETFSearchQueryState(
-                    keyword="元大",
-                    page=2,
-                )
+        row = format_etf_result_row(
+            self.build_item()
+        )
+
+        self.assertNotIn("asset_type", row)
+
+    @patch(
+        "frontend.pages.etf_search."
+        "st.switch_page"
+    )
+    @patch(
+        "frontend.pages.etf_search."
+        "st.session_state",
+        {
+            RESULT_ACTION_KEY: {
+                "selection": {
+                    "rows": [0],
+                },
+            }
+        },
+    )
+    def test_table_action_opens_detail(
+        self,
+        mock_switch_page,
+    ) -> None:
+        """確認選取整列會保留搜尋狀態並導向詳細頁。"""
+
+        open_etf_detail(
+            [self.build_item()],
+            ETFSearchQueryState(
+                keyword="元大",
+                bond_label="非債券",
+                page=2,
             ),
         )
 
-        mock_caption.assert_called_once()
-        mock_page_link.assert_called_once()
-
-        call_arguments = (
-            mock_page_link.call_args
-        )
-
-        self.assertEqual(
-            call_arguments.args[0],
+        mock_switch_page.assert_called_once_with(
             "page_scripts/etf_detail_page.py",
-        )
-
-        self.assertEqual(
-            call_arguments.kwargs["width"],
-            "stretch",
-        )
-
-        self.assertEqual(
-            call_arguments.kwargs[
-                "query_params"
-            ],
-            {
+            query_params={
                 "code": "0050",
                 "from": "etf-search",
                 "active": "all",
-                "bond": "all",
+                "bond": "non-bond",
                 "page": "2",
                 "page_size": "20",
                 "keyword": "元大",
             },
-        )
-
-        self.assertEqual(
-            call_arguments.kwargs[
-                "icon_position"
-            ],
-            "right",
-        )
-
-        self.assertIn(
-            "0050",
-            call_arguments.kwargs[
-                "label"
-            ],
-        )
-
-        self.assertIn(
-            "元大台灣50",
-            call_arguments.kwargs[
-                "label"
-            ],
         )
 
 

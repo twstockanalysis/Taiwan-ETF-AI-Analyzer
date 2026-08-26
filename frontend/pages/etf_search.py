@@ -14,11 +14,8 @@ from frontend.config import (
     get_api_base_url,
 )
 from frontend.navigation import (
-    ETF_COMPARISON_ROUTE,
     ETF_SEARCH_ROUTE,
-    build_comparison_query_params,
     build_detail_query_params,
-    create_streamlit_page,
 )
 from frontend.query_state import (
     ETFSearchQueryState,
@@ -27,11 +24,10 @@ from frontend.query_state import (
     sync_query_params,
 )
 from frontend.ui.components import (
-    render_etf_detail_links,
+    render_page_title,
     render_pagination_controls,
 )
 from frontend.ui.formatters import (
-    asset_type_label,
     format_number,
     management_type_label,
 )
@@ -51,14 +47,9 @@ ACTIVE_FILTER_OPTIONS: dict[
     "被動式": False,
 }
 
-BOND_FILTER_OPTIONS: dict[
-    str,
-    bool | None,
-] = {
-    "全部": None,
-    "非債券": False,
-    "債券": True,
-}
+NON_BOND_LABEL = "非債券"
+
+RESULT_ACTION_KEY = "etf_search_detail_action"
 
 SEARCH_QUERY_SIGNATURE_KEY = (
     "_etf_search_query_signature"
@@ -81,10 +72,10 @@ def format_optional_number(
     )
 
 
-def format_clickable_etf_row(
+def format_etf_result_row(
     item: dict[str, Any],
-) -> str:
-    """建立整列 ETF 顯示文字。"""
+) -> dict[str, str]:
+    """建立欄位固定的 ETF 搜尋結果。"""
 
     code = str(
         item["code"]
@@ -98,10 +89,6 @@ def format_clickable_etf_row(
         management_type_label(
             item["is_active"]
         )
-    )
-
-    asset_type = asset_type_label(
-        item["is_bond"]
     )
 
     listing_date = (
@@ -120,45 +107,133 @@ def format_clickable_etf_row(
         "%",
     )
 
-    return (
-        f"**{code}**　"
-        f"{name}"
-        f"　│　{management_type}"
-        f"　│　{asset_type}"
-        f"　│　{listing_date}"
-        f"　│　規模 {fund_size}"
-        f"　│　費用率 {expense_ratio}"
-    )
+    return {
+        "code": code,
+        "name": name,
+        "management_type": management_type,
+        "listing_date": listing_date,
+        "fund_size": fund_size,
+        "expense_ratio": expense_ratio,
+    }
 
 
 def render_clickable_etf_rows(
     items: list[dict[str, Any]],
     query_state: ETFSearchQueryState | None = None,
 ) -> None:
-    """顯示整列可點擊的 ETF 搜尋結果。"""
+    """以固定欄位資料表顯示 ETF 清單。"""
 
     source_state = (
         query_state
         if query_state is not None
-        else ETFSearchQueryState()
+        else ETFSearchQueryState(
+            bond_label=NON_BOND_LABEL
+        )
     )
 
-    render_etf_detail_links(
-        items,
-        caption=(
-            "代號與名稱｜管理方式｜資產類型｜"
-            "上市日期｜基金規模｜費用率"
+    rows = [
+        format_etf_result_row(item)
+        for item in items
+    ]
+
+    selection = st.dataframe(
+        rows,
+        column_order=(
+            "code",
+            "name",
+            "management_type",
+            "listing_date",
+            "fund_size",
+            "expense_ratio",
         ),
-        label_builder=(
-            format_clickable_etf_row
-        ),
-        code_field="code",
-        name_field="name",
-        source=str(
-            ETF_SEARCH_ROUTE.url_path
-        ),
-        source_query_params=(
-            source_state.to_query_params()
+        column_config={
+            "code": st.column_config.TextColumn(
+                "代號",
+                width="small",
+                pinned=True,
+            ),
+            "name": st.column_config.TextColumn(
+                "名稱",
+                width="large",
+                pinned=True,
+            ),
+            "management_type": (
+                st.column_config.TextColumn(
+                    "管理方式",
+                    width="small",
+                )
+            ),
+            "listing_date": (
+                st.column_config.TextColumn(
+                    "上市日期",
+                    width="medium",
+                )
+            ),
+            "fund_size": st.column_config.TextColumn(
+                "基金規模",
+                width="medium",
+            ),
+            "expense_ratio": (
+                st.column_config.TextColumn(
+                    "費用率",
+                    width="small",
+                )
+            ),
+        },
+        hide_index=True,
+        width="stretch",
+        height="content",
+        key=RESULT_ACTION_KEY,
+        on_select="rerun",
+        selection_mode="single-row",
+    )
+
+    selected_rows = selection.selection.rows
+    if selected_rows:
+        open_etf_detail(
+            items,
+            source_state,
+            row_index=int(selected_rows[0]),
+        )
+
+
+def open_etf_detail(
+    items: list[dict[str, Any]],
+    source_state: ETFSearchQueryState,
+    *,
+    row_index: int | None = None,
+) -> None:
+    """由資料表選取列開啟 ETF 詳細資料。"""
+
+    if row_index is None:
+        selection = st.session_state.get(
+            RESULT_ACTION_KEY,
+            {},
+        ).get("selection", {})
+        selected_rows = selection.get(
+            "rows",
+            [],
+        )
+        if not selected_rows:
+            return
+        row_index = int(selected_rows[0])
+
+    if not 0 <= row_index < len(items):
+        return
+
+    item = items[row_index]
+    code = str(item["code"]).strip().upper()
+
+    st.switch_page(
+        "page_scripts/etf_detail_page.py",
+        query_params=build_detail_query_params(
+            code=code,
+            source=str(
+                ETF_SEARCH_ROUTE.url_path
+            ),
+            source_query_params=(
+                source_state.to_query_params()
+            ),
         ),
     )
 
@@ -232,8 +307,11 @@ def get_search_state() -> ETFSearchQueryState:
 def initialize_search_state() -> None:
     """由 URL 初始化或更新 ETF 搜尋狀態。"""
 
-    state = parse_etf_search_query_state(
-        st.query_params
+    state = replace(
+        parse_etf_search_query_state(
+            st.query_params
+        ),
+        bond_label=NON_BOND_LABEL,
     )
 
     canonical = state.to_query_params()
@@ -273,7 +351,9 @@ def reset_search_state() -> None:
     """清除所有 ETF 搜尋條件。"""
 
     update_search_state(
-        ETFSearchQueryState()
+        ETFSearchQueryState(
+            bond_label=NON_BOND_LABEL
+        )
     )
 
 
@@ -308,16 +388,15 @@ def render_search_form() -> None:
         ACTIVE_FILTER_OPTIONS
     )
 
-    bond_labels = list(
-        BOND_FILTER_OPTIONS
-    )
-
     with st.form(
-        "etf_search_form"
+        "etf_search_form",
+        enter_to_submit=False,
     ):
-        keyword_column, active_column = (
-            st.columns(2)
-        )
+        (
+            keyword_column,
+            active_column,
+            size_column,
+        ) = st.columns([2, 1, 1])
 
         with keyword_column:
             keyword = st.text_input(
@@ -345,25 +424,6 @@ def render_search_form() -> None:
                 options=active_labels,
                 index=active_labels.index(
                     current_active_label
-                ),
-            )
-
-        bond_column, size_column = (
-            st.columns(2)
-        )
-
-        with bond_column:
-            current_bond_label = str(
-                st.session_state[
-                    "etf_search_bond_label"
-                ]
-            )
-
-            bond_label = st.selectbox(
-                "資產類型",
-                options=bond_labels,
-                index=bond_labels.index(
-                    current_bond_label
                 ),
             )
 
@@ -396,7 +456,7 @@ def render_search_form() -> None:
             ETFSearchQueryState(
                 keyword=keyword.strip(),
                 active_label=active_label,
-                bond_label=bond_label,
+                bond_label=NON_BOND_LABEL,
                 page=1,
                 page_size=page_size,
             )
@@ -478,11 +538,7 @@ def render_etf_search() -> None:
 
     initialize_search_state()
 
-    st.title("ETF 查詢")
-
-    st.caption(
-        "搜尋及篩選臺灣 ETF 官方主資料"
-    )
+    render_page_title("搜尋&詳細資料")
 
     render_search_form()
     render_action_buttons()
@@ -499,32 +555,11 @@ def render_etf_search() -> None:
 
     state = get_search_state()
 
-    st.page_link(
-        create_streamlit_page(
-            ETF_COMPARISON_ROUTE
-        ),
-        label="開啟 ETF 比較",
-        icon="⚖️",
-        query_params=(
-            build_comparison_query_params(
-                codes=(),
-                source=str(
-                    ETF_SEARCH_ROUTE.url_path
-                ),
-                source_query_params=(
-                    state.to_query_params()
-                ),
-            )
-        ),
-    )
-
     is_active = ACTIVE_FILTER_OPTIONS[
         state.active_label
     ]
 
-    is_bond = BOND_FILTER_OPTIONS[
-        state.bond_label
-    ]
+    is_bond = False
 
     offset = (
         state.page - 1
@@ -608,8 +643,8 @@ def render_etf_search() -> None:
         render_empty_state(
             "目前沒有符合條件的 ETF。",
             hint=(
-                "可清除條件或調整關鍵字、"
-                "管理方式與資產類型。"
+                "可清除條件或調整關鍵字與"
+                "管理方式。"
             ),
         )
         return
@@ -627,9 +662,7 @@ def render_etf_search() -> None:
     )
 
     st.caption(
-        "滑鼠移到 ETF 資料列時，"
-        "整列會顯示可點擊效果；"
-        "單擊即可進入詳細資料頁。"
+        "點選即可查看詳細資料。"
     )
 
     render_pagination(

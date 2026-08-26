@@ -243,7 +243,7 @@ class TestFrontendDividendQualityUI(
     def test_app_registers_quality_navigation(
         self,
     ) -> None:
-        """確認網站導覽登錄配息資料品質頁。"""
+        """確認網站導覽將配息資料品質登錄為管理者頁面。"""
 
         project_root = Path(
             __file__
@@ -265,6 +265,24 @@ class TestFrontendDividendQualityUI(
         self.assertIn(
             'url_path="dividend-data-quality"',
             navigation_source,
+        )
+
+        public_routes = navigation_source.split(
+            "PUBLIC_ROUTES = (",
+            maxsplit=1,
+        )[1].split(")", maxsplit=1)[0]
+        owner_routes = navigation_source.split(
+            "OWNER_ROUTES = (",
+            maxsplit=1,
+        )[1].split(")", maxsplit=1)[0]
+
+        self.assertNotIn(
+            "DIVIDEND_DATA_QUALITY_ROUTE",
+            public_routes,
+        )
+        self.assertIn(
+            "DIVIDEND_DATA_QUALITY_ROUTE",
+            owner_routes,
         )
 
     def test_quality_page_renders_summary_and_detail(

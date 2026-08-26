@@ -27,7 +27,11 @@ def render_owner_access(api_base_url: str) -> bool:
                 st.session_state.pop(OWNER_TOKEN_STATE, None)
                 st.rerun()
             return True
-        with st.form("owner_unlock", border=False):
+        with st.form(
+            "owner_unlock",
+            border=False,
+            enter_to_submit=False,
+        ):
             entered = st.text_input(
                 "Owner token",
                 type="password",

@@ -955,7 +955,7 @@ Next security milestone: `SEC-4` public-host and launch security acceptance.
   from real evidence and obtain a `READY` SEC-4 report before public access
 - Evidence contract: `SECURITY_PUBLIC_LAUNCH_ACCEPTANCE.md`
 
-## V3 — ETF奈米戶 automatic allocation
+## V3 — GoodCat 股利喵 automatic allocation
 
 V3 starts before real-domain deployment so the complete beginner flow can be
 reviewed locally first. The core input is a fixed after-tax cash target,
@@ -969,7 +969,7 @@ confidence labels are not shown in the frontend.
 
 ### V3-0 — Product, brand and allocation contract — Completed
 
-- Rename the visible product to `ETF奈米戶` and use beginner-oriented wording
+- Rename the visible product to `GoodCat 股利喵` and use beginner-oriented wording
 - Replace the base-ETF-first product flow with target-months-and-holdings-first
   planning
 - Define the public stateless boundary for zero to N holdings
@@ -1168,6 +1168,13 @@ Delivered:
   gates before selecting the exact public-release commit
 - Complete real-host deployment and obtain SEC-4 `READY` only after this local
   acceptance is complete
+
+Acceptance log:
+
+- Home page: core public planner promoted to the primary action; backend URL,
+  database engine, import batches and detailed pipeline coverage removed from
+  the beginner view. Public data counts, dates and safety boundaries retained.
+- Remaining page decisions and order are tracked in `V3_PAGE_ACCEPTANCE.md`.
 
 ## Post-security optional integrations
 

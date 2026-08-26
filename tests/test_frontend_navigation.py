@@ -3,8 +3,10 @@
 import unittest
 
 from frontend.navigation import (
+    ADMIN_OVERVIEW_ROUTE,
     ALL_ROUTES,
     DECISION_PROFILE_ROUTE,
+    DIVIDEND_DATA_QUALITY_ROUTE,
     ETF_DETAIL_ROUTE,
     ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
@@ -12,6 +14,7 @@ from frontend.navigation import (
     build_detail_query_params,
     normalize_detail_source,
     resolve_detail_return,
+    navigation_groups,
     navigation_routes,
 )
 
@@ -47,6 +50,28 @@ class TestFrontendNavigation(
             len(set(url_paths)),
         )
 
+    def test_public_navigation_places_ranking_before_search(
+        self,
+    ) -> None:
+        """確認股利試算後依序顯示績效排行榜與搜尋。"""
+
+        routes = navigation_routes(False)
+
+        self.assertEqual(
+            routes[1:4],
+            (
+                PUBLIC_PLANNER_ROUTE,
+                PERFORMANCE_RANKING_ROUTE,
+                ETF_SEARCH_ROUTE,
+            ),
+        )
+
+    def test_public_navigation_is_not_collapsible_group(self) -> None:
+        """確認公開導覽不顯示可收合的群組標題。"""
+
+        groups = navigation_groups(False)
+        self.assertEqual(list(groups), [""])
+
     def test_detail_route_is_hidden(
         self,
     ) -> None:
@@ -65,6 +90,32 @@ class TestFrontendNavigation(
         )
         self.assertNotIn(DECISION_PROFILE_ROUTE, navigation_routes(False))
         self.assertIn(DECISION_PROFILE_ROUTE, navigation_routes(True))
+
+    def test_admin_overview_is_owner_only_route(self) -> None:
+        self.assertIn(ADMIN_OVERVIEW_ROUTE, ALL_ROUTES)
+        self.assertEqual(ADMIN_OVERVIEW_ROUTE.url_path, "admin-overview")
+        self.assertNotIn(ADMIN_OVERVIEW_ROUTE, navigation_routes(False))
+        self.assertIn(ADMIN_OVERVIEW_ROUTE, navigation_routes(True))
+
+    def test_dividend_quality_is_grouped_under_admin(self) -> None:
+        """確認配息資料品質只出現在管理者功能。"""
+
+        self.assertNotIn(
+            DIVIDEND_DATA_QUALITY_ROUTE,
+            navigation_routes(False),
+        )
+        self.assertIn(
+            DIVIDEND_DATA_QUALITY_ROUTE,
+            navigation_routes(True),
+        )
+        self.assertNotIn(
+            "管理者功能",
+            navigation_groups(False),
+        )
+        self.assertIn(
+            DIVIDEND_DATA_QUALITY_ROUTE,
+            navigation_groups(True)["管理者功能"],
+        )
 
     def test_public_planner_is_always_available(self) -> None:
         self.assertIn(PUBLIC_PLANNER_ROUTE, navigation_routes(False))

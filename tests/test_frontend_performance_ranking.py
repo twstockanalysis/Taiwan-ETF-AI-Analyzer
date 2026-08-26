@@ -4,10 +4,12 @@ import unittest
 from unittest.mock import patch
 
 from frontend.pages.performance_ranking import (
+    RANKING_ACTION_KEY,
     build_performance_ranking_segments,
+    build_performance_table_row,
     format_performance_ranking_row,
     format_performance_return,
-    render_clickable_performance_rows,
+    open_performance_detail,
 )
 from frontend.query_state import (
     PerformanceQueryState,
@@ -134,7 +136,6 @@ class TestFrontendPerformanceRanking(
                 "**6M +20.00%**",
                 "截至 2026-07-29",
                 "被動式",
-                "非債券",
             ),
         )
 
@@ -165,10 +166,10 @@ class TestFrontendPerformanceRanking(
             "｜".join(segments),
         )
 
-    def test_active_bond_labels(
+    def test_table_omits_asset_type(
         self,
     ) -> None:
-        """確認主動式債券分類位於右側欄位。"""
+        """確認排行榜保留管理方式但不顯示資產類型。"""
 
         item = self.build_item()
         item["is_active"] = True
@@ -180,13 +181,8 @@ class TestFrontendPerformanceRanking(
             )
         )
 
-        self.assertEqual(
-            segments[-2:],
-            (
-                "主動式",
-                "債券",
-            ),
-        )
+        self.assertEqual(segments[-1], "主動式")
+        self.assertNotIn("債券", segments)
 
     def test_row_field_order(
         self,
@@ -206,7 +202,6 @@ class TestFrontendPerformanceRanking(
             "6M +20.00%",
             "截至 2026-07-29",
             "被動式",
-            "非債券",
         )
 
         positions = [
@@ -261,70 +256,65 @@ class TestFrontendPerformanceRanking(
             label,
         )
 
-    @patch(
-        "frontend.pages.performance_ranking."
-        "st.caption"
-    )
-    @patch(
-        "frontend.pages.performance_ranking."
-        "st.page_link"
-    )
-    def test_row_links_to_etf_detail(
+    def test_table_row_has_fixed_columns(
         self,
-        mock_page_link,
-        mock_caption,
     ) -> None:
-        """確認整列連到 ETF 詳細頁。"""
+        """確認資料表欄位固定且只顯示排序期間。"""
 
-        render_clickable_performance_rows(
-            [
-                self.build_item(),
-            ],
-            query_state=(
-                PerformanceQueryState(
-                    period="6M",
-                    active_label="被動式",
-                    bond_label="非債券",
-                    page=3,
-                    page_size=50,
-                )
+        self.assertEqual(
+            build_performance_table_row(
+                self.build_item()
+            ),
+            {
+                "rank": "#1",
+                "detail": "元大台灣50\n0050",
+                "period_return": "+20.00%",
+                "as_of_date": "2026-07-29",
+                "management_type": "被動式",
+            },
+        )
+
+    @patch(
+        "frontend.pages.performance_ranking."
+        "st.switch_page"
+    )
+    @patch(
+        "frontend.pages.performance_ranking."
+        "st.session_state",
+        {
+            RANKING_ACTION_KEY: {
+                "row": 0,
+                "label": "元大台灣50\n0050",
+            }
+        },
+    )
+    def test_table_action_opens_etf_detail(
+        self,
+        mock_switch_page,
+    ) -> None:
+        """確認資料表名稱代號可導向 ETF 詳細頁。"""
+
+        open_performance_detail(
+            [self.build_item()],
+            PerformanceQueryState(
+                period="6M",
+                active_label="被動式",
+                bond_label="非債券",
+                page=1,
+                page_size=20,
             ),
         )
 
-        mock_caption.assert_called_once_with(
-            "排名與代號｜ETF 名稱｜"
-            "6M 報酬率｜"
-            "排序基準日｜管理方式｜資產類型"
-        )
-
-        mock_page_link.assert_called_once()
-
-        call_arguments = (
-            mock_page_link.call_args
-        )
-
-        self.assertEqual(
-            call_arguments.args[0],
+        mock_switch_page.assert_called_once_with(
             "page_scripts/etf_detail_page.py",
-        )
-
-        self.assertEqual(
-            call_arguments.kwargs["width"],
-            "stretch",
-        )
-
-        self.assertEqual(
-            call_arguments.kwargs[
-                "query_params"
-            ],
-            {
+            query_params={
                 "code": "0050",
                 "from": "performance-ranking",
                 "period": "6M",
                 "active": "passive",
                 "bond": "non-bond",
-                "page": "3",
-                "page_size": "50",
+                "page": "1",
+                "page_size": "20",
             },
         )
 

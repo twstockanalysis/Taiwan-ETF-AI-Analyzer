@@ -16,7 +16,7 @@ from frontend.query_state import (
 )
 
 
-NAVIGATION_GROUP = "ETF奈米戶"
+PUBLIC_NAVIGATION_GROUP = ""
 
 
 @dataclass(frozen=True)
@@ -34,34 +34,34 @@ class PageRoute:
 HOME_ROUTE = PageRoute(
     key="home",
     title="首頁",
-    icon="🏠",
+    icon=":material/home:",
     default=True,
 )
 
 ETF_SEARCH_ROUTE = PageRoute(
     key="etf-search",
-    title="ETF 查詢",
-    icon="🔍",
+    title="搜尋&詳細資料",
+    icon=":material/search:",
     url_path="etf-search",
 )
 
 PERFORMANCE_RANKING_ROUTE = PageRoute(
     key="performance-ranking",
     title="績效排行榜",
-    icon="📈",
+    icon=":material/query_stats:",
     url_path="performance-ranking",
 )
 
 ETF_COMPARISON_ROUTE = PageRoute(
     key="etf-comparison",
     title="ETF 比較",
-    icon="⚖️",
+    icon=":material/compare_arrows:",
     url_path="etf-comparison",
 )
 
 PUBLIC_PLANNER_ROUTE = PageRoute(
     key="public-planner",
-    title="現金流配置試算",
+    title="股利試算",
     icon=":material/calculate:",
     url_path="cash-flow-planner",
 )
@@ -73,17 +73,24 @@ DECISION_PROFILE_ROUTE = PageRoute(
     url_path="decision-profile",
 )
 
+ADMIN_OVERVIEW_ROUTE = PageRoute(
+    key="admin-overview",
+    title="網站管理",
+    icon=":material/admin_panel_settings:",
+    url_path="admin-overview",
+)
+
 DIVIDEND_DATA_QUALITY_ROUTE = PageRoute(
     key="dividend-data-quality",
     title="配息資料品質",
-    icon="🧪",
+    icon=":material/database:",
     url_path="dividend-data-quality",
 )
 
 ETF_DETAIL_ROUTE = PageRoute(
     key="etf-detail",
     title="ETF 詳細資料",
-    icon="📄",
+    icon=":material/description:",
     url_path="etf-detail",
     hidden=True,
 )
@@ -91,13 +98,16 @@ ETF_DETAIL_ROUTE = PageRoute(
 PUBLIC_ROUTES = (
     HOME_ROUTE,
     PUBLIC_PLANNER_ROUTE,
-    ETF_SEARCH_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
+    ETF_SEARCH_ROUTE,
     ETF_COMPARISON_ROUTE,
-    DIVIDEND_DATA_QUALITY_ROUTE,
 )
 
-OWNER_ROUTES = (DECISION_PROFILE_ROUTE,)
+OWNER_ROUTES = (
+    DECISION_PROFILE_ROUTE,
+    ADMIN_OVERVIEW_ROUTE,
+    DIVIDEND_DATA_QUALITY_ROUTE,
+)
 
 ALL_ROUTES = (
     *PUBLIC_ROUTES,
@@ -160,6 +170,11 @@ def create_streamlit_page(
 
         source = render_decision_profile
 
+    elif route == ADMIN_OVERVIEW_ROUTE:
+        from frontend.pages.admin_overview import render_admin_overview
+
+        source = render_admin_overview
+
     elif route == DIVIDEND_DATA_QUALITY_ROUTE:
         from frontend.pages.dividend_data_quality import (
             render_dividend_data_quality,
@@ -210,6 +225,24 @@ def navigation_routes(owner_unlocked: bool) -> tuple[PageRoute, ...]:
     )
 
 
+def navigation_groups(
+    owner_unlocked: bool,
+) -> dict[str, tuple[PageRoute, ...]]:
+    """依公開與管理者權限建立導覽群組。"""
+
+    groups = {
+        PUBLIC_NAVIGATION_GROUP: (
+            *PUBLIC_ROUTES,
+            ETF_DETAIL_ROUTE,
+        ),
+    }
+
+    if owner_unlocked:
+        groups["管理者功能"] = OWNER_ROUTES
+
+    return groups
+
+
 def create_navigation(owner_unlocked: bool = False) -> Any:
     """建立網站唯一的 Streamlit 導覽表。"""
 
@@ -219,16 +252,17 @@ def create_navigation(owner_unlocked: bool = False) -> Any:
 
     apply_global_styles()
 
-    pages = [
-        create_streamlit_page(route)
-        for route in navigation_routes(owner_unlocked)
-    ]
+    pages = {
+        group: [
+            create_streamlit_page(route)
+            for route in routes
+        ]
+        for group, routes in navigation_groups(
+            owner_unlocked
+        ).items()
+    }
 
-    return st.navigation(
-        {
-            NAVIGATION_GROUP: pages,
-        }
-    )
+    return st.navigation(pages)
 
 
 def normalize_detail_source(

@@ -58,7 +58,7 @@ path. New implementation belongs in focused modules under `frontend/api/`:
 | `performance.py` | ETF performance and rankings |
 | `dividends.py` | Dividend events, components and monthly income |
 | `dividend_quality.py` | ACTUAL/76W coverage and review queue |
-| `system_overview.py` | Homepage system overview |
+| `system_overview.py` | Owner-only website administration overview |
 | `data_profile.py` | ETF source coverage and freshness |
 | `comparison.py` | Multi-ETF comparison |
 | `decision_profile.py` | Conditions, holdings, analyses, records and export |
@@ -106,10 +106,18 @@ Public pages:
 
 ```text
 /
+cash-flow-planner
 etf-search
 performance-ranking
 etf-comparison
 dividend-data-quality
+```
+
+Owner-unlocked pages:
+
+```text
+decision-profile
+admin-overview
 ```
 
 Hidden page:
@@ -174,26 +182,48 @@ It reduces oversized headings and metrics, allows metric values and page-link
 labels to wrap instead of using ellipsis, and uses smaller sidebar text when
 the navigation panel is open.
 
+All frontend forms disable Enter-key submission. Users must choose a visible
+submit action, so focused number and text inputs do not show or trigger the
+`Press Enter to submit form` behavior.
+
 ## Pages
 
 ### Home
 
-The homepage reads only:
+It shows:
+
+- The `GoodCat 股利喵` brand and approved slogan
+- One prominent link to the public cash-flow planner
+- Secondary links to ETF search, performance ranking, comparison and data quality
+- A small source and decision-responsibility notice
+
+The homepage does not request operational data.
+
+### Dividend Planner
+
+The public `cash-flow-planner` route is titled `股利試算`. Its primary form
+asks, in order, for an integer target amount, one or more payment months, the
+intended holding period and optional current holdings. Month selection uses
+native pills, so all twelve months remain visible without dropdown keyboard
+instructions.
+
+The frontend automatically requests the longest supported ten-year dividend
+lookback and applies no separate allocation-stage cash deduction. Portfolio tax
+and supplementary-premium estimates are generated with the main result. Default
+tax assumptions remain transparent and can be adjusted in a collapsed advanced
+section.
+
+### Website Administration
+
+The owner-unlocked page reads:
 
 ```text
 GET /api/v1/system/overview
 ```
 
-It shows:
-
-- Primary links to ETF search, performance ranking and dividend data quality
-- FastAPI and SQLite status
-- ETF totals and active/passive, bond/non-bond classifications
-- ETFs with PRICE_RETURN data and ETFs with dividend history
-- ACTUAL and official 76W event coverage
-- Separate 1M, 3M, 6M and 1Y performance coverage
-- ETF-master, performance, dividend and ACTUAL-document freshness
-- Five most recent import batches, including failed-batch error summaries
+It shows ETF, performance and dividend counts, ACTUAL and official 76W
+coverage, source-document coverage, dataset freshness and recent import batch
+errors. A manual refresh clears only the short frontend cache.
 
 Missing dates display `尚未取得`. A zero-event coverage ratio displays
 `尚無資料`, while a formally calculated zero remains `0.00%`.

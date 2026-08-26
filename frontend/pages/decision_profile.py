@@ -6,6 +6,8 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from frontend.ui.components import render_page_title
+
 from frontend.api_client import (
     APIClientError,
     fetch_candidate_holding_analysis,
@@ -438,7 +440,7 @@ def render_candidate_holding_analysis_result(
 def render_decision_profile() -> None:
     """顯示單一使用者條件與無券商連線的手動持有部位。"""
 
-    st.title("我的條件與持有部位")
+    render_page_title("我的條件與持有部位")
     st.caption(
         "M11-1 為單一使用者、手動輸入模式；"
         "不連接券商、不讀取帳戶，也不會送出交易。"
@@ -459,7 +461,7 @@ def render_decision_profile() -> None:
     conditions = profile.get("conditions") or {}
     st.subheader("固定分析條件")
     st.caption("這些條件會在後續切片重用 M10 計算；儲存本身不會產生推薦。")
-    with st.form("decision_profile_conditions"):
+    with st.form("decision_profile_conditions", enter_to_submit=False):
         condition_columns = st.columns(3)
         with condition_columns[0]:
             monthly_target = st.number_input(
@@ -539,7 +541,7 @@ def render_decision_profile() -> None:
             ),
         }
     )
-    with st.form("manual_holding_batch"):
+    with st.form("manual_holding_batch", enter_to_submit=False):
         edited_holdings = st.data_editor(
             editor_rows,
             num_rows="dynamic",
@@ -639,7 +641,7 @@ def render_decision_profile() -> None:
         "輸入一個候選加碼情境，比較加入前後的整體持倉；"
         "此分析不會新增或更新手動持倉。"
     )
-    with st.form("candidate_holding_analysis"):
+    with st.form("candidate_holding_analysis", enter_to_submit=False):
         candidate_columns = st.columns(3)
         with candidate_columns[0]:
             candidate_code = st.text_input(

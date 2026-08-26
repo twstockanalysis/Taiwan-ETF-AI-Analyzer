@@ -6,11 +6,6 @@ from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
 
-from frontend.pages.home import (
-    load_system_overview,
-)
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 STREAMLIT_APP_PATH = (
@@ -334,20 +329,10 @@ page.render_etf_detail()
 class TestStreamlitApp(unittest.TestCase):
     """測試 Streamlit 網站主要頁面。"""
 
-    @patch(
-        "frontend.pages.home.fetch_system_overview"
-    )
     def test_application_renders_home_page(
         self,
-        mock_fetch_system_overview,
     ) -> None:
-        """確認網站入口顯示首頁系統總覽。"""
-
-        mock_fetch_system_overview.return_value = (
-            build_system_overview_payload()
-        )
-
-        load_system_overview.clear()
+        """確認網站入口以初學者配置任務為主。"""
 
         app = AppTest.from_file(
             STREAMLIT_APP_PATH,
@@ -368,41 +353,31 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "ETF奈米戶",
+            "GoodCat 股利喵",
         )
 
-        success_messages = [
-            item.value
-            for item in app.success
-        ]
+        self.assertEqual(len(app.success), 0)
 
-        self.assertTrue(
-            any(
-                "FastAPI 連線成功"
-                in message
-                for message in success_messages
-            )
+        self.assertEqual(len(app.metric), 0)
+
+        page_text = "\n".join(
+            [item.value for item in app.subheader]
+            + [item.value for item in app.caption]
         )
+        self.assertNotIn("先算出適合你的 ETF 配置", page_text)
+        self.assertIn("股利喵幫你算", page_text)
+        self.assertIn("Your GoodCat, Easy ETF planning!", page_text)
+        self.assertIn("所有資料皆來源自證交所及投信", page_text)
+        self.assertNotIn("本站不下單", page_text)
+        self.assertNotIn("目前可用資料", page_text)
+        self.assertNotIn("FastAPI", page_text)
+        self.assertNotIn("SQLite", page_text)
+        self.assertNotIn("最近匯入批次", page_text)
 
-        metric_values = [
-            str(item.value)
-            for item in app.metric
-        ]
-
-        self.assertIn(
-            "4 檔",
-            metric_values,
-        )
-
-        self.assertIn(
-            "50.00%",
-            metric_values,
-        )
-
-    def test_search_page_renders_clickable_rows(
+    def test_search_page_renders_aligned_detail_rows(
         self,
     ) -> None:
-        """確認 ETF 查詢頁顯示可點擊資料列。"""
+        """確認搜尋頁顯示固定欄位與詳細資料入口。"""
 
         app = AppTest.from_string(
             SEARCH_PAGE_SCRIPT,
@@ -418,20 +393,43 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "ETF 查詢",
+            "搜尋&詳細資料",
         )
 
-        caption_values = [
-            item.value
-            for item in app.caption
+        selectbox_labels = [
+            item.label
+            for item in app.selectbox
         ]
 
-        self.assertTrue(
-            any(
-                "整列會顯示可點擊效果"
-                in caption
-                for caption in caption_values
-            )
+        self.assertNotIn(
+            "資產類型",
+            selectbox_labels,
+        )
+
+        self.assertEqual(len(app.dataframe), 1)
+
+        result_table = app.dataframe[0].value
+
+        self.assertEqual(
+            list(result_table.columns),
+            [
+                "code",
+                "name",
+                "management_type",
+                "listing_date",
+                "fund_size",
+                "expense_ratio",
+            ],
+        )
+
+        caption_text = "\n".join(
+            str(item.value)
+            for item in app.caption
+        )
+
+        self.assertNotIn(
+            "搜尋及篩選臺灣 ETF 官方主資料",
+            caption_text,
         )
 
     def test_performance_page_renders_ranking(
@@ -453,7 +451,7 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "ETF 績效排行榜",
+            "績效排行榜",
         )
 
         metric_values = [
@@ -466,10 +464,21 @@ class TestStreamlitApp(unittest.TestCase):
             metric_values,
         )
 
-        caption_values = [
-            item.value
-            for item in app.caption
+        selectbox_labels = [
+            item.label
+            for item in app.selectbox
         ]
+
+        self.assertNotIn("資產類型", selectbox_labels)
+        self.assertNotIn("每頁筆數", selectbox_labels)
+
+        button_labels = [
+            item.label
+            for item in app.button
+        ]
+
+        self.assertNotIn("上一頁", button_labels)
+        self.assertNotIn("下一頁", button_labels)
 
         caption_text = "\n".join(
             str(item.value)
@@ -477,18 +486,22 @@ class TestStreamlitApp(unittest.TestCase):
         )
 
         self.assertIn(
-            "依指定期間排序並只顯示該期間",
+            "預設為6M",
             caption_text,
         )
 
-        self.assertIn(
-            "名次與每列報酬率均依 6M",
-            caption_text,
-        )
+        self.assertNotIn("市價報酬率", caption_text)
 
-        self.assertIn(
-            "其他期間可從排序期間切換查看",
-            caption_text,
+        self.assertEqual(len(app.dataframe), 1)
+        self.assertEqual(
+            list(app.dataframe[0].value.columns),
+            [
+                "rank",
+                "detail",
+                "period_return",
+                "as_of_date",
+                "management_type",
+            ],
         )
 
 

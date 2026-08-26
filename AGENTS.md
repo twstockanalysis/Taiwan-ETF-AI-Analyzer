@@ -1,8 +1,8 @@
-# ETF奈米戶 — Codex Instructions
+# GoodCat 股利喵 — Codex Instructions
 
 ## Project Goal
 
-建立可公開使用、以 ETF 初學者為核心使用者的台灣 ETF 現金流配置網站「ETF奈米戶」。
+建立可公開使用、以 ETF 初學者為核心使用者的台灣 ETF 現金流配置網站「GoodCat 股利喵」。
 
 第一版網站完成前，專案重點是：
 

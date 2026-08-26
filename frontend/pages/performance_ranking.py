@@ -1,10 +1,10 @@
 """ETF 績效排行榜頁面。"""
 
-from dataclasses import replace
-import math
 from typing import Any
 
 import streamlit as st
+
+from frontend.ui.components import render_page_title
 
 from frontend.api_client import (
     APIClientError,
@@ -14,25 +14,16 @@ from frontend.config import (
     get_api_base_url,
 )
 from frontend.navigation import (
-    ETF_COMPARISON_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
-    build_comparison_query_params,
     build_detail_query_params,
-    create_streamlit_page,
 )
 from frontend.query_state import (
-    PAGE_SIZE_OPTIONS,
     PERFORMANCE_PERIODS,
     PerformanceQueryState,
     parse_performance_query_state,
     sync_query_params,
 )
-from frontend.ui.components import (
-    render_etf_detail_links,
-    render_pagination_controls,
-)
 from frontend.ui.formatters import (
-    asset_type_label,
     format_etf_display_name,
     format_percentage,
     management_type_label,
@@ -57,14 +48,11 @@ ACTIVE_FILTER_OPTIONS: dict[
     "被動式": False,
 }
 
-BOND_FILTER_OPTIONS: dict[
-    str,
-    bool | None,
-] = {
-    "非債券": False,
-    "債券": True,
-    "全部": None,
-}
+NON_BOND_LABEL = "非債券"
+RANKING_LIMIT = 20
+RANKING_ACTION_KEY = (
+    "performance_ranking_detail_action"
+)
 
 PERFORMANCE_QUERY_SIGNATURE_KEY = (
     "_performance_query_signature"
@@ -237,17 +225,12 @@ def build_performance_ranking_segments(
         )
     )
 
-    asset_type = asset_type_label(
-        item["is_bond"]
-    )
-
     return (
         f"**#{rank}　{code}**",
         name,
         selected_period_segment,
         f"截至 {sort_as_of_date}",
         management_type,
-        asset_type,
     )
 
 
@@ -267,31 +250,149 @@ def render_clickable_performance_rows(
     items: list[dict[str, Any]],
     query_state: PerformanceQueryState | None = None,
 ) -> None:
-    """顯示整列可點擊的績效排行榜。"""
+    """以固定欄位資料表顯示績效排行榜。"""
 
     source_state = (
         query_state
         if query_state is not None
-        else PerformanceQueryState()
+        else PerformanceQueryState(
+            bond_label=NON_BOND_LABEL,
+            page=1,
+            page_size=RANKING_LIMIT,
+        )
     )
 
-    render_etf_detail_links(
-        items,
-        caption=(
-            "排名與代號｜ETF 名稱｜"
-            f"{source_state.period} 報酬率｜"
-            "排序基準日｜管理方式｜資產類型"
+    rows = [
+        build_performance_table_row(item)
+        for item in items
+    ]
+
+    st.dataframe(
+        rows,
+        column_order=(
+            "rank",
+            "detail",
+            "period_return",
+            "as_of_date",
+            "management_type",
         ),
-        label_builder=(
-            format_performance_ranking_row
+        column_config={
+            "rank": st.column_config.TextColumn(
+                "排名",
+                width="small",
+            ),
+            "detail": st.column_config.ButtonColumn(
+                "名稱／代號",
+                width="large",
+                pinned=True,
+                alignment="left",
+                type="tertiary",
+                on_click=open_performance_detail,
+                args=(items, source_state),
+                key=RANKING_ACTION_KEY,
+            ),
+            "period_return": (
+                st.column_config.TextColumn(
+                    f"{source_state.period} 報酬率",
+                    width="medium",
+                )
+            ),
+            "as_of_date": (
+                st.column_config.TextColumn(
+                    "資料日期",
+                    width="medium",
+                )
+            ),
+            "management_type": (
+                st.column_config.TextColumn(
+                    "管理方式",
+                    width="small",
+                )
+            ),
+        },
+        hide_index=True,
+        width="stretch",
+        height="content",
+        row_height=58,
+    )
+
+
+def build_performance_table_row(
+    item: dict[str, Any],
+) -> dict[str, str]:
+    """建立單一排行榜資料表列。"""
+
+    rank = int(item["rank"])
+    code = str(item["etf_code"]).strip().upper()
+    name = format_etf_display_name(item["name"])
+    sort_period = str(
+        item.get(
+            "sort_period",
+            item.get("period_code", "6M"),
+        )
+    ).strip().upper()
+    performance_item = (
+        build_period_performance_lookup(item).get(
+            sort_period
+        )
+    )
+    period_return = (
+        format_performance_return(
+            performance_item["return_pct"]
+        )
+        if performance_item is not None
+        else "歷史資料不足"
+    )
+    as_of_date = str(
+        item.get(
+            "sort_as_of_date",
+            item.get("as_of_date", ""),
+        )
+    ).strip()
+
+    return {
+        "rank": f"#{rank}",
+        "detail": f"{name}\n{code}",
+        "period_return": period_return,
+        "as_of_date": as_of_date or "—",
+        "management_type": management_type_label(
+            item["is_active"]
         ),
-        code_field="etf_code",
-        name_field="name",
-        source=str(
-            PERFORMANCE_RANKING_ROUTE.url_path
-        ),
-        source_query_params=(
-            source_state.to_query_params()
+    }
+
+
+def open_performance_detail(
+    items: list[dict[str, Any]],
+    source_state: PerformanceQueryState,
+) -> None:
+    """由排行榜資料表開啟所選 ETF 詳細資料。"""
+
+    action = st.session_state.get(
+        RANKING_ACTION_KEY
+    )
+
+    if action is None:
+        return
+
+    row_index = int(action["row"])
+
+    if not 0 <= row_index < len(items):
+        return
+
+    code = str(
+        items[row_index]["etf_code"]
+    ).strip().upper()
+
+    st.switch_page(
+        "page_scripts/etf_detail_page.py",
+        query_params=build_detail_query_params(
+            code=code,
+            source=str(
+                PERFORMANCE_RANKING_ROUTE.url_path
+            ),
+            source_query_params=(
+                source_state.to_query_params()
+            ),
         ),
     )
 
@@ -365,8 +466,10 @@ def get_performance_state() -> PerformanceQueryState:
 def initialize_performance_state() -> None:
     """由 URL 初始化或更新績效排行榜狀態。"""
 
-    state = parse_performance_query_state(
-        st.query_params
+    state = replace_performance_defaults(
+        parse_performance_query_state(
+            st.query_params
+        )
     )
 
     canonical = state.to_query_params()
@@ -406,7 +509,23 @@ def reset_performance_state() -> None:
     """重設績效排行榜查詢條件。"""
 
     update_performance_state(
-        PerformanceQueryState()
+        replace_performance_defaults(
+            PerformanceQueryState()
+        )
+    )
+
+
+def replace_performance_defaults(
+    state: PerformanceQueryState,
+) -> PerformanceQueryState:
+    """固定排行榜為非債券前 20 名且不分頁。"""
+
+    return PerformanceQueryState(
+        period=state.period,
+        active_label=state.active_label,
+        bond_label=NON_BOND_LABEL,
+        page=1,
+        page_size=RANKING_LIMIT,
     )
 
 
@@ -444,12 +563,9 @@ def render_performance_filter_form() -> None:
         ACTIVE_FILTER_OPTIONS
     )
 
-    bond_labels = list(
-        BOND_FILTER_OPTIONS
-    )
-
     with st.form(
-        "performance_ranking_form"
+        "performance_ranking_form",
+        enter_to_submit=False,
     ):
         period_column, active_column = (
             st.columns(2)
@@ -493,42 +609,6 @@ def render_performance_filter_form() -> None:
                 ),
             )
 
-        bond_column, size_column = (
-            st.columns(2)
-        )
-
-        with bond_column:
-            current_bond_label = str(
-                st.session_state[
-                    "performance_bond_label"
-                ]
-            )
-
-            bond_label = st.selectbox(
-                "資產類型",
-                options=bond_labels,
-                index=bond_labels.index(
-                    current_bond_label
-                ),
-            )
-
-        with size_column:
-            current_page_size = int(
-                st.session_state[
-                    "performance_page_size"
-                ]
-            )
-
-            page_size = st.selectbox(
-                "每頁筆數",
-                options=PAGE_SIZE_OPTIONS,
-                index=(
-                    PAGE_SIZE_OPTIONS.index(
-                        current_page_size
-                    )
-                ),
-            )
-
         submitted = st.form_submit_button(
             "套用篩選",
             type="primary",
@@ -539,9 +619,9 @@ def render_performance_filter_form() -> None:
             PerformanceQueryState(
                 period=period,
                 active_label=active_label,
-                bond_label=bond_label,
+                bond_label=NON_BOND_LABEL,
                 page=1,
-                page_size=page_size,
+                page_size=RANKING_LIMIT,
             )
         )
 
@@ -584,58 +664,14 @@ def render_performance_action_buttons() -> None:
         st.rerun()
 
 
-def render_performance_pagination(
-    state: PerformanceQueryState,
-    total_pages: int,
-) -> None:
-    """顯示績效排行榜分頁控制項。"""
-
-    action = render_pagination_controls(
-        current_page=state.page,
-        total_pages=total_pages,
-        previous_key=(
-            "previous_performance_page"
-        ),
-        next_key=(
-            "next_performance_page"
-        ),
-    )
-
-    if action == "previous":
-        update_performance_state(
-            replace(
-                state,
-                page=state.page - 1,
-            )
-        )
-        st.rerun()
-
-    if action == "next":
-        update_performance_state(
-            replace(
-                state,
-                page=state.page + 1,
-            )
-        )
-        st.rerun()
-
-
 def render_performance_ranking() -> None:
     """顯示 ETF 績效排行榜。"""
 
     initialize_performance_state()
 
-    st.title("ETF 績效排行榜")
+    render_page_title("績效排行榜")
 
-    st.caption(
-        "依指定期間排序並只顯示該期間；"
-        "預設為 6M。"
-    )
-
-    st.info(
-        "目前為市價報酬率，"
-        "不包含配息再投資。"
-    )
+    st.caption("預設為6M")
 
     render_performance_filter_form()
     render_performance_action_buttons()
@@ -652,36 +688,11 @@ def render_performance_ranking() -> None:
 
     state = get_performance_state()
 
-    st.page_link(
-        create_streamlit_page(
-            ETF_COMPARISON_ROUTE
-        ),
-        label="開啟 ETF 比較",
-        icon="⚖️",
-        query_params=(
-            build_comparison_query_params(
-                codes=(),
-                source=str(
-                    PERFORMANCE_RANKING_ROUTE.url_path
-                ),
-                source_query_params=(
-                    state.to_query_params()
-                ),
-            )
-        ),
-    )
-
     is_active = ACTIVE_FILTER_OPTIONS[
         state.active_label
     ]
 
-    is_bond = BOND_FILTER_OPTIONS[
-        state.bond_label
-    ]
-
-    offset = (
-        state.page - 1
-    ) * state.page_size
+    is_bond = False
 
     try:
         with loading_state(
@@ -692,8 +703,8 @@ def render_performance_ranking() -> None:
                 period=state.period,
                 is_active=is_active,
                 is_bond=is_bond,
-                limit=state.page_size,
-                offset=offset,
+                limit=RANKING_LIMIT,
+                offset=0,
             )
 
     except APIClientError as error:
@@ -710,24 +721,8 @@ def render_performance_ranking() -> None:
     total = int(result["total"])
     items = result["items"]
 
-    total_pages = max(
-        1,
-        math.ceil(
-            total / state.page_size
-        ),
-    )
-
-    if state.page > total_pages:
-        update_performance_state(
-            replace(
-                state,
-                page=total_pages,
-            )
-        )
-        st.rerun()
-
-    period_column, total_column, page_column = (
-        st.columns(3)
+    period_column, total_column = st.columns(
+        2
     )
 
     with period_column:
@@ -742,23 +737,14 @@ def render_performance_ranking() -> None:
             f"{total:,} 檔",
         )
 
-    with page_column:
-        st.metric(
-            "目前頁次",
-            (
-                f"{state.page}"
-                f" / {total_pages}"
-            ),
-        )
-
     st.divider()
 
     if not items:
         render_empty_state(
             "目前沒有符合條件的績效資料。",
             hint=(
-                "可清除條件或改用其他績效期間、"
-                "管理方式與資產類型。"
+                "可清除條件或改用其他績效期間與"
+                "管理方式。"
             ),
         )
         return
@@ -769,19 +755,12 @@ def render_performance_ranking() -> None:
     )
 
     st.caption(
-        f"目前顯示第 "
-        f"{offset + 1:,} 至 "
-        f"{offset + len(items):,} 名，"
-        f"共 {total:,} 檔"
+        f"符合條件共 {total:,} 檔，"
+        f"目前顯示前 {len(items):,} 名。"
     )
 
     st.caption(
         f"名次與每列報酬率均依 "
         f"{state.period}；"
         "其他期間可從排序期間切換查看。"
-    )
-
-    render_performance_pagination(
-        state=state,
-        total_pages=total_pages,
     )

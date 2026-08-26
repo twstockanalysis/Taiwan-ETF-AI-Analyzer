@@ -2,7 +2,7 @@
 
 ## Product
 
-The official product name is `ETF奈米戶`. It is a Taiwan ETF cash-flow planning
+The official product name is `GoodCat 股利喵`. It is a Taiwan ETF cash-flow planning
 website for beginners and individual investors with limited investment
 information or professional analysis experience.
 

@@ -16,6 +16,7 @@ from frontend.config import (
     get_api_base_url,
 )
 from frontend.ui.components import (
+    render_page_title,
     render_pagination_controls,
 )
 from frontend.ui.formatters import (
@@ -368,7 +369,8 @@ def render_etf_coverage_form(
     st.subheader("ETF 個別覆蓋率")
 
     with st.form(
-        "quality_etf_coverage_form"
+        "quality_etf_coverage_form",
+        enter_to_submit=False,
     ):
         etf_code = st.text_input(
             "ETF 代號",
@@ -448,7 +450,8 @@ def render_queue_filter_form() -> None:
     )
 
     with st.form(
-        "quality_review_queue_form"
+        "quality_review_queue_form",
+        enter_to_submit=False,
     ):
         status_column, issue_column = (
             st.columns(2)
@@ -939,7 +942,7 @@ def render_dividend_data_quality() -> None:
 
     initialize_quality_state()
 
-    st.title("配息資料品質")
+    render_page_title("配息資料品質")
 
     st.caption(
         "檢視正式 ACTUAL、76W 與"

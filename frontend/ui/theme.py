@@ -81,6 +81,25 @@ GLOBAL_STYLES = f"""
     line-height: 1.4 !important;
 }}
 
+.st-key-home-primary-action [data-testid="stPageLink"] p {{
+    font-size: clamp(1.15rem, 2vw, 1.4rem) !important;
+    font-weight: 700 !important;
+}}
+
+.st-key-public-planner-holdings [data-testid="stElementToolbar"] {{
+    display: none !important;
+}}
+
+.st-key-etf_search_detail_action [data-testid="stElementToolbar"] {{
+    display: none !important;
+}}
+
+.st-key-public-planner-holdings button[aria-label*="column menu" i],
+.st-key-public-planner-holdings button[aria-label*="欄位選單" i],
+.st-key-public-planner-holdings .gdg-header-menu-button {{
+    display: none !important;
+}}
+
 @media (max-width: 1100px) {{
     [data-testid="stMetricValue"],
     [data-testid="stMetricValue"] > div {{
@@ -96,6 +115,10 @@ GLOBAL_STYLES = f"""
 
     [data-testid="stPageLink"] p {{
         font-size: 0.9rem !important;
+    }}
+
+    .st-key-home-primary-action [data-testid="stPageLink"] p {{
+        font-size: 1.1rem !important;
     }}
 }}
 </style>

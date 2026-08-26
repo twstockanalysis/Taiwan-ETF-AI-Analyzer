@@ -3,7 +3,7 @@
 ## Purpose
 
 V3 turns the existing ETF data and deterministic calculation layers into the
-core `ETF奈米戶` planning result:
+core `GoodCat 股利喵` planning result:
 
 > Given a fixed after-tax cash target, selected payment months and zero to N
 > existing ETF holdings, which ETFs should be added, how many whole shares are
