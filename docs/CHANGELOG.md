@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-26 — V4-2 GoodCat theme and shared components
+
+- Added five original flat gray-and-white GoodCat state illustrations with
+  real alpha transparency, sleepy idle eyes, restrained feline body language
+  and repository-local provenance documentation.
+- Added the approved light neutral palette through native Streamlit theme
+  configuration without external fonts or a programming-language migration.
+- Added reusable GoodCat companion and beginner explanation cards that keep
+  character state independent from backend calculations and always pair images
+  with visible Traditional Chinese state descriptions.
+- Added a limited idle-state integration to the existing home page; the full
+  consumer landing and guided planning rebuild remains V4-3.
+
 ## 2026-08-26 — V4-1 assessment calibration and grade gate
 
 - Added a versioned public-safe `A+` through `F` historical quality grade while
