@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-26 — V4-4 allocation result and assessment experience
+
+- Added compact comparison cards for every materially different recommended,
+  balanced or concentrated plan and a focused detail card for the selected
+  plan.
+- Separated owner-goal fit from each ETF's historical quality grade, with
+  public-safe `A+` through `F` or explicit `暫不評等` semantics and no raw score,
+  rank or confidence output.
+- Replaced the dense addition table with per-ETF cards showing whole shares,
+  required capital, supported months, inclusion reasons and the primary risk.
+- Kept target-month coverage and remaining shortfall in the primary result and
+  moved holdings, assumptions, exclusions, history and long-term projections
+  into labeled secondary disclosures.
+- Preserved the existing deterministic allocation engine and public stateless
+  FastAPI response boundary.
+
 ## 2026-08-26 — V4-3 home and planning journey
 
 - Rebuilt the consumer home page around one primary GoodCat planning action

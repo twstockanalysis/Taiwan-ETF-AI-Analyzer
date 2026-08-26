@@ -246,6 +246,15 @@ submitted condition invalidates the visible prior result so an old allocation
 cannot be mistaken for a newly calculated one. Inputs and results remain
 session-only and are never written to owner profile tables.
 
+The allocation result first compares every materially distinct plan in compact
+summary cards, then opens one plan's whole-share details. The primary layer
+shows owner-goal fit, required capital, target-month coverage, remaining
+shortfall, inclusion reasons and the first material risk. Each added ETF shows
+its historical quality grade separately and explicitly says that the grade is
+not owner-goal fit. Portfolio holdings, optimization limits, excluded ETFs,
+historical evidence, long-term scenarios and tax/reinvestment assumptions stay
+available in secondary disclosures without hiding missing-data warnings.
+
 ## Analysis modes and data semantics
 
 The product must distinguish:

@@ -10,6 +10,10 @@ from frontend.ui.components import render_page_title
 
 from frontend.api_client import APIClientError, fetch_portfolio_projections
 from frontend.config import get_api_base_url
+from frontend.ui.assessment import (
+    allocation_fit_presentation,
+    historical_quality_presentation,
+)
 from frontend.ui.formatters import format_number
 from frontend.ui.goodcat import GoodCatState, render_goodcat_companion
 from frontend.ui.states import loading_state
@@ -460,30 +464,166 @@ def build_resulting_holding_rows(result: dict[str, Any]) -> list[dict[str, str]]
     ]
 
 
+def summarize_allocation_result(result: dict[str, Any]) -> dict[str, Any]:
+    """彙整主人最先需要知道的達標月份與剩餘缺口。"""
+
+    months = result.get("monthly_results", [])
+    met_months = 0
+    total_shortfall = Decimal("0")
+    for item in months:
+        shortfall = Decimal(str(item.get("shortfall", "0")))
+        total_shortfall += shortfall
+        if shortfall == 0:
+            met_months += 1
+    return {
+        "target_month_count": len(months),
+        "met_month_count": met_months,
+        "total_shortfall": total_shortfall,
+    }
+
+
+def render_plan_preview(plan: dict[str, Any]) -> None:
+    """顯示一張可快速比較但不取代詳細結果的方案摘要卡。"""
+
+    result = plan["result"]
+    fit = allocation_fit_presentation(result)
+    summary = summarize_allocation_result(result)
+    with st.container(border=True, height="stretch"):
+        st.markdown(f"#### {plan['label']}")
+        st.badge(fit.label, color=fit.color)
+        st.caption(plan["simple_explanation"])
+        st.write(
+            "新增資金：**"
+            + format_number(
+                result.get("total_required_additional_capital"),
+                decimal_places=2,
+                suffix=" TWD",
+            )
+            + "**"
+        )
+        st.caption(
+            f"新增 {len(result.get('additions', []))} 檔 ETF；"
+            f"{summary['met_month_count']}／{summary['target_month_count']} 個目標月達標。"
+        )
+
+
+def render_addition_card(addition: dict[str, Any], *, strategy: str) -> None:
+    """以整數股數、資金、理由、評等與主要風險呈現單一新增 ETF。"""
+
+    code = str(addition["etf_code"])
+    grade = historical_quality_presentation(
+        addition.get("historical_quality_grade")
+    )
+    reasons = list(dict.fromkeys(addition.get("reasons", [])))
+    risks = list(dict.fromkeys(addition.get("risks", [])))
+    months = addition.get("supported_target_months", [])
+
+    with st.container(
+        border=True,
+        key=f"allocation-addition-{strategy.lower()}-{code.lower()}",
+    ):
+        st.markdown(f"#### {code} {addition['name']}")
+        st.badge(grade.label, color=grade.color)
+        st.caption("這是 ETF 歷史品質，不代表一定適合每位主人。")
+        columns = st.columns(3)
+        columns[0].metric(
+            "增加股數",
+            f"{int(addition['additional_shares']):,} 股",
+            border=True,
+        )
+        columns[1].metric(
+            "預估所需資金",
+            format_number(
+                addition.get("required_capital"),
+                decimal_places=2,
+                suffix=" TWD",
+            ),
+            border=True,
+        )
+        columns[2].metric(
+            "支援目標月份",
+            "、".join(f"{month} 月" for month in months) or "未直接支援",
+            border=True,
+        )
+
+        st.markdown("**為什麼放進這個配置**")
+        if reasons:
+            for reason in reasons:
+                st.write(f"- {reason}")
+        else:
+            st.caption("通過資料與風險門檻，並用來縮小本次現金流缺口。")
+
+        if risks:
+            st.warning(f"主要風險：{risks[0]}", icon=":material/warning:")
+        else:
+            st.caption("目前公開資料沒有額外的單檔風險提醒；仍須留意市場波動。")
+
+        with st.expander(
+            "查看歷史品質依據與其他風險",
+            icon=":material/fact_check:",
+        ):
+            st.write(grade.explanation)
+            grade_payload = addition.get("historical_quality_grade")
+            if isinstance(grade_payload, dict):
+                strengths = list(dict.fromkeys(grade_payload.get("strengths", [])))
+                grade_risks = list(
+                    dict.fromkeys(grade_payload.get("risks", []))
+                )
+                unavailable = list(
+                    dict.fromkeys(grade_payload.get("unavailable_evidence", []))
+                )
+                if strengths:
+                    st.markdown("**目前支持證據**")
+                    for strength in strengths:
+                        st.write(f"- {strength}")
+                if grade_risks:
+                    st.markdown("**歷史品質風險**")
+                    for item in grade_risks:
+                        st.write(f"- {item}")
+                if unavailable:
+                    st.markdown("**尚缺證據**")
+                    for item in unavailable:
+                        st.write(f"- {item}")
+            for risk in risks[1:]:
+                st.write(f"- {risk}")
+
+
 def render_allocation_results(payload: dict[str, Any]) -> str:
-    st.subheader("配置結果")
+    st.subheader("咪算出的配置")
     plans = payload["plans"]
+    st.caption(
+        "推薦配置是系統依本次條件優先產生的結果；平衡與集中配置只有在資料支持且結果確實不同時才會出現。"
+    )
+
+    preview_columns = st.columns(len(plans))
+    for column, preview_plan in zip(preview_columns, plans, strict=True):
+        with column:
+            render_plan_preview(preview_plan)
+
     labels = [plan["label"] for plan in plans]
     selected_label = labels[0]
     if len(labels) > 1:
         selected_label = st.segmented_control(
-            "選擇配置",
+            "查看方案細節",
             labels,
             default=labels[0],
             key="public_planner_strategy",
         ) or labels[0]
     plan = next(item for item in plans if item["label"] == selected_label)
     result = plan["result"]
+    fit = allocation_fit_presentation(result)
+    summary = summarize_allocation_result(result)
 
-    st.caption(plan["simple_explanation"])
-    status_labels = {
-        "TARGET_MET": "目標月份皆達標",
-        "PARTIAL": "部分月份仍有缺口",
-        "NO_ELIGIBLE_ALLOCATION": "目前沒有符合門檻的配置",
-        "UNAVAILABLE": "必要資料不足",
-    }
-    with st.container(horizontal=True):
-        st.metric(
+    with st.container(
+        border=True,
+        key=f"allocation-plan-detail-{plan['strategy'].lower()}",
+    ):
+        st.markdown(f"### {plan['label']}細節")
+        st.badge(f"主人目標適配｜{fit.label}", color=fit.color)
+        st.write(fit.explanation)
+        st.caption("主人目標適配只針對本次輸入；不等同 ETF 歷史品質評等。")
+        columns = st.columns(4)
+        columns[0].metric(
             "新增所需資金",
             format_number(
                 result.get("total_required_additional_capital"),
@@ -492,60 +632,86 @@ def render_allocation_results(payload: dict[str, Any]) -> str:
             ),
             border=True,
         )
-        st.metric("新增 ETF", f"{len(result.get('additions', []))} 檔", border=True)
-        st.metric(
-            "配置狀態",
-            status_labels.get(result["status"], result["status"]),
+        columns[1].metric(
+            "新增 ETF",
+            f"{len(result.get('additions', []))} 檔",
+            border=True,
+        )
+        columns[2].metric(
+            "達標月份",
+            f"{summary['met_month_count']}／{summary['target_month_count']} 月",
+            border=True,
+        )
+        columns[3].metric(
+            "尚缺總額",
+            format_number(
+                summary["total_shortfall"],
+                decimal_places=2,
+                suffix=" TWD",
+            ),
             border=True,
         )
 
     if result.get("additions"):
-        st.markdown("#### 建議增加的 ETF 與股數")
-        st.table(build_addition_rows(result))
+        st.markdown("#### 咪建議增加的 ETF 與整數股數")
+        for addition in result["additions"]:
+            render_addition_card(addition, strategy=plan["strategy"])
     else:
-        st.info("此配置目前沒有可新增的 ETF；請查看下方原因。")
+        st.info(
+            "此配置目前沒有可新增的 ETF；可能是庫存已達標，或目前沒有標的通過資料與風險門檻。",
+            icon=":material/info:",
+        )
 
-    st.markdown("#### 目標月份現金流")
-    st.dataframe(build_allocation_month_rows(result), hide_index=True)
+    st.markdown("#### 每個目標月有沒有達標")
+    st.dataframe(
+        build_allocation_month_rows(result),
+        hide_index=True,
+        key=f"allocation-months-{plan['strategy'].lower()}",
+    )
 
     issues = [item["message"] for item in result.get("issues", [])]
     if issues:
-        st.warning("配置提醒：" + "、".join(dict.fromkeys(issues)))
-    if result.get("optimality") == "BOUNDED_BEST_EFFORT":
-        st.caption("這是有界配置結果，不代表唯一或已證明的最低資金方案。")
-
-    risks = list(
-        dict.fromkeys(
-            risk
-            for addition in result.get("additions", [])
-            for risk in addition.get("risks", [])
+        st.warning(
+            "配置提醒：" + "、".join(dict.fromkeys(issues)),
+            icon=":material/warning:",
         )
-    )
-    if risks:
-        with st.expander("資料限制與風險"):
-            for risk in risks:
-                st.write(f"- {risk}")
 
     holdings = build_resulting_holding_rows(result)
-    if holdings:
-        with st.expander("查看配置後持股"):
-            st.dataframe(holdings, hide_index=True)
-
     assumptions = result.get("assumptions", {})
-    st.caption(
-        f"參考資料快照：{result.get('snapshot_id', '未提供')}。"
-        f"{assumptions.get('transaction_cost_note', '交易成本假設未提供')}"
-    )
+    with st.expander(
+        "查看配置後持股與計算假設",
+        icon=":material/tune:",
+    ):
+        if holdings:
+            st.markdown("**配置後持股**")
+            st.dataframe(holdings, hide_index=True)
+        else:
+            st.caption("目前沒有可顯示的配置後持股。")
+        if result.get("optimality") == "BOUNDED_BEST_EFFORT":
+            st.warning("這是有界配置結果，不代表唯一或已證明的最低資金方案。")
+        st.caption(
+            f"參考資料快照：{result.get('snapshot_id', '未提供')}。"
+            f"{assumptions.get('transaction_cost_note', '交易成本假設未提供')}"
+        )
+        st.caption(payload["estimate_label"])
 
     strategy_messages = [
         item["message"] for item in payload.get("strategy_issues", [])
     ]
     if strategy_messages:
-        st.info("其他配置：" + "、".join(dict.fromkeys(strategy_messages)))
+        with st.expander(
+            "為什麼沒有更多不同方案",
+            icon=":material/compare_arrows:",
+        ):
+            for message in dict.fromkeys(strategy_messages):
+                st.write(f"- {message}")
 
     excluded = payload.get("excluded_candidates", [])
     if excluded:
-        with st.expander(f"查看未納入的 ETF（{len(excluded)} 檔）"):
+        with st.expander(
+            f"查看未納入的 ETF（{len(excluded)} 檔）",
+            icon=":material/filter_alt_off:",
+        ):
             st.caption("只顯示資料或風險門檻的排除理由，不代表買賣建議。")
             st.dataframe(
                 [
@@ -560,7 +726,6 @@ def render_allocation_results(payload: dict[str, Any]) -> str:
                 hide_index=True,
             )
 
-    st.caption(payload["estimate_label"])
     return plan["strategy"]
 
 
@@ -1124,12 +1289,20 @@ def render_public_planner() -> None:
     if isinstance(saved_result, dict):
         long_term = saved_result["long_term_scenarios"]
         selected_strategy = render_allocation_results(long_term["allocation_results"])
-        render_long_term_evidence(long_term, selected_strategy)
-        render_portfolio_projection(
-            saved_result,
-            selected_strategy,
-            st.session_state.get(
-                REINVESTMENT_POLICY_STATE_KEY,
-                "NO_REINVESTMENT",
-            ),
-        )
+        with st.expander(
+            "查看歷史績效與長期情境",
+            icon=":material/query_stats:",
+        ):
+            render_long_term_evidence(long_term, selected_strategy)
+        with st.expander(
+            f"查看整體組合 {saved_result['projection_years']} 年稅務與再投入試算",
+            icon=":material/timeline:",
+        ):
+            render_portfolio_projection(
+                saved_result,
+                selected_strategy,
+                st.session_state.get(
+                    REINVESTMENT_POLICY_STATE_KEY,
+                    "NO_REINVESTMENT",
+                ),
+            )
