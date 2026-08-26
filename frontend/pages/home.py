@@ -10,6 +10,10 @@ from frontend.navigation import (
     PUBLIC_PLANNER_ROUTE,
     create_streamlit_page,
 )
+from frontend.ui.goodcat import (
+    GoodCatState,
+    render_goodcat_companion,
+)
 
 
 SITE_SLOGAN = (
@@ -66,5 +70,9 @@ def render_home() -> None:
 
     st.title(SITE_NAME)
     st.caption(SITE_SLOGAN)
+    render_goodcat_companion(
+        GoodCatState.IDLE,
+        key="home-goodcat",
+    )
     render_primary_action()
     render_exploration_links()

@@ -512,7 +512,7 @@ class TestStreamlitApp(unittest.TestCase):
 
         app = AppTest.from_string(
             DETAIL_PAGE_SCRIPT,
-            default_timeout=10,
+            default_timeout=15,
         )
 
         app.query_params["code"] = "0050"

@@ -5,6 +5,17 @@ from __future__ import annotations
 import streamlit as st
 
 
+GOODCAT_PALETTE = {
+    "canvas": "#F7F7F4",
+    "surface": "#FFFFFF",
+    "primary_text": "#343740",
+    "secondary_text": "#6F737C",
+    "cat_gray": "#5B5E69",
+    "soft_pink": "#DFA5B4",
+    "border": "#D9DADF",
+}
+
+
 GLOBAL_STYLE_MARKER = (
     "tw-etf-responsive-typography"
 )

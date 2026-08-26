@@ -1224,13 +1224,31 @@ Delivered:
 - Added the safe grade object to eligibility candidates and allocation additions
 - Evidence: `V4_ASSESSMENT_CALIBRATION.md`
 
-### V4-2 — Brand theme and shared GoodCat components
+### V4-2 — Brand theme and shared GoodCat components — Completed locally
 
 - Create original, licensed gray-and-white GoodCat assets for idle, attentive,
   working, ready and caution states
 - Add a native Streamlit light theme and reusable beginner-facing containers
 - Keep character state, accessibility text and backend calculation independent
 - Recheck navigation and responsive behavior against the new visual hierarchy
+
+Delivered:
+
+- Added five original flat gray-and-white GoodCat PNG assets with documented
+  provenance, sleepy idle eyes, natural feline state cues and verified alpha
+  transparency for idle, attentive, working, ready and caution states
+- Added a native Streamlit light theme using the approved canvas, surface,
+  text, cat-gray, soft-pink and border palette without external web fonts
+- Added reusable state-driven GoodCat and beginner explanation cards built
+  from native Streamlit containers, images and text elements
+- Kept character state isolated from FastAPI and calculation code, and paired
+  every image with visible Traditional Chinese state and accessibility text
+- Added the idle companion to the existing home page as a limited integration;
+  the full consumer home and planning-flow rebuild remains V4-3
+- Rechecked the existing fixed navigation order, non-collapsible public sidebar
+  contract and narrow-screen typography through frontend regression tests
+- Evidence: `frontend/ui/goodcat.py`, `.streamlit/config.toml` and
+  `frontend/assets/goodcat/README.md`
 
 ### V4-3 — Home and planning journey
 
