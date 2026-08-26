@@ -3,8 +3,9 @@
 ## 2026-08-26 — V4-2 GoodCat theme and shared components
 
 - Added five original flat gray-and-white GoodCat state illustrations with
-  real alpha transparency, sleepy idle eyes, restrained feline body language
-  and repository-local provenance documentation.
+  real alpha transparency, a consistent big-head/small-body identity, sleepy
+  idle eyes, restrained feline body language and repository-local provenance
+  documentation.
 - Added the approved light neutral palette through native Streamlit theme
   configuration without external fonts or a programming-language migration.
 - Added reusable GoodCat companion and beginner explanation cards that keep

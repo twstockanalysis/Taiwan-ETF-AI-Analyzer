@@ -2,10 +2,11 @@
 
 These five original gray-and-white GoodCat illustrations were generated for
 this repository with OpenAI's built-in image generation on 2026-08-26. The
-approved idle illustration is the identity anchor: low sleepy eyelids express
-the cat's usual lazy mood. Active states use restrained, natural feline body
-language instead of human-like gestures. No third-party character artwork is
-included in these files.
+approved idle illustration is the identity anchor: an oversized rounded head,
+compact small body, short paws and low sleepy eyelids express the cat's usual
+world-weary mood. Active states preserve those proportions and use restrained,
+natural feline body language instead of human-like gestures. No third-party
+character artwork is included in these files.
 
 Use of the generated assets remains subject to the applicable OpenAI service
 terms and this repository's license. Keep this provenance note with the files.
