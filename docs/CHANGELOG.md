@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-26 — V4-0 product experience contract
+
+- Closed further V3-8 page acceptance after the owner accepted its cleanup as
+  the baseline for the V4 redesign.
+- Defined separate ETF historical-quality grades and owner-goal allocation-fit
+  results without exposing raw scores, ranks or confidence labels.
+- Kept the current risk gates and allocation engine while treating fill and
+  concentration ideas from the external formula as calibration candidates.
+- Defined the relaxed gray-and-white GoodCat direction, accessible character
+  states and native Streamlit implementation boundary.
+- Kept real-domain deployment and SEC-4 `READY` as mandatory pre-launch gates,
+  not blockers for local V4 development.
+
 ## 2026-08-25 — V3-8 home-page acceptance
 
 - Made the public cash-flow planner the home page's primary action and reduced
