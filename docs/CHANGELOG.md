@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-27 — V4-6 functional integration acceptance
+
+- Added a bounded functional-integration acceptance matrix that separates
+  automated contract evidence from the later owner-led page experience review.
+- Defined the first smoke-test slice for public planning, whole-share results,
+  dual assessment, ETF grade lookup and public/private API boundaries.
+- Verified portfolio tax, reinvestment, long-term, data-quality, local-security
+  and deployment contracts with 76 additional focused tests.
+- Passed six native FastAPI/Streamlit health and access-boundary smoke checks,
+  Python compilation and the complete 985-test regression.
+- Closed V4-6 locally while keeping all visible page and user-experience
+  decisions reserved for the owner-led V4-7 review.
+
 ## 2026-08-26 — V4-5 explore and evidence pages
 
 - Added one batch ETF historical-quality-grade endpoint for search, ranking,
