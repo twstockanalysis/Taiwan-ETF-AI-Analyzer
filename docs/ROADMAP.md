@@ -1324,7 +1324,7 @@ Delivered:
   `frontend/pages/etf_search.py`, `frontend/pages/performance_ranking.py`,
   `frontend/pages/etf_detail.py` and `frontend/pages/etf_comparison.py`
 
-### V4-6 — Functional integration acceptance — In progress
+### V4-6 — Functional integration acceptance — Completed locally
 
 - Verify the complete V4 journey from public input through allocation results,
   ETF exploration, evidence and owner administration
@@ -1335,6 +1335,19 @@ Delivered:
   review; this milestone does not select a release candidate
 - Track bounded verification slices, unresolved gates and final evidence in
   `V4_FUNCTIONAL_ACCEPTANCE.md`
+
+Delivered:
+
+- Verified 37 core public-planning, allocation, dual-assessment, ETF-grade and
+  API-boundary smoke tests
+- Verified 76 focused long-term, portfolio-tax, reinvestment, data-quality,
+  local-security and deployment-contract tests
+- Started temporary native FastAPI and Streamlit services and passed all six
+  health, availability and public/private access smoke checks
+- Passed Python compilation and the complete 985-test automated regression
+- Kept page wording, visible fields, hierarchy, responsive behavior and owner
+  experience explicitly unaccepted until V4-7
+- Evidence: `V4_FUNCTIONAL_ACCEPTANCE.md`
 
 ### V4-7 — Page-by-page UI and UX acceptance
 
