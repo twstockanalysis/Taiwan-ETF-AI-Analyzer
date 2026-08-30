@@ -1,0 +1,71 @@
+name: 錯誤回報
+description: 回報可重現的網站、API、資料或計算錯誤
+title: "[Bug] "
+labels: ["type:bug", "status:needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: 安全漏洞、認證繞過、token／cookie 或資料外洩請改用 Security Advisory 私密通報，不要填入公開 Issue。
+  - type: textarea
+    id: observed
+    attributes:
+      label: 實際結果
+      description: 發生了什麼？缺失值與 0 請分開描述。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 預期結果
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 重現步驟
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: 頁面／API／ETF／日期
+      description: 請勿附 token、cookie、內網網址或個資。
+  - type: dropdown
+    id: impact
+    attributes:
+      label: 影響範圍
+      options:
+        - 顯示或文字
+        - 單一功能不可用
+        - 資料或計算可能錯誤
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 可公開的錯誤訊息或截圖
+      description: 移除 secrets、路徑、帳號與正式資料後再貼上。
+  - type: dropdown
+    id: ai_scope
+    attributes:
+      label: AI 參與方式
+      options:
+        - 可由 AI 診斷與修正，需人類 sponsor
+        - AI 只讀診斷
+        - 僅限人類處理
+        - 尚待 maintainer 決定
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 回報確認
+      options:
+        - label: 我已搜尋現有 Issue／PR。
+          required: true
+        - label: 我已移除 secrets、個資、token、cookie 與未匿名化正式資料。
+          required: true
