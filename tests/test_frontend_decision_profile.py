@@ -123,6 +123,7 @@ class TestFrontendDecisionProfile(unittest.TestCase):
 import frontend.pages.decision_profile as page
 import streamlit as st
 
+page.render_page_title = lambda title: page.st.title(title)
 st.session_state["owner_access_token"] = "test-token"
 page.load_decision_profile = lambda api_base_url, owner_token: {
     "profile_scope": "SINGLE_USER",
@@ -166,6 +167,7 @@ page.render_decision_profile()
 import frontend.pages.decision_profile as page
 import streamlit as st
 
+page.render_page_title = lambda title: page.st.title(title)
 st.session_state["owner_access_token"] = "test-token"
 page.load_decision_profile = lambda api_base_url, owner_token: {
     "profile_scope": "SINGLE_USER",
@@ -303,6 +305,7 @@ render_candidate_holding_analysis_result({
 import frontend.pages.decision_profile as page
 import streamlit as st
 
+page.render_page_title = lambda title: page.st.title(title)
 st.session_state["owner_access_token"] = "test-token"
 page.load_decision_profile = lambda api_base_url, owner_token: {
     "profile_scope": "SINGLE_USER",

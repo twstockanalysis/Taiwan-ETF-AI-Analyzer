@@ -56,8 +56,8 @@ from backend.app.services.quality_grading import (
     build_unrated_quality_grade,
     evaluate_quality_grade_publication_readiness,
 )
-from backend.app.services.tax_reinvestment_data import (
-    select_calculation_component_mix,
+from backend.app.services.dividend_component_data import (
+    select_composite_component_mix,
 )
 from backend.app.services.target_analysis_data import is_dividend_data_stale
 
@@ -362,7 +362,7 @@ def build_market_eligibility_index(
         )
         public_reasons = _public_candidate_reasons(eligibility_reasons)
 
-        component_selection = select_calculation_component_mix(
+        component_selection = select_composite_component_mix(
             list_etf_component_history(code, database_path)
         )
         component_basis = component_selection.basis if component_selection else None

@@ -1201,10 +1201,73 @@ def fetch_dividend_detail(
         )
     ]
 
+    selected_basis = payload.get(
+        "selected_component_basis"
+    )
+    if selected_basis is not None:
+        selected_basis = validate_required_text(
+            selected_basis,
+            "配息事件 selected_component_basis",
+        ).upper()
+        if selected_basis not in {
+            "ACTUAL",
+            "ESTIMATED_FALLBACK",
+        }:
+            raise APIResponseError(
+                "配息事件 selected_component_basis 不支援"
+            )
+
+    selected_components_value = payload.get(
+        "selected_components"
+    )
+    if not isinstance(
+        selected_components_value,
+        list,
+    ):
+        raise APIResponseError(
+            "配息事件 selected_components 格式不正確"
+        )
+    selected_components = [
+        validate_dividend_component_item(
+            item=item,
+            index=index,
+            expected_dividend_id=dividend_id,
+        )
+        for index, item in enumerate(
+            selected_components_value,
+            start=1,
+        )
+    ]
+    expected_source_basis = (
+        "ACTUAL"
+        if selected_basis == "ACTUAL"
+        else "ESTIMATED"
+        if selected_basis == "ESTIMATED_FALLBACK"
+        else None
+    )
+    if expected_source_basis is None:
+        if selected_components:
+            raise APIResponseError(
+                "配息事件缺少選定組成基礎"
+            )
+    elif (
+        not selected_components
+        or any(
+            item["component_basis"]
+            != expected_source_basis
+            for item in selected_components
+        )
+    ):
+        raise APIResponseError(
+            "配息事件選定組成與資料基礎不一致"
+        )
+
     return {
         **event,
         "etf_code": etf_code,
         "components": validated_components,
+        "selected_component_basis": selected_basis,
+        "selected_components": selected_components,
     }
 
 

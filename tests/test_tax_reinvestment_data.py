@@ -7,6 +7,9 @@ from backend.app.services.tax_reinvestment_data import (
     select_calculation_component_mix,
     select_latest_complete_actual_mix,
 )
+from backend.app.services.dividend_component_data import (
+    select_composite_realized_gain_history,
+)
 
 
 class TestTaxReinvestmentData(unittest.TestCase):
@@ -116,6 +119,66 @@ class TestTaxReinvestmentData(unittest.TestCase):
             [item.component_code for item in result.mix],
             ["EST_DIVIDEND", "EST_REALIZED_CAPITAL_GAIN"],
         )
+
+    def test_realized_gain_history_selects_each_event_without_mixing(self) -> None:
+        """每次配息各自採完整 ACTUAL，缺少時才採完整預估組成。"""
+
+        records = select_composite_realized_gain_history(
+            [
+                {
+                    "dividend_id": 2,
+                    "source_event_id": "actual-complete",
+                    "payment_date": "2026-08-31",
+                    "component_basis": "ACTUAL",
+                    "component_code": "54C",
+                    "ratio_pct": 32,
+                },
+                {
+                    "dividend_id": 2,
+                    "source_event_id": "actual-complete",
+                    "payment_date": "2026-08-31",
+                    "component_basis": "ACTUAL",
+                    "component_code": "76W",
+                    "ratio_pct": 68,
+                },
+                {
+                    "dividend_id": 2,
+                    "source_event_id": "actual-complete",
+                    "payment_date": "2026-08-31",
+                    "component_basis": "ESTIMATED",
+                    "component_code": "EST_REALIZED_CAPITAL_GAIN",
+                    "ratio_pct": 90,
+                },
+                {
+                    "dividend_id": 1,
+                    "source_event_id": "estimated-fallback",
+                    "payment_date": "2026-07-31",
+                    "component_basis": "ACTUAL",
+                    "component_code": "76W",
+                    "ratio_pct": 80,
+                },
+                {
+                    "dividend_id": 1,
+                    "source_event_id": "estimated-fallback",
+                    "payment_date": "2026-07-31",
+                    "component_basis": "ESTIMATED",
+                    "component_code": "EST_DIVIDEND",
+                    "ratio_pct": 26,
+                },
+                {
+                    "dividend_id": 1,
+                    "source_event_id": "estimated-fallback",
+                    "payment_date": "2026-07-31",
+                    "component_basis": "ESTIMATED",
+                    "component_code": "EST_REALIZED_CAPITAL_GAIN",
+                    "ratio_pct": 74,
+                },
+            ]
+        )
+
+        self.assertEqual([item.basis for item in records], ["ACTUAL", "ESTIMATED_FALLBACK"])
+        self.assertEqual([item.component_code for item in records], ["76W", "EST_REALIZED_CAPITAL_GAIN"])
+        self.assertEqual([item.ratio_pct for item in records], [Decimal("68"), Decimal("74")])
 
 
 if __name__ == "__main__":

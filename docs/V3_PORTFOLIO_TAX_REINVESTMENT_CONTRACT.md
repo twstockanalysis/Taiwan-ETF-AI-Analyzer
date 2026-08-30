@@ -34,9 +34,10 @@ explicitly records `76W = 0`.
 
 ## Tax estimate
 
-Rule snapshot `TW-INDIVIDUAL-2026.2` was verified on 2026-08-25. The model lets
-the user choose either combined dividend taxation with an 8.5% credit subject
-to the entered remaining annual cap, or separate 28% dividend taxation. It does
+Rule snapshot `TW-INDIVIDUAL-2026.2` was reverified on 2026-08-29. The public
+planner lets the user choose either combined dividend taxation with an 8.5%
+credit calculated automatically from eligible dividend income and capped at
+TWD 80,000 per filing household per year, or separate 28% dividend taxation. It does
 not choose the more favorable method. Official `76W` and estimated realized
 capital gain are excluded from the modeled personal dividend income tax and
 supplementary-premium base.

@@ -6,6 +6,7 @@ from unittest.mock import patch
 from frontend.pages.performance_ranking import (
     RANKING_ACTION_KEY,
     build_performance_ranking_segments,
+    build_performance_table_html,
     build_performance_table_row,
     format_performance_ranking_row,
     format_performance_return,
@@ -270,7 +271,7 @@ class TestFrontendPerformanceRanking(
                 "code": "0050",
                 "name": "元大台灣50",
                 "period_return": "+20.00%",
-                "historical_quality": "暫不評等",
+                "historical_quality": "暫無",
                 "as_of_date": "2026-07-29",
                 "management_type": "被動式",
             },
@@ -289,6 +290,52 @@ class TestFrontendPerformanceRanking(
         )
         self.assertEqual(row["historical_quality"], "A")
         self.assertNotIn("score", row)
+
+    def test_table_html_has_clickable_rows_without_selection_column(
+        self,
+    ) -> None:
+        """確認整列皆為詳細頁連結且沒有勾選欄。"""
+
+        markup = build_performance_table_html(
+            [self.build_item()],
+            PerformanceQueryState(
+                period="6M",
+                active_label="被動式",
+                bond_label="非債券",
+                page=1,
+                page_size=20,
+            ),
+        )
+
+        self.assertIn('role="table"', markup)
+        self.assertIn('class="performance-ranking-row"', markup)
+        self.assertIn('/etf-detail?code=0050&amp;', markup)
+        self.assertIn("排名", markup)
+        self.assertLess(markup.index("排名"), markup.index("代號"))
+        self.assertNotIn("checkbox", markup.lower())
+        self.assertNotIn("selection", markup.lower())
+
+    def test_table_html_decodes_existing_name_entities_once(
+        self,
+    ) -> None:
+        """確認來源中的 HTML 實體不會在排行榜顯示成亂碼。"""
+
+        item = self.build_item()
+        item["name"] = "期元大S&amp;P黃金反1"
+
+        markup = build_performance_table_html(
+            [item],
+            PerformanceQueryState(
+                period="6M",
+                active_label="被動式",
+                bond_label="非債券",
+                page=1,
+                page_size=20,
+            ),
+        )
+
+        self.assertIn("期元大S&amp;P黃金反1", markup)
+        self.assertNotIn("S&amp;amp;P", markup)
 
     @patch(
         "frontend.pages.performance_ranking."

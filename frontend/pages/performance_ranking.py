@@ -1,6 +1,8 @@
 """ETF 績效排行榜頁面。"""
 
+from html import escape, unescape
 from typing import Any
+from urllib.parse import urlencode
 
 import streamlit as st
 
@@ -14,6 +16,7 @@ from frontend.config import (
     get_api_base_url,
 )
 from frontend.navigation import (
+    ETF_DETAIL_ROUTE,
     PERFORMANCE_RANKING_ROUTE,
     build_detail_query_params,
 )
@@ -255,7 +258,7 @@ def render_clickable_performance_rows(
     query_state: PerformanceQueryState | None = None,
     grade_lookup: dict[str, dict[str, Any]] | None = None,
 ) -> None:
-    """以固定欄位資料表顯示績效排行榜。"""
+    """以整列可點擊的固定欄位表格顯示績效排行榜。"""
 
     source_state = (
         query_state
@@ -267,81 +270,100 @@ def render_clickable_performance_rows(
         )
     )
 
-    rows = [
-        build_performance_table_row(
-            item,
-            (grade_lookup or {}).get(
-                str(item["etf_code"]).strip().upper()
-            ),
-        )
-        for item in items
-    ]
-
-    selection = st.dataframe(
-        rows,
-        column_order=(
-            "rank",
-            "code",
-            "name",
-            "period_return",
-            "historical_quality",
-            "as_of_date",
-            "management_type",
-        ),
-        column_config={
-            "rank": st.column_config.TextColumn(
-                "排名",
-                width="small",
-            ),
-            "code": st.column_config.TextColumn(
-                "代號",
-                width="small",
-                pinned=True,
-            ),
-            "name": st.column_config.TextColumn(
-                "名稱",
-                width="large",
-                pinned=True,
-            ),
-            "period_return": (
-                st.column_config.TextColumn(
-                    f"{source_state.period} 報酬率",
-                    width="medium",
-                )
-            ),
-            "historical_quality": st.column_config.TextColumn(
-                "歷史品質評等",
-                width="medium",
-            ),
-            "as_of_date": (
-                st.column_config.TextColumn(
-                    "資料日期",
-                    width="medium",
-                )
-            ),
-            "management_type": (
-                st.column_config.TextColumn(
-                    "管理方式",
-                    width="small",
-                )
-            ),
-        },
-        hide_index=True,
-        width="stretch",
-        height="content",
-        row_height=58,
-        key=RANKING_ACTION_KEY,
-        on_select="rerun",
-        selection_mode="single-row",
-    )
-
-    selected_rows = selection.selection.rows
-    if selected_rows:
-        open_performance_detail(
+    st.html(
+        build_performance_table_html(
             items,
             source_state,
-            row_index=int(selected_rows[0]),
+            grade_lookup=grade_lookup,
+        ),
+        width="stretch",
+    )
+
+
+def html_text(value: object) -> str:
+    """將外部文字正規化後安全放入 HTML。"""
+
+    return escape(
+        unescape(str(value)),
+        quote=True,
+    )
+
+
+def build_performance_table_html(
+    items: list[dict[str, Any]],
+    source_state: PerformanceQueryState,
+    *,
+    grade_lookup: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    """建立無選取欄、整列可開啟詳細資料的排行榜。"""
+
+    header_values = (
+        "排名",
+        "代號",
+        "名稱",
+        f"{source_state.period} 報酬率",
+        "喵喵評等",
+        "資料日期",
+        "管理方式",
+    )
+    header_cells = "".join(
+        (
+            '<span class="performance-ranking-cell" '
+            f'role="columnheader">{html_text(label)}</span>'
         )
+        for label in header_values
+    )
+
+    row_html: list[str] = []
+    for item in items:
+        code = str(item["etf_code"]).strip().upper()
+        row = build_performance_table_row(
+            item,
+            (grade_lookup or {}).get(code),
+        )
+        query = urlencode(
+            build_detail_query_params(
+                code=code,
+                source=str(PERFORMANCE_RANKING_ROUTE.url_path),
+                source_query_params=source_state.to_query_params(),
+            )
+        )
+        href = f"/{ETF_DETAIL_ROUTE.url_path}?{query}"
+        cell_values = (
+            row["rank"],
+            row["code"],
+            row["name"],
+            row["period_return"],
+            row["historical_quality"],
+            row["as_of_date"],
+            row["management_type"],
+        )
+        cells = "".join(
+            (
+                '<span class="performance-ranking-cell" '
+                f'role="cell">{html_text(value)}</span>'
+            )
+            for value in cell_values
+        )
+        row_html.append(
+            (
+                '<a class="performance-ranking-row" '
+                f'href="{html_text(href)}" role="row" '
+                f'aria-label="查看 {html_text(code)} '
+                f'{html_text(row["name"])} 詳細資料">'
+                f"{cells}</a>"
+            )
+        )
+
+    return (
+        '<div class="performance-ranking-scroll">'
+        '<div class="performance-ranking-grid" role="table" '
+        'aria-label="ETF 績效排行榜">'
+        '<div class="performance-ranking-header" role="row">'
+        f"{header_cells}</div>"
+        f"{''.join(row_html)}"
+        "</div></div>"
+    )
 
 
 def build_performance_table_row(
@@ -654,9 +676,31 @@ def render_performance_filter_form() -> None:
             )
 
         submitted = st.form_submit_button(
-            "套用篩選",
+            "篩選",
             type="primary",
         )
+
+        with st.container(
+            key="performance-ranking-secondary-actions",
+            horizontal=True,
+            gap="small",
+        ):
+            clear_clicked = st.form_submit_button(
+                "清除條件"
+            )
+            refresh_clicked = st.form_submit_button(
+                "重新載入"
+            )
+
+    if clear_clicked:
+        reset_performance_state()
+        load_performance_ranking.clear()
+        st.rerun()
+
+    if refresh_clicked:
+        load_performance_ranking.clear()
+        load_historical_quality_grade_lookup.clear()
+        st.rerun()
 
     if submitted:
         update_performance_state(
@@ -671,44 +715,6 @@ def render_performance_filter_form() -> None:
 
         load_performance_ranking.clear()
         st.rerun()
-
-
-def render_performance_action_buttons() -> None:
-    """顯示重設與重新載入按鈕。"""
-
-    clear_column, refresh_column, _ = (
-        st.columns(
-            [
-                1,
-                1,
-                4,
-            ]
-        )
-    )
-
-    with clear_column:
-        clear_clicked = st.button(
-            "清除條件",
-            key="clear_performance_filters",
-        )
-
-    with refresh_column:
-        refresh_clicked = st.button(
-            "重新載入",
-            key="refresh_performance_data",
-        )
-
-    if clear_clicked:
-        reset_performance_state()
-        load_performance_ranking.clear()
-        st.rerun()
-
-    if refresh_clicked:
-        load_performance_ranking.clear()
-        load_historical_quality_grade_lookup.clear()
-        st.rerun()
-
-
 def render_performance_ranking() -> None:
     """顯示 ETF 績效排行榜。"""
 
@@ -719,7 +725,6 @@ def render_performance_ranking() -> None:
     st.caption("預設為6M")
 
     render_performance_filter_form()
-    render_performance_action_buttons()
 
     try:
         api_base_url = get_api_base_url()
@@ -763,26 +768,16 @@ def render_performance_ranking() -> None:
         )
         return
 
-    total = int(result["total"])
     items = result["items"]
 
-    period_column, total_column = st.columns(
-        2
-    )
-
-    with period_column:
+    with st.container(gap=None, key="performance-ranking-period-summary"):
         st.metric(
             "排序期間",
             state.period,
         )
-
-    with total_column:
-        st.metric(
-            "排行榜 ETF",
-            f"{total:,} 檔",
-        )
-
-    st.divider()
+        with st.container(key="performance-ranking-limit"):
+            st.markdown("前20名")
+        st.divider()
 
     if not items:
         render_empty_state(
@@ -812,14 +807,9 @@ def render_performance_ranking() -> None:
 
     if grade_error:
         st.caption(
-            "歷史品質評等暫時無法取得；"
+            "喵喵評等暫時無法取得；"
             "排行榜仍依所選期間正常排序。"
         )
-
-    st.caption(
-        f"符合條件共 {total:,} 檔，"
-        f"目前顯示前 {len(items):,} 名。"
-    )
 
     st.caption(
         f"名次與每列報酬率均依 "

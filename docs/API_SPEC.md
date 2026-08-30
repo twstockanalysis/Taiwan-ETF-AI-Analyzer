@@ -171,6 +171,19 @@ an internal transfer and is not counted twice in after-tax return.
 All three endpoints are public and stateless. They do not expose internal ETF-quality
 scores or assessment-confidence fields.
 
+## Public ETF price history
+
+```http
+GET /api/v1/etfs/{code}/price-history?limit=260
+```
+
+The detail page uses this read-only endpoint for its price trend chart. It
+returns the most recent 2 to 1,250 saved official daily closes in ascending
+trade-date order. Each item includes only `trade_date`, positive `close_price`
+and `source_id`; missing dates are not synthesized and missing prices are never
+replaced with zero. An unknown ETF returns `404` and an invalid limit returns
+`422`.
+
 ## Single-user decision profile
 
 ```http
@@ -436,14 +449,22 @@ trade-off (or exclusion when explicitly required); formal zero remains zero.
 The response keeps historical facts separate from cash-deduction assumptions
 and labels the combination as a scenario rather than a guarantee.
 
-### Actual 76W history
+### Actual 76W history and composite capital-gain analysis
 
 ```http
 GET /api/v1/etfs/{code}/dividends/76w
 ```
 
-Only `component_basis=ACTUAL` and `component_code=76W` are counted. Missing
-actual data produces `null` ratios, not zero.
+The existing `actual_76w_*` fields and `items` still count only
+`component_basis=ACTUAL` plus `component_code=76W`. Missing formal data keeps
+those ratios `null`, not zero.
+
+The same response also exposes `analysis_*` and `*_realized_gain_*` fields.
+For each dividend event, the shared composite selector uses one complete
+`ACTUAL` mix first; when it is unavailable, it uses one complete e添富 mix as
+`ESTIMATED_FALLBACK`. The analysis reads `76W` from an ACTUAL mix or
+`EST_REALIZED_CAPITAL_GAIN` from a fallback mix without renaming either code or
+mixing the two bases within one event.
 
 ### Dividend event detail
 
@@ -451,7 +472,11 @@ actual data produces `null` ratios, not zero.
 GET /api/v1/dividends/{dividend_id}
 ```
 
-Returns one dividend event and all component records.
+Returns one dividend event and all raw component records. It also returns
+`selected_component_basis` and `selected_components`, produced by the shared
+composite-data selector. A complete `ACTUAL` event whose ratios total about
+100% is preferred; otherwise one complete e添富 event is returned as
+`ESTIMATED_FALLBACK`. Rows from the two bases are never mixed.
 
 ### Filter dividend components
 

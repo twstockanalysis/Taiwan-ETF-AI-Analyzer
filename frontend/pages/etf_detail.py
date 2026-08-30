@@ -1,10 +1,14 @@
 """ETF 詳細資料頁面。"""
 
+import math
+import unicodedata
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import streamlit as st
 
+from frontend.owner_access import get_owner_token
 from frontend.ui.components import render_page_title
 
 from frontend.api_client import (
@@ -18,6 +22,7 @@ from frontend.api_client import (
     fetch_etf_dividends,
     fetch_etf_performance,
     fetch_etf_latest_close,
+    fetch_etf_price_history,
     fetch_etf_target_analysis,
     fetch_tax_reinvestment_scenarios,
 )
@@ -57,6 +62,10 @@ from frontend.ui.quality_grade import (
     load_historical_quality_grade_lookup,
     render_historical_quality_evidence,
 )
+
+
+DIVIDEND_CASH_COLOR = "#D9A15B"
+DIVIDEND_STOCK_COLOR = "#2878D0"
 
 
 @st.cache_data(
@@ -113,6 +122,23 @@ def load_etf_performance(
     ttl=60,
     show_spinner=False,
 )
+def load_etf_price_history(
+    api_base_url: str,
+    code: str,
+) -> dict[str, Any]:
+    """取得並短暫快取最近 260 筆官方收盤價。"""
+
+    return fetch_etf_price_history(
+        api_base_url=api_base_url,
+        code=code,
+        limit=260,
+    )
+
+
+@st.cache_data(
+    ttl=60,
+    show_spinner=False,
+)
 def load_etf_dividends(
     api_base_url: str,
     code: str,
@@ -135,7 +161,7 @@ def load_etf_actual_76w(
     api_base_url: str,
     code: str,
 ) -> dict[str, Any]:
-    """取得並短暫快取 ETF 實際 76W 摘要。"""
+    """取得並短暫快取 ETF 正式 76W 與綜合資本利得摘要。"""
 
     return fetch_etf_actual_76w(
         api_base_url=api_base_url,
@@ -186,7 +212,7 @@ def format_fund_size(
     return format_number(
         value,
         suffix=" 億元",
-        missing_text="尚無資料",
+        missing_text="資料抓取中",
         invalid_text="資料格式異常",
     )
 
@@ -198,7 +224,7 @@ def format_expense_ratio(
 
     return format_shared_percentage(
         value,
-        missing_text="尚無資料",
+        missing_text="資料抓取中",
         invalid_text="資料格式異常",
     )
 
@@ -267,6 +293,41 @@ def render_back_button() -> None:
         )
 
 
+def clear_etf_detail_caches() -> None:
+    """清除詳細資料頁使用的快取。"""
+
+    load_etf_detail.clear()
+    load_etf_data_profile.clear()
+    load_etf_performance.clear()
+    load_etf_price_history.clear()
+    load_etf_dividends.clear()
+    load_etf_actual_76w.clear()
+    load_etf_latest_close.clear()
+    load_dividend_detail.clear()
+    load_historical_quality_grade_lookup.clear()
+
+
+def render_detail_actions(
+    *,
+    can_refresh: bool,
+) -> None:
+    """並列顯示返回與更新操作。"""
+
+    with st.container(
+        horizontal=True,
+        gap="small",
+        key="etf-detail-actions",
+    ):
+        render_back_button()
+
+        if can_refresh and st.button(
+            "更新",
+            key="refresh_etf_detail",
+        ):
+            clear_etf_detail_caches()
+            st.rerun()
+
+
 def render_code_form(
     default_code: str = "",
 ) -> None:
@@ -324,6 +385,7 @@ def render_code_form(
     load_etf_detail.clear()
     load_etf_data_profile.clear()
     load_etf_performance.clear()
+    load_etf_price_history.clear()
     load_etf_dividends.clear()
     load_etf_actual_76w.clear()
     load_dividend_detail.clear()
@@ -334,6 +396,8 @@ def render_code_form(
 def render_etf_information(
     etf: dict[str, Any],
     grade_payload: object = None,
+    *,
+    show_owner_details: bool = False,
 ) -> None:
     """顯示 ETF 身分、分類與核心資料。"""
 
@@ -352,24 +416,40 @@ def render_etf_information(
 
     listing_date = (
         etf["listing_date"]
-        or "尚無資料"
+        or "資料抓取中"
     )
 
-    with st.container(border=True):
-        st.header(
-            f"{code}　{name}"
-        )
+    with st.container(
+        border=True,
+        key="etf-detail-summary",
+        gap="small",
+    ):
+        with st.container(
+            horizontal=True,
+            horizontal_alignment="distribute",
+            vertical_alignment="center",
+            gap="small",
+        ):
+            with st.container(
+                horizontal=True,
+                vertical_alignment="center",
+                gap="small",
+            ):
+                st.header(
+                    f"{code} {name}",
+                    width="content",
+                )
+                st.caption(
+                    f"{management_type}｜{asset_type}",
+                    width="content",
+                )
 
-        st.caption(
-            f"{management_type}　｜　"
-            f"{asset_type}"
-        )
+            render_comparison_action(code)
 
         render_historical_quality_evidence(
-            grade_payload
+            grade_payload,
+            show_owner_details=show_owner_details,
         )
-
-        st.subheader("核心資料概覽")
 
         date_column, size_column, fee_column = (
             st.columns(3)
@@ -397,93 +477,203 @@ def render_etf_information(
                 ),
             )
 
-        if (
+        if show_owner_details and (
             etf["fund_size"] is None
             or etf["expense_ratio"] is None
         ):
             st.info(
-                "基金規模或費用率顯示「尚無資料」，"
-                "代表目前 ETF 主資料來源尚未提供或"
+                "目前 ETF 主資料來源尚未提供或"
                 "尚未匯入該項指標。"
             )
 
 
 
+def build_price_history_chart_rows(
+    price_history: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """建立不補值、不推估的官方收盤價走勢資料。"""
+
+    if price_history is None:
+        return []
+
+    return [
+        {
+            "交易日": item["trade_date"],
+            "收盤價": item["close_price"],
+        }
+        for item in price_history.get("items", [])
+    ]
+
+
+def get_performance_data_date(
+    items: list[dict[str, Any]],
+    price_history: dict[str, Any] | None,
+) -> str | None:
+    """取得績效卡片共用的最新官方資料日期。"""
+
+    performance_dates = [
+        str(item["as_of_date"]).strip()
+        for item in items
+        if item.get("as_of_date")
+    ]
+    if performance_dates:
+        return max(performance_dates)
+
+    price_rows = build_price_history_chart_rows(
+        price_history
+    )
+    if price_rows:
+        return str(price_rows[-1]["交易日"])
+
+    return None
+
+
+def render_price_history_chart(
+    price_history: dict[str, Any] | None,
+) -> None:
+    """以券商常見的折線面積圖顯示官方收盤價走勢。"""
+
+    rows = build_price_history_chart_rows(
+        price_history
+    )
+    if len(rows) < 2:
+        st.info("股價走勢資料抓取中")
+        return
+
+    st.vega_lite_chart(
+        rows,
+        {
+            "height": 240,
+            "mark": {
+                "type": "area",
+                "line": {
+                    "color": "#2878D0",
+                    "strokeWidth": 2,
+                },
+                "color": "#2878D0",
+                "opacity": 0.16,
+            },
+            "encoding": {
+                "x": {
+                    "field": "交易日",
+                    "type": "temporal",
+                    "axis": {
+                        "title": None,
+                        "format": "%Y-%m",
+                        "labelAngle": 0,
+                    },
+                },
+                "y": {
+                    "field": "收盤價",
+                    "type": "quantitative",
+                    "scale": {"zero": False},
+                    "axis": {
+                        "title": None,
+                    },
+                },
+                "tooltip": [
+                    {
+                        "field": "交易日",
+                        "type": "temporal",
+                        "format": "%Y-%m-%d",
+                    },
+                    {
+                        "field": "收盤價",
+                        "type": "quantitative",
+                        "format": ".2f",
+                    },
+                ],
+            },
+        },
+        width="stretch",
+    )
+
+
 def render_etf_performance(
     performance: dict[str, Any],
+    price_history: dict[str, Any] | None = None,
 ) -> None:
     """顯示 ETF 的 1M、3M、6M、1Y 績效。"""
 
-    st.divider()
-
-    st.subheader("市價績效")
-
-    st.caption(
-        "目前為市價報酬率，"
-        "不包含配息再投資。"
-    )
-
-    items = performance.get(
-        "items",
-        [],
-    )
-
-    lookup = build_performance_lookup(
-        items
-    )
-
-    columns = st.columns(
-        len(SUPPORTED_PERFORMANCE_PERIODS)
-    )
-
-    for column, period_code in zip(
-        columns,
-        SUPPORTED_PERFORMANCE_PERIODS,
-        strict=True,
+    with st.container(
+        border=True,
+        key="etf-detail-performance",
     ):
-        item = lookup.get(
-            period_code
+        st.subheader("績效")
+
+        items = performance.get(
+            "items",
+            [],
         )
 
-        with column:
-            if item is None:
+        lookup = build_performance_lookup(
+            items
+        )
+
+        columns = st.columns(
+            len(SUPPORTED_PERFORMANCE_PERIODS)
+        )
+
+        for column, period_code in zip(
+            columns,
+            SUPPORTED_PERFORMANCE_PERIODS,
+            strict=True,
+        ):
+            item = lookup.get(
+                period_code
+            )
+
+            with column:
+                if item is None:
+                    st.metric(
+                        period_code,
+                        "資料抓取中",
+                    )
+
+                    st.caption(
+                        "尚無足夠價格歷史"
+                    )
+
+                    continue
+
                 st.metric(
                     period_code,
-                    "歷史資料不足",
+                    format_performance_return(
+                        item["return_pct"]
+                    ),
                 )
 
-                st.caption(
-                    "尚無足夠價格歷史"
-                )
-
-                continue
-
-            st.metric(
-                period_code,
-                format_performance_return(
-                    item["return_pct"]
-                ),
+        if not items:
+            st.info(
+                "目前尚無可顯示的績效資料。"
             )
 
-            st.caption(
-                f"截至 {item['as_of_date']}"
-            )
-
-    if not items:
-        st.info(
-            "目前尚無可顯示的績效資料。"
+        render_price_history_chart(
+            price_history
         )
+
+        data_date = get_performance_data_date(
+            items,
+            price_history,
+        )
+        source_caption = "資料來源於證交所"
+        if data_date is not None:
+            source_caption += (
+                f"　資料日期：{data_date}"
+            )
+
+        st.caption(source_caption)
 
 
 
 DIVIDEND_COMPONENT_LABELS = {
-    "EST_DIVIDEND": "預估股利所得",
-    "EST_INTEREST": "預估利息所得",
-    "EST_EQUALIZATION": "預估收益平準金",
+    "EST_DIVIDEND": "股利所得",
+    "EST_INTEREST": "利息所得",
+    "EST_EQUALIZATION": "收益平準金",
     "EST_REALIZED_CAPITAL_GAIN": (
-        "預估已實現資本利得"
+        "已實現資本利得"
     ),
-    "EST_OTHER": "預估其他所得",
+    "EST_OTHER": "其他所得",
     "76W": "實際所得類別 76W",
 }
 
@@ -497,7 +687,7 @@ def format_dividend_amount(
     return format_shared_amount(
         value,
         currency,
-        missing_text="尚無資料",
+        missing_text="資料抓取中",
         invalid_text="資料格式異常",
     )
 
@@ -521,7 +711,7 @@ def format_optional_date(
 
     return format_iso_date(
         value,
-        missing_text="尚無資料",
+        missing_text="資料抓取中",
     )
 
 
@@ -548,83 +738,276 @@ def format_dividend_yield(
     )
 
 
-def build_dividend_summary_chart_rows(
-    items: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """建立依除息日排序的股利與殖利率趨勢資料。"""
+def format_cash_stock_dividend(
+    cash_value: Any,
+    stock_value: Any,
+) -> str:
+    """以現金／股票順序顯示每單位股利，保留缺值。"""
 
-    rows = [
-        {
-            "除息日": item["ex_dividend_date"],
-            "現金股利": float(
-                item["amount_per_unit"]
-            ),
-            "殖利率": (
-                float(item["yield_pct"])
-                if item.get("yield_pct")
-                is not None
-                else None
-            ),
-        }
-        for item in items
-        if item.get("ex_dividend_date")
-        is not None
-        and item.get("amount_per_unit")
-        is not None
-    ]
+    def format_value(value: Any) -> str:
+        return format_number(
+            value,
+            decimal_places=4,
+            trim_trailing_zeros=True,
+            missing_text="—",
+            invalid_text="資料格式異常",
+        )
 
-    return sorted(
-        rows,
-        key=lambda row: str(row["除息日"]),
+    return (
+        f"{format_value(cash_value)}/"
+        f"{format_value(stock_value)}"
     )
 
 
-def format_dividend_yield_basis(
+def format_dividend_period(
     item: dict[str, Any],
 ) -> str:
-    """顯示官方或回退殖利率的可追溯依據。"""
+    """優先顯示官方年季，缺少時依除息日補出日曆年季。"""
 
-    basis = item.get("yield_basis")
+    period = item.get("distribution_period")
+    if period is not None:
+        normalized = str(period).strip().upper()
+        if (
+            len(normalized) == 6
+            and normalized[:4].isdigit()
+            and normalized[4] == "Q"
+            and normalized[5] in "1234"
+        ):
+            return f"{normalized[:4]}/{normalized[4:]}"
+        return normalized or "—"
 
-    if basis == "OFFICIAL":
-        source_id = item.get(
-            "yield_source_id"
+    ex_dividend_date = item.get("ex_dividend_date")
+    try:
+        parsed_date = date.fromisoformat(
+            str(ex_dividend_date)
+        )
+    except (TypeError, ValueError):
+        return "—"
+
+    quarter = (parsed_date.month - 1) // 3 + 1
+    return f"{parsed_date.year}/Q{quarter}"
+
+
+def chart_axis_upper_bound(
+    values: list[float | int | None],
+    *,
+    target_steps: int = 5,
+) -> float:
+    """以整齊刻度建立嚴格高於資料最大值的 Y 軸上限。"""
+
+    maximum = max(
+        (
+            float(value)
+            for value in values
+            if value is not None and float(value) > 0
+        ),
+        default=0.0,
+    )
+    if maximum <= 0:
+        return 1.0
+
+    rough_step = maximum / max(target_steps, 1)
+    magnitude = 10 ** math.floor(math.log10(rough_step))
+    normalized_step = rough_step / magnitude
+    nice_multiplier = next(
+        multiplier
+        for multiplier in (1.0, 2.0, 2.5, 5.0, 10.0)
+        if normalized_step <= multiplier
+    )
+    step = nice_multiplier * magnitude
+    upper_bound = math.ceil(maximum / step) * step
+    if math.isclose(upper_bound, maximum, rel_tol=1e-12, abs_tol=1e-12):
+        upper_bound += step
+
+    precision = max(0, -math.floor(math.log10(step)) + 2)
+    return round(upper_bound, precision)
+
+
+def build_annual_dividend_chart_rows(
+    items: list[dict[str, Any]],
+    *,
+    current_year: int | None = None,
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    bool,
+]:
+    """建立近五年逐次股利堆疊與年度殖利率資料。"""
+
+    anchor_year = (
+        current_year
+        if current_year is not None
+        else date.today().year
+    )
+    years = [
+        str(year)
+        for year in range(
+            anchor_year - 4,
+            anchor_year + 1,
+        )
+    ]
+    annual: dict[str, dict[str, Any]] = {
+        year: {
+            "殖利率": 0.0,
+            "殖利率筆數": 0,
+            "配息筆數": 0,
+            "現金股利": [],
+            "股票股利": [],
+        }
+        for year in years
+    }
+    stock_dividend_available = False
+
+    for item in items:
+        ex_dividend_date = str(
+            item.get("ex_dividend_date")
+            or ""
         )
 
-        return (
-            f"官方（{source_id}）"
-            if source_id
-            else "官方"
-        )
+        if (
+            len(ex_dividend_date) < 4
+            or not ex_dividend_date[:4].isdigit()
+        ):
+            continue
 
-    if basis == "CALCULATED":
-        reference_date = (
-            format_dividend_summary_date(
-                item.get(
-                    "reference_trade_date"
+        year = ex_dividend_date[:4]
+        if year not in annual:
+            continue
+
+        summary = annual[year]
+        summary["配息筆數"] += 1
+
+        cash_dividend = item.get(
+            "amount_per_unit"
+        )
+        if cash_dividend is not None:
+            summary["現金股利"].append(
+                {
+                    "金額": float(cash_dividend),
+                    "除息日": ex_dividend_date,
+                }
+            )
+
+        stock_dividend = item.get(
+            "stock_dividend_per_unit"
+        )
+        if stock_dividend is not None:
+            stock_dividend_available = True
+            summary["股票股利"].append(
+                {
+                    "金額": float(stock_dividend),
+                    "除息日": ex_dividend_date,
+                }
+            )
+
+        yield_pct = item.get("yield_pct")
+        if yield_pct is not None:
+            summary["殖利率"] += float(
+                yield_pct
+            )
+            summary["殖利率筆數"] += 1
+
+    dividend_rows: list[dict[str, Any]] = []
+    yield_rows: list[dict[str, Any]] = []
+
+    for year in years:
+        summary = annual[year]
+        for dividend_type in (
+            "現金股利",
+            "股票股利",
+        ):
+            distributions = sorted(
+                summary[dividend_type],
+                key=lambda item: str(
+                    item["除息日"]
+                ),
+            )
+
+            if not distributions:
+                dividend_rows.append(
+                    {
+                        "年份": year,
+                        "股利類型": dividend_type,
+                        "每單位股利": None,
+                        "配息次序": None,
+                        "除息日": None,
+                        "堆疊順序": None,
+                        "累計股利": None,
+                        "顯示分隔線": False,
+                        "年度股利合計": None,
+                        "顯示年度合計": False,
+                    }
                 )
+                continue
+
+            for index, distribution in enumerate(
+                distributions,
+                start=1,
+            ):
+                dividend_rows.append(
+                    {
+                        "年份": year,
+                        "股利類型": dividend_type,
+                        "每單位股利": distribution[
+                            "金額"
+                        ],
+                        "配息次序": index,
+                        "除息日": distribution[
+                            "除息日"
+                        ],
+                        "堆疊順序": None,
+                        "累計股利": None,
+                        "顯示分隔線": False,
+                        "年度股利合計": None,
+                        "顯示年度合計": False,
+                    }
+                )
+
+        year_dividend_rows = [
+            row
+            for row in dividend_rows
+            if row["年份"] == year
+            and row["每單位股利"] is not None
+        ]
+        cumulative_dividend = 0.0
+        for index, row in enumerate(
+            year_dividend_rows
+        ):
+            row["堆疊順序"] = index + 1
+            cumulative_dividend += float(
+                row["每單位股利"]
             )
-        )
-
-        reference_price = item.get(
-            "reference_close_price"
-        )
-
-        price_text = (
-            format_dividend_amount(
-                reference_price,
-                "TWD",
+            row["累計股利"] = cumulative_dividend
+            row["顯示分隔線"] = (
+                index < len(year_dividend_rows) - 1
             )
-            if reference_price is not None
-            else "—"
+            row["年度股利合計"] = cumulative_dividend
+            row["顯示年度合計"] = (
+                index == len(year_dividend_rows) - 1
+            )
+
+        yield_rows.append(
+            {
+                "年份": year,
+                "殖利率": (
+                    summary["殖利率"]
+                    if summary["殖利率筆數"]
+                    else None
+                ),
+                "已取得筆數": summary[
+                    "殖利率筆數"
+                ],
+                "配息筆數": summary[
+                    "配息筆數"
+                ],
+            }
         )
 
-        return (
-            "回退計算（"
-            f"{reference_date} 收盤 {price_text}）"
-        )
-
-    return "—"
+    return (
+        dividend_rows,
+        yield_rows,
+        stock_dividend_available,
+    )
 
 
 def build_dividend_summary_rows(
@@ -634,24 +1017,13 @@ def build_dividend_summary_rows(
 
     return [
         {
-            "年季": (
-                str(item["distribution_period"])
-                if item.get(
-                    "distribution_period"
-                ) is not None
-                else "—"
-            ),
-            "現金股利": format_dividend_amount(
+            "年/季": format_dividend_period(item),
+            "現金/股票": format_cash_stock_dividend(
                 item.get("amount_per_unit"),
-                item.get("currency"),
+                item.get("stock_dividend_per_unit"),
             ),
             "殖利率": format_dividend_yield(
                 item.get("yield_pct")
-            ),
-            "殖利率依據": (
-                format_dividend_yield_basis(
-                    item
-                )
             ),
             "除息日": (
                 format_dividend_summary_date(
@@ -660,7 +1032,7 @@ def build_dividend_summary_rows(
                     )
                 )
             ),
-            "股利發放日": (
+            "發放日": (
                 format_dividend_summary_date(
                     item.get(
                         "payment_date"
@@ -670,6 +1042,45 @@ def build_dividend_summary_rows(
         }
         for item in items
     ]
+
+
+DIVIDEND_EVENT_COLUMN_SEPARATOR = " ｜ "
+DIVIDEND_EVENT_COLUMN_WIDTHS = (8, 11, 8, 12)
+
+
+def get_display_width(value: str) -> int:
+    """計算中英文混排文字在等寬字型中的顯示格數。"""
+
+    return sum(
+        2
+        if unicodedata.east_asian_width(character) in {"W", "F"}
+        else 1
+        for character in value
+    )
+
+
+def pad_to_display_width(value: str, width: int) -> str:
+    """補足欄位顯示寬度，讓表頭與資料分隔線一致。"""
+
+    return value + " " * max(0, width - get_display_width(value))
+
+
+def format_dividend_event_row_label(
+    values: tuple[str, str, str, str, str],
+) -> str:
+    """以一致的顯示寬度建立可展開配息列。"""
+
+    fixed_columns = tuple(
+        pad_to_display_width(value, width)
+        for value, width in zip(
+            values[:-1],
+            DIVIDEND_EVENT_COLUMN_WIDTHS,
+            strict=True,
+        )
+    )
+    return DIVIDEND_EVENT_COLUMN_SEPARATOR.join(
+        (*fixed_columns, values[-1])
+    )
 
 
 def get_component_display_name(
@@ -703,7 +1114,10 @@ def get_component_display_name(
         ).strip()
 
         if normalized_name:
-            return normalized_name
+            return normalized_name.replace(
+                "預估",
+                "",
+            )
 
     return code or "未命名組成"
 
@@ -715,6 +1129,10 @@ def build_component_display_rows(
     currency: Any = "TWD",
 ) -> list[dict[str, str]]:
     """建立指定資訊基礎的配息組成顯示資料。"""
+
+    # 保留參數以相容既有呼叫端；組成表的欄名已明確為「金額」，
+    # 因此畫面不再於每個儲存格重複顯示幣別。
+    del currency
 
     normalized_basis = (
         component_basis.strip().upper()
@@ -738,16 +1156,13 @@ def build_component_display_rows(
         component_amount = component.get(
             "amount_per_unit"
         )
-        amount_basis = "官方揭露"
-
         if component_amount is None:
             ratio_pct = component.get(
                 "ratio_pct"
             )
 
             if (
-                normalized_basis == "ESTIMATED"
-                and dividend_amount_per_unit is not None
+                dividend_amount_per_unit is not None
                 and ratio_pct is not None
             ):
                 try:
@@ -756,13 +1171,9 @@ def build_component_display_rows(
                         * Decimal(str(ratio_pct))
                         / Decimal("100")
                     )
-                    amount_basis = "依總配息與預估占比推算"
 
                 except (InvalidOperation, ValueError):
                     component_amount = None
-
-            if component_amount is None:
-                amount_basis = "尚未取得"
 
         rows.append(
             {
@@ -771,12 +1182,6 @@ def build_component_display_rows(
                         component
                     )
                 ),
-                "代碼": str(
-                    component.get(
-                        "component_code",
-                        "",
-                    )
-                ).strip().upper(),
                 "比例": (
                     format_dividend_percentage(
                         component.get(
@@ -784,20 +1189,14 @@ def build_component_display_rows(
                         )
                     )
                 ),
-                "每單位金額": (
-                    format_dividend_amount(
+                "金額": (
+                    format_number(
                         component_amount,
-                        currency,
+                        decimal_places=4,
+                        trim_trailing_zeros=True,
                     )
                     if component_amount is not None
                     else "尚未取得"
-                ),
-                "金額依據": amount_basis,
-                "來源": str(
-                    component.get(
-                        "source_id",
-                        "",
-                    )
                 ),
             }
         )
@@ -812,7 +1211,7 @@ def render_component_group(
     dividend_amount_per_unit: Any = None,
     currency: Any = "TWD",
 ) -> None:
-    """顯示預估或實際配息組成。"""
+    """顯示指定資料基礎的配息組成。"""
 
     st.markdown(
         f"**{title}**"
@@ -837,12 +1236,33 @@ def render_component_group(
 
 
 def render_dividend_summary(
+    api_base_url: str,
     history: dict[str, Any],
+    *,
+    show_owner_details: bool = False,
 ) -> None:
-    """顯示 ETF 配息摘要。"""
+    """以卡片顯示 ETF 配息摘要。"""
 
-    st.divider()
-    st.subheader("配息摘要")
+    with st.container(
+        border=True,
+        key="etf-detail-dividend-summary",
+    ):
+        _render_dividend_summary_card(
+            api_base_url,
+            history,
+            show_owner_details=show_owner_details,
+        )
+
+
+def _render_dividend_summary_card(
+    api_base_url: str,
+    history: dict[str, Any],
+    *,
+    show_owner_details: bool,
+) -> None:
+    """顯示配息摘要卡片內容。"""
+
+    st.subheader("配息資料")
 
     items = history.get(
         "items",
@@ -857,15 +1277,9 @@ def render_dividend_summary(
 
     latest = items[0]
 
-    count_column, date_column, amount_column, payment_column = (
-        st.columns(4)
+    date_column, amount_column, payment_column = (
+        st.columns(3)
     )
-
-    with count_column:
-        st.metric(
-            "配息事件",
-            f"{history['total']:,} 次",
-        )
 
     with date_column:
         st.metric(
@@ -879,13 +1293,13 @@ def render_dividend_summary(
 
     with amount_column:
         st.metric(
-            "最新每單位配息",
-            format_dividend_amount(
+            "現金/股票",
+            format_cash_stock_dividend(
                 latest.get(
                     "amount_per_unit"
                 ),
                 latest.get(
-                    "currency"
+                    "stock_dividend_per_unit"
                 ),
             ),
         )
@@ -900,103 +1314,317 @@ def render_dividend_summary(
             ),
         )
 
-    st.markdown(
-        "**歷次現金股利與殖利率趨勢**"
+    (
+        annual_dividend_rows,
+        annual_yield_rows,
+        stock_dividend_available,
+    ) = build_annual_dividend_chart_rows(
+        items
+    )
+    chart_years = [
+        str(row["年份"])
+        for row in annual_yield_rows
+    ]
+    dividend_y_upper = chart_axis_upper_bound(
+        [
+            row.get("年度股利合計")
+            for row in annual_dividend_rows
+            if row.get("顯示年度合計")
+        ]
+    )
+    yield_y_upper = chart_axis_upper_bound(
+        [row.get("殖利率") for row in annual_yield_rows]
+    )
+    chart_value_text_color = (
+        "#FFFFFF"
+        if st.context.theme.type == "dark"
+        else "#000000"
     )
 
-    chart_rows = (
-        build_dividend_summary_chart_rows(
-            items
+    if annual_dividend_rows:
+        dividend_chart_column, yield_chart_column = (
+            st.columns(2, gap="medium")
         )
-    )
 
-    if chart_rows:
-        st.vega_lite_chart(
-            chart_rows,
-            {
-                "layer": [
-                    {
-                        "mark": {
-                            "type": "line",
-                            "point": True,
-                            "color": "#4C78A8",
-                        },
-                        "encoding": {
-                            "x": {
-                                "field": "除息日",
-                                "type": "temporal",
-                                "axis": {
-                                    "title": "除息日"
-                                },
+        with dividend_chart_column:
+            st.markdown(
+                "**股利**　"
+                f'<span style="color:{DIVIDEND_CASH_COLOR}">■</span> '
+                "現金股利　"
+                f'<span style="color:{DIVIDEND_STOCK_COLOR}">■</span> '
+                "股票股利",
+                unsafe_allow_html=True,
+            )
+            st.vega_lite_chart(
+                annual_dividend_rows,
+                {
+                    "height": 280,
+                    "layer": [
+                        {
+                            "mark": {
+                                "type": "bar",
                             },
-                            "y": {
-                                "field": "現金股利",
-                                "type": "quantitative",
-                                "axis": {
-                                    "title": (
-                                        "現金股利／單位"
-                                    ),
-                                    "titleColor": (
-                                        "#4C78A8"
-                                    ),
+                            "encoding": {
+                                "x": {
+                                    "field": "年份",
+                                    "type": "ordinal",
+                                    "sort": "ascending",
+                                    "scale": {
+                                        "domain": chart_years,
+                                    },
+                                    "axis": {
+                                        "title": None,
+                                        "labelAngle": 0,
+                                    },
                                 },
-                            },
-                            "tooltip": [
-                                {
-                                    "field": "除息日",
-                                    "type": "temporal",
-                                },
-                                {
-                                    "field": "現金股利",
+                                "y": {
+                                    "field": "每單位股利",
                                     "type": "quantitative",
+                                    "stack": "zero",
+                                    "scale": {
+                                        "domain": [0, dividend_y_upper],
+                                        "nice": False,
+                                    },
+                                    "axis": {
+                                        "title": None,
+                                        "tickCount": 6,
+                                    },
                                 },
-                            ],
-                        },
-                    },
-                    {
-                        "mark": {
-                            "type": "line",
-                            "point": True,
-                            "color": "#F58518",
-                        },
-                        "encoding": {
-                            "x": {
-                                "field": "除息日",
-                                "type": "temporal",
+                                "color": {
+                                    "field": "股利類型",
+                                    "type": "nominal",
+                                    "scale": {
+                                        "domain": [
+                                            "現金股利",
+                                            "股票股利",
+                                        ],
+                                        "range": [
+                                            DIVIDEND_CASH_COLOR,
+                                            DIVIDEND_STOCK_COLOR,
+                                        ],
+                                    },
+                                    "legend": None,
+                                },
+                                "order": {
+                                    "field": "堆疊順序",
+                                    "type": "quantitative",
+                                    "sort": "ascending",
+                                },
+                                "tooltip": [
+                                    {
+                                        "field": "年份",
+                                        "type": "ordinal",
+                                    },
+                                    {
+                                        "field": "股利類型",
+                                        "type": "nominal",
+                                    },
+                                    {
+                                        "field": "每單位股利",
+                                        "type": "quantitative",
+                                        "format": ".4f",
+                                    },
+                                    {
+                                        "field": "配息次序",
+                                        "type": "quantitative",
+                                    },
+                                    {
+                                        "field": "除息日",
+                                        "type": "nominal",
+                                    },
+                                ],
                             },
-                            "y": {
-                                "field": "殖利率",
-                                "type": "quantitative",
-                                "axis": {
-                                    "title": "單次殖利率（%）",
-                                    "orient": "right",
-                                    "titleColor": (
-                                        "#F58518"
+                        },
+                        {
+                            "transform": [
+                                {
+                                    "filter": (
+                                        "datum['顯示分隔線'] === true"
                                     ),
+                                }
+                            ],
+                            "mark": {
+                                "type": "rule",
+                                "stroke": "#FFFFFF",
+                                "strokeWidth": 1.5,
+                                "strokeDash": [4, 2],
+                            },
+                            "encoding": {
+                                "x": {
+                                    "field": "年份",
+                                    "type": "ordinal",
+                                    "bandPosition": 0.1,
+                                    "scale": {
+                                        "domain": chart_years,
+                                    },
+                                },
+                                "x2": {
+                                    "field": "年份",
+                                    "bandPosition": 0.9,
+                                },
+                                "y": {
+                                    "field": "累計股利",
+                                    "type": "quantitative",
+                                    "scale": {
+                                        "domain": [0, dividend_y_upper],
+                                        "nice": False,
+                                    },
                                 },
                             },
-                            "tooltip": [
+                        },
+                        {
+                            "transform": [
                                 {
-                                    "field": "除息日",
-                                    "type": "temporal",
+                                    "filter": (
+                                        "datum['顯示年度合計'] === true"
+                                    ),
+                                }
+                            ],
+                            "mark": {
+                                "type": "text",
+                                "dy": -9,
+                                "fontWeight": "bold",
+                                "color": chart_value_text_color,
+                            },
+                            "encoding": {
+                                "x": {
+                                    "field": "年份",
+                                    "type": "ordinal",
+                                    "sort": "ascending",
+                                    "scale": {
+                                        "domain": chart_years,
+                                    },
                                 },
+                                "y": {
+                                    "field": "年度股利合計",
+                                    "type": "quantitative",
+                                    "scale": {
+                                        "domain": [0, dividend_y_upper],
+                                        "nice": False,
+                                    },
+                                },
+                                "text": {
+                                    "field": "年度股利合計",
+                                    "type": "quantitative",
+                                    "format": ".2f",
+                                },
+                            },
+                        },
+                    ],
+                },
+                width="stretch",
+                key="dividend-cash-stock-chart",
+            )
+
+            if (
+                show_owner_details
+                and not stock_dividend_available
+            ):
+                st.caption(
+                    "股票股利資料尚未匯入，"
+                    "不以 0 代替。"
+                )
+
+        with yield_chart_column:
+            st.markdown("**殖利率(%)**")
+            st.vega_lite_chart(
+                annual_yield_rows,
+                {
+                    "height": 280,
+                    "layer": [
+                        {
+                            "mark": {
+                                "type": "line",
+                                "point": True,
+                                "color": "#D9822B",
+                            },
+                            "encoding": {
+                                "x": {
+                                    "field": "年份",
+                                    "type": "ordinal",
+                                    "sort": "ascending",
+                                    "scale": {
+                                        "domain": chart_years,
+                                    },
+                                    "axis": {
+                                        "title": None,
+                                        "labelAngle": 0,
+                                    },
+                                },
+                                "y": {
+                                    "field": "殖利率",
+                                    "type": "quantitative",
+                                    "scale": {
+                                        "domain": [0, yield_y_upper],
+                                        "nice": False,
+                                    },
+                                    "axis": {
+                                        "title": None,
+                                        "tickCount": 6,
+                                    },
+                                },
+                                "tooltip": [
+                                    {
+                                        "field": "年份",
+                                        "type": "ordinal",
+                                    },
+                                    {
+                                        "field": "殖利率",
+                                        "type": "quantitative",
+                                        "format": ".2f",
+                                    },
+                                    {
+                                        "field": "已取得筆數",
+                                        "type": "quantitative",
+                                    },
+                                    {
+                                        "field": "配息筆數",
+                                        "type": "quantitative",
+                                    },
+                                ],
+                            },
+                        },
+                        {
+                            "transform": [
                                 {
+                                    "filter": "isValid(datum['殖利率'])",
+                                }
+                            ],
+                            "mark": {
+                                "type": "text",
+                                "dy": -10,
+                                "fontWeight": "bold",
+                                "color": chart_value_text_color,
+                            },
+                            "encoding": {
+                                "x": {
+                                    "field": "年份",
+                                    "type": "ordinal",
+                                    "sort": "ascending",
+                                    "scale": {
+                                        "domain": chart_years,
+                                    },
+                                },
+                                "y": {
+                                    "field": "殖利率",
+                                    "type": "quantitative",
+                                    "scale": {
+                                        "domain": [0, yield_y_upper],
+                                        "nice": False,
+                                    },
+                                },
+                                "text": {
                                     "field": "殖利率",
                                     "type": "quantitative",
                                     "format": ".2f",
                                 },
-                            ],
+                            },
                         },
-                    },
-                ],
-                "resolve": {
-                    "scale": {
-                        "y": "independent"
-                    }
+                    ],
                 },
-            },
-            width="stretch",
-        )
+                width="stretch",
+                key="dividend-yield-chart",
+            )
 
     else:
         st.info(
@@ -1004,108 +1632,137 @@ def render_dividend_summary(
         )
 
     st.caption(
-        "年季只採官方收益所屬年季；"
-        "殖利率優先採官方值，缺少時才以"
+        "資料皆來源於證交所；若有缺少時才以"
         "每單位現金股利 ÷ 除息前一交易日收盤價 × 100 計算。"
     )
 
-    st.table(
-        build_dividend_summary_rows(
-            items
-        )
+    render_dividend_event_rows(
+        api_base_url=api_base_url,
+        items=items,
     )
 
 
 def render_actual_76w_summary(
     summary: dict[str, Any],
+    *,
+    show_owner_details: bool = False,
 ) -> None:
-    """顯示正式 ACTUAL 76W 分析。"""
+    """顯示正式優先、e添富完整組成替代的資本利得分析。"""
 
     st.divider()
-    st.subheader("實際 76W 分析")
+    st.subheader("資本利得組成 (76W) 統計")
 
-    st.caption(
-        "僅統計正式 ACTUAL + 76W；"
-        "預估已實現資本利得不列入。"
-    )
+    if show_owner_details:
+        st.caption(
+            "每次配息優先採完整正式 ACTUAL 組成；"
+            "缺少時才採完整 e添富組成。"
+            "e添富已實現資本利得僅供替代分析，"
+            "不視為正式 76W。"
+        )
 
     record_count = int(
-        summary[
-            "actual_76w_record_count"
-        ]
+        summary.get(
+            "analysis_record_count",
+            summary.get("actual_76w_record_count", 0),
+        )
     )
 
     if record_count == 0:
         st.info(
-            "尚未取得正式 76W 收益分配資料。"
+            "尚未取得可用的正式 76W 或替代資本利得組成資料。"
         )
         return
 
     record_column, full_column, latest_column, average_column = (
         st.columns(4)
     )
+    full_count = int(
+        summary.get(
+            "full_realized_gain_count",
+            summary.get("full_76w_count", 0),
+        )
+    )
+    latest_ratio = summary.get(
+        "latest_realized_gain_ratio_pct",
+        summary.get("latest_76w_ratio_pct"),
+    )
+    average_ratio = summary.get(
+        "average_realized_gain_ratio_pct",
+        summary.get("average_76w_ratio_pct"),
+    )
+    analysis_actual_count = int(
+        summary.get(
+            "analysis_actual_count",
+            summary.get("actual_76w_record_count", 0),
+        )
+    )
+    analysis_estimated_count = int(
+        summary.get(
+            "analysis_estimated_fallback_count",
+            0,
+        )
+    )
 
     with record_column:
         st.metric(
-            "正式 76W 配息",
+            "分析配息",
             f"{record_count:,} 次",
         )
 
     with full_column:
         st.metric(
-            "100% 76W",
+            "100% 資本利得",
             (
-                f"{summary['full_76w_count']:,} "
+                f"{full_count:,} "
                 "次"
             ),
         )
 
     with latest_column:
         st.metric(
-            "最新 76W 比例",
+            "最新資本利得比例",
             format_dividend_percentage(
-                summary[
-                    "latest_76w_ratio_pct"
-                ]
+                latest_ratio
             ),
         )
 
     with average_column:
         st.metric(
-            "平均 76W 比例",
+            "平均資本利得比例",
             format_dividend_percentage(
-                summary[
-                    "average_76w_ratio_pct"
-                ]
+                average_ratio
             ),
         )
 
-
-def render_dividend_history(
-    api_base_url: str,
-    history: dict[str, Any],
-) -> None:
-    """顯示配息歷史及每次事件的組成。"""
-
-    st.divider()
-    st.subheader("配息歷史與組成")
-
-    items = history.get(
-        "items",
-        [],
-    )
-
-    if not items:
-        st.info(
-            "目前沒有可顯示的配息事件。"
+    if show_owner_details:
+        st.caption(
+            "分析基礎：正式 ACTUAL "
+            f"{analysis_actual_count:,} 次；"
+            "e添富替代 "
+            f"{analysis_estimated_count:,} 次。"
         )
-        return
 
-    st.caption(
-        "下列為目前頁面載入的最新 "
-        f"{len(items)} 筆配息事件；"
-        f"資料庫共 {history['total']:,} 筆。"
-    )
+
+def render_dividend_event_rows(
+    api_base_url: str,
+    items: list[dict[str, Any]],
+) -> None:
+    """以可展開列顯示配息摘要與組成明細。"""
+
+    with st.container(
+        key="dividend-event-header",
+    ):
+        st.markdown(
+            (
+                '<span class="dividend-event-grid-header">'
+                "<span>年/季</span><span> ｜ </span>"
+                "<span>現金/股票</span><span> ｜ </span>"
+                "<span>殖利率</span><span> ｜ </span>"
+                "<span>除息日</span><span> ｜ </span>"
+                "<span>發放日</span></span>"
+            ),
+            unsafe_allow_html=True,
+        )
 
     for item in items:
         dividend_id = int(
@@ -1118,55 +1775,37 @@ def render_dividend_history(
             )
         )
 
-        amount = format_dividend_amount(
+        amount = format_cash_stock_dividend(
             item.get(
                 "amount_per_unit"
             ),
             item.get(
-                "currency"
+                "stock_dividend_per_unit"
             ),
         )
 
-        label = (
-            f"{ex_date}　每單位 {amount}"
+        period = format_dividend_period(item)
+        yield_text = format_dividend_yield(
+            item.get("yield_pct")
+        )
+        payment_date = format_optional_date(
+            item.get("payment_date")
+        )
+
+        label = format_dividend_event_row_label(
+            (
+                period,
+                amount,
+                yield_text,
+                ex_date,
+                payment_date,
+            )
         )
 
         with st.expander(
             label,
             expanded=False,
         ):
-            event_rows = [
-                {
-                    "項目": "除息日",
-                    "內容": ex_date,
-                },
-                {
-                    "項目": "發放日",
-                    "內容": (
-                        format_optional_date(
-                            item.get(
-                                "payment_date"
-                            )
-                        )
-                    ),
-                },
-                {
-                    "項目": "每單位配息",
-                    "內容": amount,
-                },
-                {
-                    "項目": "事件來源",
-                    "內容": str(
-                        item.get(
-                            "source_id",
-                            "",
-                        )
-                    ),
-                },
-            ]
-
-            st.table(event_rows)
-
             try:
                 detail = load_dividend_detail(
                     api_base_url=api_base_url,
@@ -1185,30 +1824,23 @@ def render_dividend_history(
 
                 continue
 
-            components = detail.get(
-                "components",
+            selected_components = detail.get(
+                "selected_components",
                 [],
             )
-
-            render_component_group(
-                title="預估配息組成",
-                components=components,
-                component_basis="ESTIMATED",
-                dividend_amount_per_unit=(
-                    detail.get("amount_per_unit")
-                ),
-                currency=detail.get("currency"),
+            selected_basis = detail.get(
+                "selected_component_basis"
             )
-
-            st.caption(
-                "預估組成金額＝每單位總配息 × e添富預估占比；"
-                "這是推算值，不等同正式所得代碼 54C 或 76W。"
+            source_basis = (
+                "ACTUAL"
+                if selected_basis == "ACTUAL"
+                else "ESTIMATED"
             )
 
             render_component_group(
-                title="實際所得組成",
-                components=components,
-                component_basis="ACTUAL",
+                title="現金股利組成",
+                components=selected_components,
+                component_basis=source_basis,
                 dividend_amount_per_unit=(
                     detail.get("amount_per_unit")
                 ),
@@ -1421,30 +2053,22 @@ def render_data_profile(
     )
 
 
-def render_comparison_entry_point(
-    etf: dict[str, Any],
+def render_comparison_action(
+    code: str,
 ) -> None:
-    """將目前 ETF 帶入公開比較頁。"""
-
-    st.divider()
-    st.subheader("ETF 比較")
-
-    st.caption(
-        f"將 {etf['code']} 加入比較清單，"
-        "再選擇其他 ETF 進行 2 至 4 檔並列比較。"
-    )
+    """以資訊卡連結將目前 ETF 帶入公開比較頁。"""
 
     st.page_link(
         create_streamlit_page(
             ETF_COMPARISON_ROUTE
         ),
-        label="加入 ETF 比較",
-        icon="⚖️",
-        width="stretch",
+        label="加入比較",
+        icon=":material/compare_arrows:",
+        width="content",
         query_params=(
             build_comparison_query_params(
                 codes=(
-                    str(etf["code"]),
+                    str(code),
                 ),
                 source=str(
                     ETF_DETAIL_ROUTE.url_path
@@ -1589,7 +2213,10 @@ def _render_tax_reinvestment_result(result: dict[str, Any]) -> None:
             + (f" {issue_text}" if issue_text else "")
         )
 
-    with st.container(border=True):
+    with st.container(
+        border=True,
+        key="etf-detail-historical-facts-card",
+    ):
         st.markdown("**歷史資料事實**")
         st.caption(
             "配息組成與歷史報酬只用來建立情境起點，"
@@ -2005,12 +2632,14 @@ def render_tax_reinvestment_analysis(
 def render_etf_detail() -> None:
     """顯示 ETF 詳細資料頁。"""
 
-    render_page_title("ETF 詳細資料")
-
-    render_back_button()
+    render_page_title("詳細資料")
 
     requested_code = (
         get_requested_code()
+    )
+
+    render_detail_actions(
+        can_refresh=bool(requested_code),
     )
 
     if not requested_code:
@@ -2020,10 +2649,6 @@ def render_etf_detail() -> None:
 
         render_code_form()
         return
-
-    st.caption(
-        f"查詢代號：`{requested_code}`"
-    )
 
     try:
         api_base_url = get_api_base_url()
@@ -2090,6 +2715,15 @@ def render_etf_detail() -> None:
     except APIClientError as error:
         performance_error = error
 
+    price_history: dict[str, Any] | None = None
+    try:
+        price_history = load_etf_price_history(
+            api_base_url=api_base_url,
+            code=requested_code,
+        )
+    except APIClientError:
+        price_history = None
+
     dividend_history: dict[
         str,
         Any,
@@ -2130,59 +2764,31 @@ def render_etf_detail() -> None:
     except APIClientError as error:
         actual_76w_error = error
 
-    latest_close: dict[str, Any] | None = None
-    latest_close_error: APIClientError | None = None
-    try:
-        latest_close = load_etf_latest_close(
-            api_base_url=api_base_url,
-            code=requested_code,
-        )
-    except APIClientError as error:
-        latest_close_error = error
-
-    refresh_column, _ = st.columns(
-        [
-            1,
-            4,
-        ]
-    )
-
-    with refresh_column:
-        if st.button(
-            "重新載入資料",
-            key="refresh_etf_detail",
-        ):
-            load_etf_detail.clear()
-            load_etf_data_profile.clear()
-            load_etf_performance.clear()
-            load_etf_dividends.clear()
-            load_etf_actual_76w.clear()
-            load_etf_latest_close.clear()
-            load_dividend_detail.clear()
-            load_historical_quality_grade_lookup.clear()
-            st.rerun()
+    owner_unlocked = get_owner_token() is not None
 
     render_etf_information(
         etf,
         grade_payload,
+        show_owner_details=owner_unlocked,
     )
 
     if grade_error:
         st.caption(
-            "歷史品質評等服務暫時無法取得；"
+            "喵喵評等服務暫時無法取得；"
             "本頁其他資料仍可正常查看。"
         )
 
     if performance_error is not None:
         render_detail_section_error(
-            "市價績效",
+            "績效",
             "無法取得 ETF 績效資料。",
             performance_error,
         )
 
     elif performance is not None:
         render_etf_performance(
-            performance
+            performance,
+            price_history,
         )
 
     if dividend_history_error is not None:
@@ -2194,39 +2800,26 @@ def render_etf_detail() -> None:
 
     elif dividend_history is not None:
         render_dividend_summary(
-            dividend_history
+            api_base_url,
+            dividend_history,
+            show_owner_details=owner_unlocked,
         )
 
     if actual_76w_error is not None:
         render_detail_section_error(
-            "實際 76W 分析",
-            "無法取得實際 76W 資料。",
+            "資本利得組成 (76W) 統計",
+            "無法取得 76W 與資本利得資料。",
             actual_76w_error,
         )
 
     elif actual_76w is not None:
         render_actual_76w_summary(
-            actual_76w
+            actual_76w,
+            show_owner_details=owner_unlocked,
         )
 
-    render_base_target_analysis(
-        api_base_url=api_base_url,
-        etf=etf,
-        latest_close=latest_close,
-        latest_close_error=latest_close_error,
-    )
-
-    render_tax_reinvestment_analysis(
-        api_base_url=api_base_url,
-        etf=etf,
-    )
-
-    if dividend_history is not None:
-        render_dividend_history(
+    if owner_unlocked:
+        render_tax_reinvestment_analysis(
             api_base_url=api_base_url,
-            history=dividend_history,
+            etf=etf,
         )
-
-    render_comparison_entry_point(
-        etf
-    )

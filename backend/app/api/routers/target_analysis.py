@@ -14,6 +14,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
     status,
 )
 
@@ -30,7 +31,10 @@ from backend.app.models.target_analysis import (
     TargetAnalysisResult,
     TargetAnalysisStatus,
 )
-from backend.app.models.etf_price import ETFLatestCloseResponse
+from backend.app.models.etf_price import (
+    ETFLatestCloseResponse,
+    ETFPriceHistoryResponse,
+)
 from backend.app.models.tax_reinvestment import (
     TaxReinvestmentAnalysisRequest,
     TaxReinvestmentAnalysisResult,
@@ -45,6 +49,7 @@ from backend.app.repositories.etf_repository import (
 )
 from backend.app.repositories.daily_close_repository import (
     get_latest_daily_close,
+    list_daily_closes,
 )
 from backend.app.services.target_analysis_calculator import (
     calculate_target_analysis,
@@ -58,8 +63,8 @@ from backend.app.services.principal_risk_warnings import (
 from backend.app.services.tax_reinvestment_calculator import (
     calculate_tax_reinvestment_scenarios,
 )
-from backend.app.services.tax_reinvestment_data import (
-    select_calculation_component_mix,
+from backend.app.services.dividend_component_data import (
+    select_composite_component_mix,
 )
 
 
@@ -67,6 +72,44 @@ router = APIRouter(
     prefix="/api/v1/etfs",
     tags=["Target Analysis"],
 )
+
+
+@router.get(
+    "/{code}/price-history",
+    response_model=ETFPriceHistoryResponse,
+    summary="取得已保存官方收盤價走勢",
+)
+def read_price_history(
+    code: str,
+    limit: int = Query(default=260, ge=2, le=1250),
+    database_path: Path = Depends(get_database_path),
+) -> ETFPriceHistoryResponse:
+    """依交易日回傳最近指定筆數的官方收盤價。"""
+
+    normalized_code = code.strip().upper()
+    etf = get_etf_by_code(normalized_code, database_path)
+    if etf is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到 ETF：{normalized_code}",
+        )
+
+    rows = list_daily_closes(
+        normalized_code,
+        database_path,
+    )[-limit:]
+    return ETFPriceHistoryResponse(
+        etf_code=normalized_code,
+        name=etf["name"],
+        items=[
+            {
+                "trade_date": row["trade_date"],
+                "close_price": row["close_price"],
+                "source_id": row["source_id"],
+            }
+            for row in rows
+        ],
+    )
 
 
 @router.get(
@@ -398,7 +441,7 @@ def analyze_tax_reinvestment_scenarios(
         normalized_code,
         database_path,
     )
-    selection = select_calculation_component_mix(component_rows)
+    selection = select_composite_component_mix(component_rows)
     calculation_mix = selection.mix if selection is not None else None
     actual_mix = (
         calculation_mix

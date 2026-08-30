@@ -60,11 +60,11 @@ class TestFrontendPublicPlanner(unittest.TestCase):
         state, message = allocation_goodcat_feedback(
             payload("TARGET_MET", [{"etf_code": "0056"}])
         )
-        self.assertEqual(state, GoodCatState.READY)
+        self.assertEqual(state, GoodCatState.REWARD)
         self.assertIn("ETF、股數", message)
 
         state, message = allocation_goodcat_feedback(payload("PARTIAL"))
-        self.assertEqual(state, GoodCatState.CAUTION)
+        self.assertEqual(state, GoodCatState.REWARD)
         self.assertIn("仍有缺口", message)
 
         state, message = allocation_goodcat_feedback({})

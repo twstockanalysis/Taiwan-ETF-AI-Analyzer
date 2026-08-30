@@ -63,6 +63,26 @@ class TestFrontendGoodCat(unittest.TestCase):
             GoodCatState.READY,
         )
 
+    def test_attentive_state_uses_alert_v3_asset(
+        self,
+    ) -> None:
+        attentive = GOODCAT_PRESENTATIONS[
+            GoodCatState.ATTENTIVE
+        ]
+        idle = GOODCAT_PRESENTATIONS[
+            GoodCatState.IDLE
+        ]
+
+        self.assertEqual(
+            attentive.asset_path.name,
+            "goodcat-attentive-v3.png",
+        )
+        self.assertEqual(attentive.label, "正在等主人")
+        self.assertEqual(
+            idle.asset_path.name,
+            "goodcat-idle.png",
+        )
+
     def test_unknown_state_is_rejected(
         self,
     ) -> None:
@@ -83,7 +103,7 @@ class TestFrontendGoodCat(unittest.TestCase):
     @patch(
         "frontend.ui.goodcat.st.container"
     )
-    def test_companion_renders_accessible_text(
+    def test_companion_uses_clean_visible_copy(
         self,
         mock_container,
         mock_image,
@@ -101,12 +121,11 @@ class TestFrontendGoodCat(unittest.TestCase):
             2,
         )
         image_call = mock_image.call_args
-        self.assertIn(
-            "灰白 GoodCat",
-            image_call.kwargs["caption"],
+        self.assertIsNone(
+            image_call.kwargs["caption"]
         )
         mock_caption.assert_called_once_with(
-            "GoodCat｜先注意這件事"
+            "先注意這件事"
         )
         mock_markdown.assert_called_once_with(
             "**資料不足，先看看原因。**"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import streamlit as st
@@ -11,6 +12,7 @@ from frontend.ui.components import render_page_title
 from frontend.api_client import (
     APIClientError,
     fetch_etf_comparison,
+    fetch_etfs,
     fetch_monthly_payment_combination,
 )
 from frontend.config import (
@@ -150,7 +152,7 @@ def render_monthly_combination_result(result: dict[str, Any]) -> None:
 
     facts = result["historical_facts"]
     calculation = result["calculation"]
-    with st.container(border=True):
+    with st.container(border=True, key="monthly-combination-card"):
         st.markdown(
             f"**基準 ETF：{calculation['base_etf_code']} "
             f"{calculation['base_etf_name']}**"
@@ -455,7 +457,10 @@ def render_comparison_summary_cards(
         etf = item["etf"]
         code = str(etf["code"]).strip().upper()
         with column:
-            with st.container(border=True):
+            with st.container(
+                border=True,
+                key=f"etf-comparison-card-{code.lower()}",
+            ):
                 st.subheader(code)
                 st.write(str(etf["name"]))
                 render_historical_quality_evidence(
@@ -701,6 +706,73 @@ def update_comparison_codes(
     )
 
 
+def parse_comparison_terms(
+    value: str,
+) -> list[str]:
+    """解析以半形／全形逗號或換行分隔的比較關鍵字。"""
+
+    return [
+        term.strip()
+        for term in re.split(r"[,，\n]+", value)
+        if term.strip()
+    ]
+
+
+def resolve_comparison_terms(
+    api_base_url: str,
+    terms: list[str],
+) -> tuple[tuple[str, ...], list[str], list[str]]:
+    """將 ETF 代號、完整名稱或唯一關鍵字結果解析為代號。"""
+
+    resolved_codes: list[str] = []
+    unresolved_terms: list[str] = []
+    ambiguous_terms: list[str] = []
+
+    for term in terms:
+        result = fetch_etfs(
+            api_base_url=api_base_url,
+            keyword=term,
+            limit=100,
+            offset=0,
+        )
+        items = result["items"]
+        normalized_term = term.strip().casefold()
+        exact_matches = [
+            item
+            for item in items
+            if (
+                str(item["code"]).strip().casefold()
+                == normalized_term
+                or str(item["name"]).strip().casefold()
+                == normalized_term
+            )
+        ]
+
+        if len(exact_matches) == 1:
+            selected = exact_matches[0]
+        elif len(exact_matches) > 1:
+            ambiguous_terms.append(term)
+            continue
+        elif result["total"] == 1 and len(items) == 1:
+            selected = items[0]
+        elif not items:
+            unresolved_terms.append(term)
+            continue
+        else:
+            ambiguous_terms.append(term)
+            continue
+
+        code = str(selected["code"]).strip().upper()
+        if code not in resolved_codes:
+            resolved_codes.append(code)
+
+    return (
+        normalize_comparison_codes(resolved_codes),
+        unresolved_terms,
+        ambiguous_terms,
+    )
+
+
 def render_code_form(
     codes: tuple[str, ...],
 ) -> None:
@@ -711,48 +783,77 @@ def render_code_form(
         enter_to_submit=False,
     ):
         code_text = st.text_input(
-            "ETF 代號",
+            "ETF 代號或名稱",
             value=",".join(codes),
-            placeholder=(
-                "輸入 2 至 4 個代號，"
-                "例如 0050,0056,00878"
-            ),
+            placeholder="輸入ETF代號或名稱",
             help=(
-                "使用半形逗號分隔；"
-                "重複代號會自動移除。"
+                "使用逗號分隔；可輸入完整代號、"
+                "完整名稱或能唯一辨識的名稱關鍵字。"
             ),
             label_visibility="collapsed",
         )
 
         submitted = (
             st.form_submit_button(
-                "更新比較",
+                "開始比較",
                 type="primary",
             )
         )
 
-    if submitted:
-        raw_codes = [
-            value.strip()
-            for value in code_text.split(",")
-            if value.strip()
-        ]
-
-        normalized = (
-            normalize_comparison_codes(
-                raw_codes
+        if len(codes) < 2:
+            st.caption(
+                "請輸入至少2檔才能比較，最多同時比較4檔"
             )
-        )
 
-        if len(raw_codes) > 4:
+    if submitted:
+        terms = parse_comparison_terms(code_text)
+
+        if len(terms) > 4:
             st.warning(
                 "ETF 比較最多支援 4 檔。"
             )
             return
 
-        if not normalized:
+        if not terms:
             st.warning(
-                "請輸入至少一個合法 ETF 代號。"
+                "請輸入至少一個 ETF 代號或名稱。"
+            )
+            return
+
+        try:
+            api_base_url = get_api_base_url()
+            (
+                normalized,
+                unresolved_terms,
+                ambiguous_terms,
+            ) = resolve_comparison_terms(
+                api_base_url,
+                terms,
+            )
+        except (APIClientError, ValueError) as error:
+            render_api_error(
+                "無法查找 ETF 代號或名稱。",
+                error,
+            )
+            return
+
+        if unresolved_terms:
+            st.warning(
+                "找不到 ETF："
+                + "、".join(unresolved_terms)
+            )
+            return
+
+        if ambiguous_terms:
+            st.warning(
+                "請輸入更完整的 ETF 代號或名稱："
+                + "、".join(ambiguous_terms)
+            )
+            return
+
+        if len(normalized) < 2:
+            st.warning(
+                "請輸入至少2檔不同的 ETF 才能比較。"
             )
             return
 
@@ -804,7 +905,7 @@ def render_code_form(
 def render_etf_comparison() -> None:
     """顯示 ETF 比較頁。"""
 
-    render_page_title("ETF 比較")
+    render_page_title("比較")
 
     state = parse_etf_comparison_query_state(
         st.query_params
@@ -823,9 +924,6 @@ def render_etf_comparison() -> None:
     )
 
     if len(state.codes) < 2:
-        st.info(
-            "請選擇至少 2 檔 ETF 才能開始比較。"
-        )
         return
 
     try:
@@ -893,7 +991,7 @@ def render_etf_comparison() -> None:
 
     if grade_error:
         st.caption(
-            "歷史品質評等暫時無法取得；"
+            "喵喵評等暫時無法取得；"
             "其他比較資料仍可正常查看。"
         )
 

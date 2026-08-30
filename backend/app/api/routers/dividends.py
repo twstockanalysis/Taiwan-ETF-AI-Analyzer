@@ -29,10 +29,15 @@ from backend.app.repositories.dividend_repository import (
     count_etf_dividends,
     get_dividend_by_id,
     list_etf_dividends,
+    list_etf_component_history,
     list_filtered_dividend_components,
 )
 from backend.app.repositories.etf_repository import (
     get_etf_by_code,
+)
+from backend.app.services.dividend_component_data import (
+    select_composite_component_mix,
+    select_composite_realized_gain_history,
 )
 
 
@@ -231,23 +236,58 @@ def read_etf_dividends(
 @router.get(
     "/api/v1/etfs/{code}/dividends/76w",
     response_model=Actual76WSummaryResponse,
-    summary="取得 ETF 實際 76W 歷史",
+    summary="取得 ETF 正式 76W 與綜合資本利得分析",
 )
 def read_etf_actual_76w(
     code: str,
     database_path: DatabasePath,
 ) -> dict[str, Any]:
-    """Return ACTUAL 76W records only."""
+    """Return formal 76W history plus clearly separated fallback analysis."""
 
     normalized_code = require_etf(
         code,
         database_path,
     )
 
-    return build_actual_76w_summary(
+    actual_summary = build_actual_76w_summary(
         etf_code=normalized_code,
         database_path=database_path,
     )
+    analysis_records = select_composite_realized_gain_history(
+        list_etf_component_history(
+            normalized_code,
+            database_path,
+        )
+    )
+    ratios = [float(item.ratio_pct) for item in analysis_records]
+
+    return {
+        **actual_summary,
+        "analysis_record_count": len(analysis_records),
+        "analysis_actual_count": sum(
+            item.basis == "ACTUAL" for item in analysis_records
+        ),
+        "analysis_estimated_fallback_count": sum(
+            item.basis == "ESTIMATED_FALLBACK"
+            for item in analysis_records
+        ),
+        "full_realized_gain_count": sum(
+            ratio == 100.0 for ratio in ratios
+        ),
+        "latest_realized_gain_ratio_pct": (
+            ratios[0] if ratios else None
+        ),
+        "average_realized_gain_ratio_pct": (
+            round(sum(ratios) / len(ratios), 6)
+            if ratios
+            else None
+        ),
+        "latest_analysis_basis": (
+            analysis_records[0].basis
+            if analysis_records
+            else None
+        ),
+    }
 
 
 @router.get(
@@ -278,6 +318,44 @@ def read_dividend(
             database_path=database_path,
         )
     )
+    selection = select_composite_component_mix(
+        [
+            {
+                **row,
+                "source_event_id": dividend[
+                    "source_event_id"
+                ],
+                "announcement_date": dividend[
+                    "announcement_date"
+                ],
+                "ex_dividend_date": dividend[
+                    "ex_dividend_date"
+                ],
+                "record_date": dividend[
+                    "record_date"
+                ],
+                "payment_date": dividend[
+                    "payment_date"
+                ],
+            }
+            for row in components
+        ]
+    )
+    selected_source_basis = (
+        "ACTUAL"
+        if selection is not None
+        and selection.basis == "ACTUAL"
+        else "ESTIMATED"
+        if selection is not None
+        else None
+    )
+    selected_components = [
+        row
+        for row in components
+        if selected_source_basis is not None
+        and str(row["component_basis"]).upper()
+        == selected_source_basis
+    ]
 
     return {
         **map_dividend_item(
@@ -287,6 +365,15 @@ def read_dividend(
         "components": [
             map_component_item(row)
             for row in components
+        ],
+        "selected_component_basis": (
+            selection.basis
+            if selection is not None
+            else None
+        ),
+        "selected_components": [
+            map_component_item(row)
+            for row in selected_components
         ],
     }
 

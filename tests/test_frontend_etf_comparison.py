@@ -2,6 +2,7 @@
 
 import unittest
 import inspect
+from unittest.mock import patch
 
 from frontend.pages.etf_comparison import (
     build_candidate_result_rows,
@@ -11,7 +12,10 @@ from frontend.pages.etf_comparison import (
     build_target_payment_months,
     build_performance_rows,
     format_percentage,
+    parse_comparison_terms,
+    render_code_form,
     render_etf_comparison,
+    resolve_comparison_terms,
 )
 
 
@@ -230,6 +234,91 @@ class TestFrontendETFComparison(
         source = inspect.getsource(render_etf_comparison)
         self.assertNotIn('st.subheader("資料完整度")', source)
         self.assertNotIn("build_completeness_rows(", source)
+
+    def test_comparison_action_uses_beginner_copy(self) -> None:
+        """確認比較提示緊接在主要動作下方。"""
+
+        source = inspect.getsource(render_code_form)
+        self.assertIn('"開始比較"', source)
+        self.assertIn(
+            '"請輸入至少2檔才能比較，最多同時比較4檔"',
+            source,
+        )
+        self.assertGreater(
+            source.index(
+                '"請輸入至少2檔才能比較，最多同時比較4檔"'
+            ),
+            source.index('"開始比較"'),
+        )
+        self.assertIn('placeholder="輸入ETF代號或名稱"', source)
+        self.assertNotIn("請選擇至少", source)
+
+    def test_comparison_terms_accept_full_width_commas_and_lines(self) -> None:
+        """比較輸入支援常見的中文逗號與換行。"""
+
+        self.assertEqual(
+            parse_comparison_terms("0050，元大高股息\n00878"),
+            ["0050", "元大高股息", "00878"],
+        )
+
+    @patch("frontend.pages.etf_comparison.fetch_etfs")
+    def test_comparison_terms_resolve_code_name_and_unique_keyword(
+        self,
+        mock_fetch_etfs,
+    ) -> None:
+        """代號、完整名稱與唯一名稱關鍵字皆可解析。"""
+
+        catalog = {
+            "0050": [{"code": "0050", "name": "元大台灣50"}],
+            "元大高股息": [{"code": "0056", "name": "元大高股息"}],
+            "永續高股息": [{"code": "00878", "name": "國泰永續高股息"}],
+        }
+
+        def fake_fetch_etfs(**kwargs):
+            items = catalog[kwargs["keyword"]]
+            return {
+                "items": items,
+                "total": len(items),
+                "limit": 100,
+                "offset": 0,
+            }
+
+        mock_fetch_etfs.side_effect = fake_fetch_etfs
+
+        codes, unresolved, ambiguous = resolve_comparison_terms(
+            "http://api",
+            ["0050", "元大高股息", "永續高股息"],
+        )
+
+        self.assertEqual(codes, ("0050", "0056", "00878"))
+        self.assertEqual(unresolved, [])
+        self.assertEqual(ambiguous, [])
+
+    @patch("frontend.pages.etf_comparison.fetch_etfs")
+    def test_comparison_terms_do_not_guess_ambiguous_names(
+        self,
+        mock_fetch_etfs,
+    ) -> None:
+        """多筆名稱關鍵字不應任意挑選其中一檔。"""
+
+        mock_fetch_etfs.return_value = {
+            "items": [
+                {"code": "0050", "name": "元大台灣50"},
+                {"code": "006203", "name": "元大MSCI台灣"},
+            ],
+            "total": 2,
+            "limit": 100,
+            "offset": 0,
+        }
+
+        codes, unresolved, ambiguous = resolve_comparison_terms(
+            "http://api",
+            ["元大"],
+        )
+
+        self.assertEqual(codes, ())
+        self.assertEqual(unresolved, [])
+        self.assertEqual(ambiguous, ["元大"])
 
 
 if __name__ == "__main__":

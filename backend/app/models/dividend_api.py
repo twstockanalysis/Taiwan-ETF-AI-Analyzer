@@ -1,6 +1,7 @@
 """ETF 配息查詢 API 資料模型。"""
 
 from datetime import date
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -166,6 +167,20 @@ class DividendDetailResponse(
         DividendComponentItem
     ]
 
+    selected_component_basis: (
+        Literal[
+            "ACTUAL",
+            "ESTIMATED_FALLBACK",
+        ]
+        | None
+    ) = None
+
+    selected_components: list[
+        DividendComponentItem
+    ] = Field(
+        default_factory=list,
+    )
+
 
 class DividendComponentListResponse(
     DividendAPIBaseModel
@@ -273,6 +288,46 @@ class Actual76WSummaryResponse(
         ge=0,
         le=100,
     )
+
+    analysis_record_count: int = Field(
+        ge=0,
+        description="綜合選擇器可用的資本利得事件數",
+    )
+
+    analysis_actual_count: int = Field(
+        ge=0,
+        description="採完整 ACTUAL 組成的分析事件數",
+    )
+
+    analysis_estimated_fallback_count: int = Field(
+        ge=0,
+        description="採完整 e添富組成替代的分析事件數",
+    )
+
+    full_realized_gain_count: int = Field(
+        ge=0,
+        description="資本利得比例為 100% 的分析事件數",
+    )
+
+    latest_realized_gain_ratio_pct: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+
+    average_realized_gain_ratio_pct: (
+        float | None
+    ) = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+
+    latest_analysis_basis: (
+        Literal["ACTUAL", "ESTIMATED_FALLBACK"] | None
+    ) = None
 
     items: list[
         Actual76WHistoryItem

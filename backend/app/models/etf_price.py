@@ -86,3 +86,26 @@ class ETFLatestCloseResponse(BaseModel):
     close_price: Decimal | None = Field(default=None, gt=0)
     trade_date: date | None = None
     source_id: str | None = None
+
+
+class ETFDailyCloseItem(BaseModel):
+    """公開股價走勢使用的單日官方收盤價。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    trade_date: date
+    close_price: float = Field(gt=0)
+    source_id: str = Field(min_length=1)
+
+
+class ETFPriceHistoryResponse(BaseModel):
+    """單一 ETF 依交易日排序的官方收盤價歷史。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    etf_code: str
+    name: str
+    items: list[ETFDailyCloseItem] = Field(
+        default_factory=list,
+        max_length=1250,
+    )

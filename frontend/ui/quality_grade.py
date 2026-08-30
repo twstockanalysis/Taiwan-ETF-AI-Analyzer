@@ -1,4 +1,4 @@
-"""公開探索頁共用的 ETF 歷史品質評等呈現。"""
+"""公開探索頁共用的 ETF 喵喵評等呈現。"""
 
 from __future__ import annotations
 
@@ -31,13 +31,14 @@ def quality_grade_short_label(payload: object) -> str:
     """回傳列表使用的簡短字母評等。"""
 
     presentation = historical_quality_presentation(payload)
-    return presentation.label.removeprefix("歷史品質").strip()
+    return presentation.label.removeprefix("喵喵評等：").strip()
 
 
 def render_historical_quality_evidence(
     payload: object,
     *,
     compact: bool = False,
+    show_owner_details: bool = False,
 ) -> None:
     """呈現字母評等與公開理由，不洩漏內部分數。"""
 
@@ -45,7 +46,8 @@ def render_historical_quality_evidence(
     source = payload if isinstance(payload, dict) else {}
 
     st.badge(grade.label, color=grade.color)
-    st.caption(grade.explanation)
+    if grade.label != "喵喵評等：暫無" or show_owner_details:
+        st.caption(grade.explanation)
 
     if compact:
         return
@@ -58,5 +60,12 @@ def render_historical_quality_evidence(
         st.write("**歷史優點：** " + "；".join(str(item) for item in strengths))
     if isinstance(risks, list) and risks:
         st.write("**需要留意：** " + "；".join(str(item) for item in risks))
-    if isinstance(unavailable, list) and unavailable:
-        st.write("**尚缺證據：** " + "；".join(str(item) for item in unavailable))
+    if (
+        show_owner_details
+        and isinstance(unavailable, list)
+        and unavailable
+    ):
+        lines = "  \n".join(
+            f"{item}；" for item in unavailable
+        )
+        st.markdown(f"**原因：**  \n{lines}")

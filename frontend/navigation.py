@@ -40,7 +40,7 @@ HOME_ROUTE = PageRoute(
 
 ETF_SEARCH_ROUTE = PageRoute(
     key="etf-search",
-    title="搜尋&詳細資料",
+    title="搜尋",
     icon=":material/search:",
     url_path="etf-search",
 )
@@ -54,7 +54,7 @@ PERFORMANCE_RANKING_ROUTE = PageRoute(
 
 ETF_COMPARISON_ROUTE = PageRoute(
     key="etf-comparison",
-    title="ETF 比較",
+    title="比較",
     icon=":material/compare_arrows:",
     url_path="etf-comparison",
 )
@@ -89,7 +89,7 @@ DIVIDEND_DATA_QUALITY_ROUTE = PageRoute(
 
 ETF_DETAIL_ROUTE = PageRoute(
     key="etf-detail",
-    title="ETF 詳細資料",
+    title="詳細資料",
     icon=":material/description:",
     url_path="etf-detail",
     hidden=True,

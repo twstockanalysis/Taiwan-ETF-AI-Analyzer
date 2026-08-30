@@ -299,18 +299,16 @@ The `codes` query parameter is canonical, ordered and deduplicated. Return-state
 
 Missing periods display `歷史資料不足`. Missing ACTUAL 76W displays `尚未取得`; an official `76W = 0%` displays `0.00%`. Data completeness describes available data sections only and is not an investment score.
 
-When TWSE ETF e添富 provides an estimated component ratio but no component
-amount, the detail page displays `dividend amount per unit × estimated ratio`
-as a clearly labeled derived amount. For example, 0050 at 0.6 TWD with 26%
-estimated dividend income and 74% estimated realized capital gain displays
-0.156 TWD and 0.444 TWD. These remain estimates and are not relabeled as
-official `54C` or `76W`.
+The detail page displays one `現金股利組成` table from the shared composite-data
+selector. A complete formal composition is shown when available; otherwise a
+complete e添富 composition is used. The page never displays both sets together
+or combines their rows. When a selected component has a ratio but no amount,
+the amount is derived from `dividend amount per unit × selected ratio`.
 
-The tax and reinvestment section applies the same provenance boundary. It uses
-a complete official composition first; if none is available, it automatically
-uses the latest complete e添富 estimated composition and displays a
-`ESTIMATED_FALLBACK` warning. Estimated codes remain visible, and the result is
-described as a planning substitute rather than an official income statement.
+Tax and reinvestment, portfolio projection and market eligibility apply the
+same selector. The API retains `ACTUAL` or `ESTIMATED_FALLBACK` provenance for
+downstream calculations even though the compact public table omits technical
+source columns.
 
 ### ETF Detail
 
@@ -388,7 +386,7 @@ Missing values are displayed as text such as:
 ```text
 尚無資料
 歷史資料不足
-尚未取得正式 76W 收益分配資料
+尚未取得可用的正式 76W 或替代資本利得組成資料
 ```
 
 Missing values are not converted to numerical zero.
@@ -401,6 +399,10 @@ Estimated realized capital gains retain the label:
 ```text
 EST_REALIZED_CAPITAL_GAIN
 ```
+
+The ETF detail section `資本利得組成 (76W) 統計` uses the shared composite
+selector per dividend event. It visibly reports ACTUAL and e添富 fallback event
+counts; fallback capital gain is never presented as a formal 76W record.
 
 They are not displayed or counted as official `76W`.
 

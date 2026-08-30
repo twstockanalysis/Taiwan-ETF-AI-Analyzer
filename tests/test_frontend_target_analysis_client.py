@@ -6,8 +6,10 @@ from unittest.mock import patch
 from frontend.api.errors import APIResponseError
 from frontend.api.target_analysis import (
     fetch_etf_latest_close,
+    fetch_etf_price_history,
     fetch_etf_target_analysis,
     validate_latest_close,
+    validate_price_history,
 )
 
 
@@ -34,6 +36,66 @@ class TestFrontendTargetAnalysisClient(unittest.TestCase):
                     "close_price": 35.25,
                     "trade_date": None,
                     "source_id": None,
+                }
+            )
+
+    @patch("frontend.api.transport.httpx.get")
+    def test_fetches_validated_price_history(self, mock_get) -> None:
+        """確認歷史收盤價 client 傳遞筆數並保留交易日排序。"""
+
+        mock_get.return_value.json.return_value = {
+            "etf_code": "0056",
+            "name": "元大高股息",
+            "items": [
+                {
+                    "trade_date": "2026-08-01",
+                    "close_price": 35.1,
+                    "source_id": "twse_stock_day",
+                },
+                {
+                    "trade_date": "2026-08-04",
+                    "close_price": 35.25,
+                    "source_id": "twse_stock_day",
+                },
+            ],
+        }
+
+        result = fetch_etf_price_history(
+            "http://api",
+            "0056",
+            limit=260,
+        )
+
+        self.assertEqual(len(result["items"]), 2)
+        self.assertIn(
+            "/api/v1/etfs/0056/price-history",
+            mock_get.call_args.args[0],
+        )
+        self.assertEqual(
+            mock_get.call_args.kwargs["params"],
+            {"limit": 260},
+        )
+
+    def test_rejects_unsorted_price_history(self) -> None:
+        """確認前端拒絕日期倒序或重複的走勢資料。"""
+
+        with self.assertRaises(APIResponseError):
+            validate_price_history(
+                {
+                    "etf_code": "0056",
+                    "name": "元大高股息",
+                    "items": [
+                        {
+                            "trade_date": "2026-08-04",
+                            "close_price": 35.25,
+                            "source_id": "twse_stock_day",
+                        },
+                        {
+                            "trade_date": "2026-08-01",
+                            "close_price": 35.1,
+                            "source_id": "twse_stock_day",
+                        },
+                    ],
                 }
             )
 

@@ -7,11 +7,14 @@ from typing import Any, Literal
 
 import streamlit as st
 
+from frontend.config import get_api_base_url
 from frontend.navigation import (
     HOME_ROUTE,
     build_detail_query_params,
     create_streamlit_page,
 )
+from frontend.owner_access import render_owner_access_trigger
+from frontend.ui.theme_toggle import render_theme_toggle
 
 
 PaginationAction = Literal[
@@ -24,13 +27,31 @@ PaginationAction = Literal[
 def render_page_title(title: str) -> None:
     """在個別頁面標題上方顯示一致的首頁入口。"""
 
-    st.page_link(
-        create_streamlit_page(HOME_ROUTE),
-        label="返回首頁",
-        icon=":material/arrow_back:",
-        width="content",
-    )
-    st.title(title)
+    with st.container(
+        key="page-top-actions",
+        horizontal=True,
+        horizontal_alignment="distribute",
+        vertical_alignment="center",
+        gap="small",
+    ):
+        st.page_link(
+            create_streamlit_page(HOME_ROUTE),
+            label="返回首頁",
+            icon=":material/arrow_back:",
+            width="content",
+        )
+        render_owner_access_trigger(
+            get_api_base_url()
+        )
+    with st.container(
+        key="page-title-actions",
+        horizontal=True,
+        horizontal_alignment="distribute",
+        vertical_alignment="center",
+        gap="small",
+    ):
+        st.title(title, width="content")
+        render_theme_toggle()
 
 
 def render_etf_detail_links(
