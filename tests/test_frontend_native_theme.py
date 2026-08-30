@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from frontend.ui.theme import (
+    GOODCAT_DARK_PALETTE,
     GOODCAT_PALETTE,
 )
 
@@ -27,32 +28,33 @@ class TestFrontendNativeTheme(unittest.TestCase):
             config = tomllib.load(file)
 
         theme = config["theme"]
+        light_theme = theme["light"]
 
         self.assertEqual(theme["base"], "light")
         self.assertEqual(
-            theme["backgroundColor"],
+            light_theme["backgroundColor"],
             "#F7F7F4",
         )
         self.assertEqual(
-            theme["textColor"],
+            light_theme["textColor"],
             "#343740",
         )
         self.assertEqual(
-            theme["primaryColor"],
+            light_theme["primaryColor"],
             "#5B5E69",
         )
         self.assertEqual(
-            theme["borderColor"],
+            light_theme["borderColor"],
             "#D9DADF",
         )
         self.assertEqual(
-            theme[
+            light_theme[
                 "secondaryBackgroundColor"
             ],
             "#FFFFFF",
         )
         self.assertEqual(
-            theme["sidebar"][
+            light_theme["sidebar"][
                 "backgroundColor"
             ],
             "#EEEFEF",
@@ -67,6 +69,51 @@ class TestFrontendNativeTheme(unittest.TestCase):
                 "secondary_text"
             ],
             "#6F737C",
+        )
+
+    def test_goodcat_dark_palette_is_configured(
+        self,
+    ) -> None:
+        with THEME_PATH.open("rb") as file:
+            config = tomllib.load(file)
+
+        dark_theme = config["theme"]["dark"]
+
+        self.assertEqual(
+            dark_theme["backgroundColor"],
+            "#1E1B18",
+        )
+        self.assertEqual(
+            dark_theme[
+                "secondaryBackgroundColor"
+            ],
+            "#2A2724",
+        )
+        self.assertEqual(
+            dark_theme["textColor"],
+            "#FDFBF7",
+        )
+        self.assertEqual(
+            dark_theme["primaryColor"],
+            "#F59E0B",
+        )
+        self.assertEqual(
+            dark_theme["borderColor"],
+            "#3D3732",
+        )
+        self.assertEqual(
+            dark_theme["sidebar"][
+                "backgroundColor"
+            ],
+            "#211E1B",
+        )
+        self.assertEqual(
+            GOODCAT_DARK_PALETTE["canvas"],
+            "#1E1B18",
+        )
+        self.assertEqual(
+            GOODCAT_DARK_PALETTE["secondary_text"],
+            "#A8A29E",
         )
 
 

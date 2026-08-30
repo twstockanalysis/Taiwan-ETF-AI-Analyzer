@@ -19,7 +19,7 @@ class TestFrontendAssessment(unittest.TestCase):
             }
         )
 
-        self.assertEqual(presentation.label, "歷史品質 A+")
+        self.assertEqual(presentation.label, "喵喵評等：A+")
         self.assertEqual(presentation.color, "green")
         self.assertNotIn("99", presentation.explanation)
         self.assertNotIn("分數", presentation.label)
@@ -33,7 +33,11 @@ class TestFrontendAssessment(unittest.TestCase):
             }
         )
 
-        self.assertEqual(presentation.label, "歷史品質暫不評等")
+        self.assertEqual(presentation.label, "喵喵評等：暫無")
+        self.assertEqual(
+            presentation.explanation,
+            "核心資料不足或未通過資料閘門",
+        )
         self.assertNotIn("F", presentation.label)
         self.assertEqual(presentation.color, "gray")
 

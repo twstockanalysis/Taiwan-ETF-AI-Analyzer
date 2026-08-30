@@ -141,18 +141,21 @@ class TestFrontendDividendAPIClient(
         """確認單次配息保留預估與實際組成。"""
 
         response = Mock()
+        actual_component = self.build_component(
+            component_id=2,
+            basis="ACTUAL",
+            code="76W",
+            ratio_pct=100.0,
+        )
         response.json.return_value = {
             **self.build_event(),
             "etf_code": "00918",
             "components": [
                 self.build_component(),
-                self.build_component(
-                    component_id=2,
-                    basis="ACTUAL",
-                    code="76W",
-                    ratio_pct=100.0,
-                ),
+                actual_component,
             ],
+            "selected_component_basis": "ACTUAL",
+            "selected_components": [actual_component],
         }
         response.raise_for_status.return_value = (
             None
@@ -187,6 +190,16 @@ class TestFrontendDividendAPIClient(
                     "76W",
                 ),
             },
+        )
+        self.assertEqual(
+            result["selected_component_basis"],
+            "ACTUAL",
+        )
+        self.assertEqual(
+            result["selected_components"][0][
+                "component_code"
+            ],
+            "76W",
         )
 
     @patch(
@@ -355,6 +368,46 @@ class TestFrontendDividendAPIClient(
     @patch(
         "frontend.api_client.httpx.get"
     )
+    def test_fetch_76w_accepts_estimated_composite_fallback(
+        self,
+        mock_get: Mock,
+    ) -> None:
+        """正式 76W 缺少時保留 missing，另接受 68% 替代分析。"""
+
+        response = Mock()
+        response.json.return_value = {
+            "etf_code": "0050",
+            "total_dividend_count": 1,
+            "actual_76w_record_count": 0,
+            "full_76w_count": 0,
+            "latest_76w_ratio_pct": None,
+            "average_76w_ratio_pct": None,
+            "analysis_record_count": 1,
+            "analysis_actual_count": 0,
+            "analysis_estimated_fallback_count": 1,
+            "full_realized_gain_count": 0,
+            "latest_realized_gain_ratio_pct": 68.0,
+            "average_realized_gain_ratio_pct": 68.0,
+            "latest_analysis_basis": "ESTIMATED_FALLBACK",
+            "items": [],
+        }
+        response.raise_for_status.return_value = None
+        mock_get.return_value = response
+
+        result = fetch_etf_actual_76w(
+            api_base_url="http://127.0.0.1:8000",
+            code="0050",
+        )
+
+        self.assertEqual(result["actual_76w_record_count"], 0)
+        self.assertIsNone(result["latest_76w_ratio_pct"])
+        self.assertEqual(result["analysis_record_count"], 1)
+        self.assertEqual(result["latest_realized_gain_ratio_pct"], 68.0)
+        self.assertEqual(result["latest_analysis_basis"], "ESTIMATED_FALLBACK")
+
+    @patch(
+        "frontend.api_client.httpx.get"
+    )
     def test_estimated_gain_is_not_renamed_76w(
         self,
         mock_get: Mock,
@@ -362,11 +415,18 @@ class TestFrontendDividendAPIClient(
         """確認 API Client 保留預估資本利得代碼。"""
 
         response = Mock()
+        estimated_component = self.build_component()
         response.json.return_value = {
             **self.build_event(),
             "etf_code": "00918",
             "components": [
-                self.build_component(),
+                estimated_component,
+            ],
+            "selected_component_basis": (
+                "ESTIMATED_FALLBACK"
+            ),
+            "selected_components": [
+                estimated_component,
             ],
         }
         response.raise_for_status.return_value = (

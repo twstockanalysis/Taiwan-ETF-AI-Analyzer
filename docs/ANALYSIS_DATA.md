@@ -167,6 +167,28 @@ component_code = 76W
 A formally disclosed `76W = 0%` is an available record. Absence of an ACTUAL
 76W row is missing data, not zero.
 
+### Composite component data
+
+`backend.app.services.dividend_component_data` is the shared source-selection
+boundary for every component-dependent calculation, the dividend-event detail
+API and the 76W/capital-gain analysis. For each event it emits exactly one
+complete mix:
+
+1. prefer one complete `ACTUAL` event whose ratios total about 100%;
+2. otherwise use one complete e添富 `ESTIMATED` event and label the output
+   `ESTIMATED_FALLBACK`;
+3. never combine rows from the two bases to manufacture 100%.
+
+Raw rows and their original component codes remain stored for provenance. The
+selected output supplies a usable composition to downstream algorithms without
+relabelling estimated codes as formal `54C` or `76W`.
+
+The 76W/capital-gain analysis applies this selection independently to every
+dividend event. An ACTUAL selection contributes only its formal `76W` ratio; an
+`ESTIMATED_FALLBACK` selection contributes only
+`EST_REALIZED_CAPITAL_GAIN`. Formal coverage metrics remain ACTUAL-only even
+when the fallback analysis is available.
+
 ## Actual source processing
 
 ### Human-reviewed JSON

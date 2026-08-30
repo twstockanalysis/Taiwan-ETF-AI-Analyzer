@@ -1,8 +1,11 @@
 """ETF 搜尋、篩選及分頁頁面。"""
 
 from dataclasses import replace
+from html import escape, unescape
 import math
 from typing import Any
+from unicodedata import east_asian_width
+from urllib.parse import urlencode
 
 import streamlit as st
 
@@ -14,6 +17,7 @@ from frontend.config import (
     get_api_base_url,
 )
 from frontend.navigation import (
+    ETF_DETAIL_ROUTE,
     ETF_SEARCH_ROUTE,
     build_detail_query_params,
 )
@@ -28,6 +32,7 @@ from frontend.ui.components import (
     render_pagination_controls,
 )
 from frontend.ui.formatters import (
+    format_etf_display_name,
     format_number,
     management_type_label,
 )
@@ -59,6 +64,16 @@ SEARCH_QUERY_SIGNATURE_KEY = (
     "_etf_search_query_signature"
 )
 
+SEARCH_TABLE_COLUMNS = (
+    ("code", "代號"),
+    ("name", "名稱"),
+    ("historical_quality", "喵喵評等"),
+    ("management_type", "管理方式"),
+    ("listing_date", "上市日期"),
+    ("fund_size", "基金規模"),
+    ("expense_ratio", "費用率"),
+)
+
 
 def format_optional_number(
     value: Any,
@@ -86,9 +101,9 @@ def format_etf_result_row(
         item["code"]
     ).strip().upper()
 
-    name = str(
+    name = format_etf_display_name(
         item["name"]
-    ).strip()
+    )
 
     management_type = (
         management_type_label(
@@ -130,7 +145,7 @@ def render_clickable_etf_rows(
     query_state: ETFSearchQueryState | None = None,
     grade_lookup: dict[str, dict[str, Any]] | None = None,
 ) -> None:
-    """以固定欄位資料表顯示 ETF 清單。"""
+    """以整列可點擊的固定欄位表格顯示 ETF 清單。"""
 
     source_state = (
         query_state
@@ -140,80 +155,161 @@ def render_clickable_etf_rows(
         )
     )
 
-    rows = [
-        format_etf_result_row(
+    st.html(
+        build_etf_search_table_html(
+            items,
+            source_state,
+            grade_lookup=grade_lookup,
+        ),
+        width="stretch",
+    )
+
+
+def html_text(value: object) -> str:
+    """將外部文字正規化後安全放入 HTML。"""
+
+    return escape(
+        unescape(str(value)),
+        quote=True,
+    )
+
+
+def estimate_text_width_rem(value: object) -> float:
+    """依字元實際顯示寬度估算固定欄寬。"""
+
+    width = 0.0
+    for character in unescape(str(value)):
+        if character.isspace():
+            width += 0.35
+        elif east_asian_width(character) in {"W", "F"}:
+            width += 1.0
+        elif character in "ilI1.,:;|!'`-":
+            width += 0.35
+        elif character in "MW@%&":
+            width += 0.9
+        else:
+            width += 0.62
+
+    return width
+
+
+def build_etf_search_column_layout(
+    rows: list[dict[str, str]],
+) -> tuple[str, float]:
+    """依各欄表頭或內容的最長文字建立固定欄寬。"""
+
+    widths: list[float] = []
+    for key, label in SEARCH_TABLE_COLUMNS:
+        content_width = max(
+            [estimate_text_width_rem(label)]
+            + [
+                estimate_text_width_rem(row[key])
+                for row in rows
+            ]
+        )
+        widths.append(
+            max(
+                3.5,
+                math.ceil(
+                    (content_width + 0.9) * 4
+                ) / 4,
+            )
+        )
+
+    template = " ".join(
+        f"{width:g}rem"
+        for width in widths
+    )
+    total_width = (
+        sum(widths)
+        + len(widths) - 1
+        + 2
+    )
+    return template, total_width
+
+
+def build_etf_search_table_html(
+    items: list[dict[str, Any]],
+    source_state: ETFSearchQueryState,
+    *,
+    grade_lookup: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    """建立無選取欄、整列可開啟詳細資料的搜尋表格。"""
+
+    formatted_rows = [
+        (
             item,
-            (grade_lookup or {}).get(
-                str(item["code"]).strip().upper()
+            format_etf_result_row(
+                item,
+                (grade_lookup or {}).get(
+                    str(item["code"]).strip().upper()
+                ),
             ),
         )
         for item in items
     ]
-
-    selection = st.dataframe(
-        rows,
-        column_order=(
-            "code",
-            "name",
-            "historical_quality",
-            "management_type",
-            "listing_date",
-            "fund_size",
-            "expense_ratio",
-        ),
-        column_config={
-            "code": st.column_config.TextColumn(
-                "代號",
-                width="small",
-                pinned=True,
-            ),
-            "name": st.column_config.TextColumn(
-                "名稱",
-                width="large",
-                pinned=True,
-            ),
-            "historical_quality": st.column_config.TextColumn(
-                "歷史品質評等",
-                width="medium",
-            ),
-            "management_type": (
-                st.column_config.TextColumn(
-                    "管理方式",
-                    width="small",
-                )
-            ),
-            "listing_date": (
-                st.column_config.TextColumn(
-                    "上市日期",
-                    width="medium",
-                )
-            ),
-            "fund_size": st.column_config.TextColumn(
-                "基金規模",
-                width="medium",
-            ),
-            "expense_ratio": (
-                st.column_config.TextColumn(
-                    "費用率",
-                    width="small",
-                )
-            ),
-        },
-        hide_index=True,
-        width="stretch",
-        height="content",
-        key=RESULT_ACTION_KEY,
-        on_select="rerun",
-        selection_mode="single-row",
+    column_template, table_width = (
+        build_etf_search_column_layout(
+            [row for _, row in formatted_rows]
+        )
     )
 
-    selected_rows = selection.selection.rows
-    if selected_rows:
-        open_etf_detail(
-            items,
-            source_state,
-            row_index=int(selected_rows[0]),
+    header_cells = "".join(
+        (
+            '<span class="performance-ranking-cell" '
+            f'role="columnheader">{html_text(label)}</span>'
         )
+        for _, label in SEARCH_TABLE_COLUMNS
+    )
+
+    row_html: list[str] = []
+    for item, row in formatted_rows:
+        code = str(item["code"]).strip().upper()
+        query = urlencode(
+            build_detail_query_params(
+                code=code,
+                source=str(ETF_SEARCH_ROUTE.url_path),
+                source_query_params=source_state.to_query_params(),
+            )
+        )
+        href = f"/{ETF_DETAIL_ROUTE.url_path}?{query}"
+        cell_values = (
+            row["code"],
+            row["name"],
+            row["historical_quality"],
+            row["management_type"],
+            row["listing_date"],
+            row["fund_size"],
+            row["expense_ratio"],
+        )
+        cells = "".join(
+            (
+                '<span class="performance-ranking-cell" '
+                f'role="cell">{html_text(value)}</span>'
+            )
+            for value in cell_values
+        )
+        row_html.append(
+            (
+                '<a class="performance-ranking-row" '
+                f'href="{html_text(href)}" role="row" '
+                f'aria-label="查看 {html_text(code)} '
+                f'{html_text(row["name"])} 詳細資料">'
+                f"{cells}</a>"
+            )
+        )
+
+    return (
+        '<div class="performance-ranking-scroll">'
+        '<div class="performance-ranking-grid etf-search-grid" '
+        f'style="--etf-search-columns: {column_template}; '
+        f'width: {table_width:g}rem" '
+        'role="table" aria-label="ETF 搜尋結果">'
+        '<div class="performance-ranking-header" role="row">'
+        f"{header_cells}</div>"
+        f"{''.join(row_html)}"
+        "</div></div>"
+    )
 
 
 def open_etf_detail(
@@ -463,12 +559,32 @@ def render_search_form() -> None:
                 ),
             )
 
-        submitted = (
-            st.form_submit_button(
-                "套用篩選",
-                type="primary",
-            )
+        submitted = st.form_submit_button(
+            "搜尋",
+            type="primary",
         )
+
+        with st.container(
+            key="etf-search-secondary-actions",
+            horizontal=True,
+            gap="small",
+        ):
+            clear_clicked = st.form_submit_button(
+                "清除條件"
+            )
+            refresh_clicked = st.form_submit_button(
+                "重新載入"
+            )
+
+    if clear_clicked:
+        reset_search_state()
+        load_etf_page.clear()
+        st.rerun()
+
+    if refresh_clicked:
+        load_etf_page.clear()
+        load_historical_quality_grade_lookup.clear()
+        st.rerun()
 
     if submitted:
         update_search_state(
@@ -483,44 +599,6 @@ def render_search_form() -> None:
 
         load_etf_page.clear()
         st.rerun()
-
-
-def render_action_buttons() -> None:
-    """顯示清除及重新載入按鈕。"""
-
-    clear_column, refresh_column, _ = (
-        st.columns(
-            [
-                1,
-                1,
-                4,
-            ]
-        )
-    )
-
-    with clear_column:
-        clear_clicked = st.button(
-            "清除條件",
-            key="clear_etf_filters",
-        )
-
-    with refresh_column:
-        refresh_clicked = st.button(
-            "重新載入",
-            key="refresh_etf_data",
-        )
-
-    if clear_clicked:
-        reset_search_state()
-        load_etf_page.clear()
-        st.rerun()
-
-    if refresh_clicked:
-        load_etf_page.clear()
-        load_historical_quality_grade_lookup.clear()
-        st.rerun()
-
-
 def render_pagination(
     state: ETFSearchQueryState,
     total_pages: int,
@@ -558,10 +636,9 @@ def render_etf_search() -> None:
 
     initialize_search_state()
 
-    render_page_title("搜尋&詳細資料")
+    render_page_title("搜尋")
 
     render_search_form()
-    render_action_buttons()
 
     try:
         api_base_url = get_api_base_url()
@@ -632,32 +709,36 @@ def render_etf_search() -> None:
         )
         st.rerun()
 
-    total_column, page_column, count_column = (
-        st.columns(3)
-    )
-
-    with total_column:
-        st.metric(
-            "符合條件",
-            f"{total:,} 檔",
+    with st.container(
+        key="etf-search-summary",
+        gap=None,
+    ):
+        total_column, page_column, count_column = (
+            st.columns(3)
         )
 
-    with page_column:
-        st.metric(
-            "目前頁次",
-            (
-                f"{state.page}"
-                f" / {total_pages}"
-            ),
-        )
+        with total_column:
+            st.metric(
+                "符合條件",
+                f"{total:,} 檔",
+            )
 
-    with count_column:
-        st.metric(
-            "本頁筆數",
-            f"{len(items)}",
-        )
+        with page_column:
+            st.metric(
+                "目前頁次",
+                (
+                    f"{state.page}"
+                    f" / {total_pages}"
+                ),
+            )
 
-    st.divider()
+        with count_column:
+            st.metric(
+                "本頁筆數",
+                f"{len(items)}",
+            )
+
+        st.divider()
 
     if not items:
         render_empty_state(
@@ -687,7 +768,7 @@ def render_etf_search() -> None:
 
     if grade_error:
         st.caption(
-            "歷史品質評等暫時無法取得；"
+            "喵喵評等暫時無法取得；"
             "其他 ETF 資料仍可正常查看。"
         )
 

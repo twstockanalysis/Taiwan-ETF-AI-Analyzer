@@ -707,5 +707,46 @@ class TestTargetAnalysisAPI(unittest.TestCase):
         self.assertIsNone(response.json()["close_price"])
         self.assertIsNone(response.json()["trade_date"])
         self.assertIsNone(response.json()["source_id"])
+
+    @patch("backend.app.api.routers.target_analysis.list_daily_closes")
+    @patch("backend.app.api.routers.target_analysis.get_etf_by_code")
+    def test_price_history_returns_recent_rows_in_trade_date_order(
+        self,
+        mock_get_etf_by_code,
+        mock_list_daily_closes,
+    ) -> None:
+        """確認公開走勢端點只回傳指定筆數的官方收盤價。"""
+
+        mock_get_etf_by_code.return_value = {
+            "code": "0056",
+            "name": "元大高股息",
+        }
+        mock_list_daily_closes.return_value = [
+            {
+                "etf_code": "0056",
+                "trade_date": f"2026-08-0{day}",
+                "close_price": Decimal(str(30 + day)),
+                "source_id": "twse_stock_day",
+            }
+            for day in range(1, 5)
+        ]
+
+        response = self.client.get(
+            "/api/v1/etfs/0056/price-history?limit=2"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [item["trade_date"] for item in response.json()["items"]],
+            ["2026-08-03", "2026-08-04"],
+        )
+        self.assertEqual(
+            response.json()["items"][0]["source_id"],
+            "twse_stock_day",
+        )
+        self.assertIsInstance(
+            response.json()["items"][0]["close_price"],
+            float,
+        )
 if __name__ == "__main__":
     unittest.main()

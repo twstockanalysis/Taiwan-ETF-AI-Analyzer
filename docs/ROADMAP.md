@@ -1349,7 +1349,7 @@ Delivered:
   experience explicitly unaccepted until V4-7
 - Evidence: `V4_FUNCTIONAL_ACCEPTANCE.md`
 
-### V4-7 — Page-by-page UI and UX acceptance
+### V4-7 — Page-by-page UI and UX acceptance — Complete
 
 - Start the local frontend and backend so the owner can inspect the real
   Streamlit experience without waiting for a public domain
@@ -1363,6 +1363,10 @@ Delivered:
 - Track page decisions and acceptance evidence in `V4_PAGE_ACCEPTANCE.md`
 - Keep all accepted page adjustments in one V4-7 pull request and merge only
   after every in-scope page has been reviewed
+- Owner accepted all in-scope pages on 2026-08-30 after the final planner
+  reward-state artwork adjustment
+- Passed Python compilation and the complete 1,040-test automated regression
+- Evidence: `V4_PAGE_ACCEPTANCE.md`
 
 ### V4-8 — Pre-launch candidate and real-environment gate
 

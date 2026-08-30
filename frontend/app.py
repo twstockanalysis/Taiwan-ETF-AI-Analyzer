@@ -6,8 +6,7 @@ from frontend.branding import SITE_NAME
 from frontend.navigation import (
     create_navigation,
 )
-from frontend.config import get_api_base_url
-from frontend.owner_access import render_owner_access
+from frontend.owner_access import get_owner_token
 
 
 def main() -> None:
@@ -17,10 +16,10 @@ def main() -> None:
         page_title=SITE_NAME,
         page_icon=":material/finance_mode:",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="collapsed",
     )
 
-    owner_unlocked = render_owner_access(get_api_base_url())
+    owner_unlocked = get_owner_token() is not None
     navigation = create_navigation(owner_unlocked=owner_unlocked)
     navigation.run()
 

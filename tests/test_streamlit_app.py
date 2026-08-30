@@ -14,6 +14,13 @@ STREAMLIT_APP_PATH = (
     / "app.py"
 )
 
+SEARCH_PAGE_PATH = (
+    PROJECT_ROOT
+    / "frontend"
+    / "pages"
+    / "etf_search.py"
+)
+
 
 def build_system_overview_payload() -> dict:
     """建立首頁 AppTest 使用的合法系統總覽。"""
@@ -125,6 +132,7 @@ from unittest.mock import patch
 
 import frontend.pages.etf_search as page
 
+page.render_page_title = lambda title: page.st.title(title)
 
 def fake_fetch_etfs(**kwargs):
     return {
@@ -171,8 +179,11 @@ with patch(
 
 
 DETAIL_PAGE_SCRIPT = """
+from unittest.mock import patch
+
 import frontend.pages.etf_detail as page
 
+page.render_page_title = lambda title: page.st.title(title)
 
 def fake_fetch_etf_by_code(**kwargs):
     return {
@@ -228,7 +239,12 @@ page.load_etf_latest_close.clear()
 page.load_historical_quality_grade_lookup = (
     lambda api_base_url, codes: {}
 )
-page.render_etf_detail()
+# 頁面連結的參數與樣式由獨立單元測試及瀏覽器驗收；
+# 此處只驗證詳細頁其餘元件能正常呈現。
+with patch(
+    "frontend.pages.etf_detail.st.page_link"
+):
+    page.render_etf_detail()
 """
 
 
@@ -237,6 +253,7 @@ from unittest.mock import patch
 
 import frontend.pages.performance_ranking as page
 
+page.render_page_title = lambda title: page.st.title(title)
 
 def fake_fetch_multi_period_performance_ranking(
     **kwargs,
@@ -317,6 +334,8 @@ with patch(
 NOT_FOUND_PAGE_SCRIPT = """
 import frontend.pages.etf_detail as page
 
+page.render_page_title = lambda title: page.st.title(title)
+
 from frontend.api_client import (
     APIResourceNotFoundError,
 )
@@ -348,7 +367,12 @@ class TestStreamlitApp(unittest.TestCase):
             default_timeout=10,
         )
 
-        app.run()
+        # CCv2 元件另有專屬測試；AppTest 會清空元件登錄表，
+        # 因此此處只驗證首頁其餘資訊架構。
+        with patch(
+            "frontend.pages.home.render_theme_toggle"
+        ):
+            app.run()
 
         self.assertEqual(
             len(app.exception),
@@ -372,16 +396,33 @@ class TestStreamlitApp(unittest.TestCase):
         page_text = "\n".join(
             [item.value for item in app.subheader]
             + [item.value for item in app.caption]
+            + [item.value for item in app.markdown]
         )
         self.assertNotIn("先算出適合你的 ETF 配置", page_text)
         self.assertIn("股利喵幫你算", page_text)
-        self.assertIn("Your GoodCat, Easy ETF planning!", page_text)
-        self.assertIn("所有資料皆來源自證交所及投信", page_text)
+        self.assertIn("Your GoodCat, Easy planning!", page_text)
+        self.assertNotIn("所有資料皆來源自證交所及投信", page_text)
         self.assertNotIn("本站不下單", page_text)
         self.assertNotIn("目前可用資料", page_text)
         self.assertNotIn("FastAPI", page_text)
         self.assertNotIn("SQLite", page_text)
         self.assertNotIn("最近匯入批次", page_text)
+
+        app_source = STREAMLIT_APP_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'initial_sidebar_state="collapsed"',
+            app_source,
+        )
+        self.assertIn(
+            "owner_unlocked = get_owner_token() is not None",
+            app_source,
+        )
+        self.assertNotIn(
+            "render_owner_access(",
+            app_source,
+        )
 
     def test_search_page_renders_aligned_detail_rows(
         self,
@@ -402,7 +443,7 @@ class TestStreamlitApp(unittest.TestCase):
 
         self.assertEqual(
             app.title[0].value,
-            "搜尋&詳細資料",
+            "搜尋",
         )
 
         selectbox_labels = [
@@ -415,22 +456,16 @@ class TestStreamlitApp(unittest.TestCase):
             selectbox_labels,
         )
 
-        self.assertEqual(len(app.dataframe), 1)
+        self.assertEqual(len(app.dataframe), 0)
 
-        result_table = app.dataframe[0].value
-
-        self.assertEqual(
-            list(result_table.columns),
-            [
-                "code",
-                "name",
-                "historical_quality",
-                "management_type",
-                "listing_date",
-                "fund_size",
-                "expense_ratio",
-            ],
+        search_source = SEARCH_PAGE_PATH.read_text(
+            encoding="utf-8"
         )
+        self.assertIn(
+            'key="etf-search-summary"',
+            search_source,
+        )
+        self.assertIn("gap=None", search_source)
 
         caption_text = "\n".join(
             str(item.value)
@@ -473,6 +508,8 @@ class TestStreamlitApp(unittest.TestCase):
             "6M",
             metric_values,
         )
+        self.assertEqual(len(app.metric), 1)
+        self.assertEqual(app.metric[0].label, "排序期間")
 
         selectbox_labels = [
             item.label
@@ -499,22 +536,17 @@ class TestStreamlitApp(unittest.TestCase):
             "預設為6M",
             caption_text,
         )
+        markdown_text = "\n".join(
+            str(item.value)
+            for item in app.markdown
+        )
+        self.assertIn("前20名", markdown_text)
+        self.assertNotIn("前20名", caption_text)
 
         self.assertNotIn("市價報酬率", caption_text)
+        self.assertNotIn("符合條件共", caption_text)
 
-        self.assertEqual(len(app.dataframe), 1)
-        self.assertEqual(
-            list(app.dataframe[0].value.columns),
-            [
-                "rank",
-                "code",
-                "name",
-                "period_return",
-                "historical_quality",
-                "as_of_date",
-                "management_type",
-            ],
-        )
+        self.assertEqual(len(app.dataframe), 0)
 
 
     def test_detail_page_uses_gregorian_date(
@@ -594,7 +626,7 @@ class TestStreamlitApp(unittest.TestCase):
         )
 
         self.assertIn(
-            "歷史資料不足",
+            "資料抓取中",
             metric_values,
         )
 

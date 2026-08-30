@@ -17,6 +17,8 @@ from frontend.pages.dividend_data_quality import (
 QUALITY_PAGE_SCRIPT = """
 import frontend.pages.dividend_data_quality as page
 
+page.render_page_title = lambda title: page.st.title(title)
+
 
 def fake_fetch_actual_dividend_coverage(
     etf_code=None,
@@ -110,6 +112,8 @@ page.render_dividend_data_quality()
 
 EMPTY_QUALITY_PAGE_SCRIPT = """
 import frontend.pages.dividend_data_quality as page
+
+page.render_page_title = lambda title: page.st.title(title)
 
 
 def fake_fetch_actual_dividend_coverage(

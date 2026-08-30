@@ -1,5 +1,13 @@
 [theme]
 base = "light"
+font = "sans-serif"
+linkUnderline = false
+baseRadius = "12px"
+buttonRadius = "12px"
+showWidgetBorder = true
+showSidebarBorder = true
+
+[theme.light]
 primaryColor = "#5B5E69"
 backgroundColor = "#F7F7F4"
 secondaryBackgroundColor = "#FFFFFF"
@@ -9,16 +17,28 @@ borderColor = "#D9DADF"
 codeBackgroundColor = "#EEEFEF"
 dataframeBorderColor = "#D9DADF"
 dataframeHeaderBackgroundColor = "#EEEFEF"
-font = "sans-serif"
-linkUnderline = false
-baseRadius = "12px"
-buttonRadius = "12px"
-showWidgetBorder = true
-showSidebarBorder = true
 
-[theme.sidebar]
+[theme.dark]
+primaryColor = "#F59E0B"
+backgroundColor = "#1E1B18"
+secondaryBackgroundColor = "#2A2724"
+textColor = "#FDFBF7"
+linkColor = "#F6B94A"
+borderColor = "#3D3732"
+codeBackgroundColor = "#1A1816"
+dataframeBorderColor = "#3D3732"
+dataframeHeaderBackgroundColor = "#2A2724"
+
+[theme.light.sidebar]
 backgroundColor = "#EEEFEF"
 secondaryBackgroundColor = "#E4E5E6"
 textColor = "#343740"
 primaryColor = "#5B5E69"
 borderColor = "#D9DADF"
+
+[theme.dark.sidebar]
+backgroundColor = "#211E1B"
+secondaryBackgroundColor = "#2A2724"
+textColor = "#FDFBF7"
+primaryColor = "#F59E0B"
+borderColor = "#3D3732"

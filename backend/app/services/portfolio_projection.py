@@ -30,7 +30,9 @@ from backend.app.repositories.dividend_repository import (
     list_etf_dividends,
 )
 from backend.app.services.long_term_scenario import build_long_term_scenarios
-from backend.app.services.tax_reinvestment_data import select_calculation_component_mix
+from backend.app.services.dividend_component_data import (
+    select_composite_component_mix,
+)
 from backend.app.utils.date_tools import shift_months
 
 
@@ -144,7 +146,7 @@ def _holding_fact(
         elif annual_cash == 0:
             payments = 1
 
-    selection = select_calculation_component_mix(
+    selection = select_composite_component_mix(
         list_etf_component_history(holding.etf_code, database_path)
     )
     if annual_cash is not None and annual_cash > 0 and selection is None:

@@ -23,6 +23,7 @@ class GoodCatState(str, Enum):
     ATTENTIVE = "ATTENTIVE"
     WORKING = "WORKING"
     READY = "READY"
+    REWARD = "REWARD"
     CAUTION = "CAUTION"
 
 
@@ -43,6 +44,7 @@ def _presentation(
     label: str,
     accessibility_text: str,
     default_message: str,
+    asset_filename: str | None = None,
 ) -> GoodCatPresentation:
     return GoodCatPresentation(
         state=state,
@@ -54,8 +56,11 @@ def _presentation(
         asset_path=(
             GOODCAT_ASSET_DIRECTORY
             / (
-                "goodcat-"
-                f"{state.value.lower()}.png"
+                asset_filename
+                or (
+                    "goodcat-"
+                    f"{state.value.lower()}.png"
+                )
             )
         ),
     )
@@ -75,14 +80,16 @@ GOODCAT_PRESENTATIONS = {
     ),
     GoodCatState.ATTENTIVE: _presentation(
         GoodCatState.ATTENTIVE,
-        label="正在聽主人說",
+        label="正在等主人",
         accessibility_text=(
             "灰白 GoodCat 抬起頭香箱坐，"
-            "耳朵向前專心聽主人輸入條件。"
+            "睜圓眼睛並將耳朵向前，"
+            "有精神地聽主人輸入條件。"
         ),
         default_message=(
             "告訴咪領息月份、目標與現有持股就可以囉。"
         ),
+        asset_filename="goodcat-attentive-v3.png",
     ),
     GoodCatState.WORKING: _presentation(
         GoodCatState.WORKING,
@@ -105,6 +112,18 @@ GOODCAT_PRESENTATIONS = {
         default_message=(
             "算好囉！一起看看配置、理由與風險。"
         ),
+    ),
+    GoodCatState.REWARD: _presentation(
+        GoodCatState.REWARD,
+        label="工作完成，等主人獎勵",
+        accessibility_text=(
+            "灰白 GoodCat 開心睜大眼睛、豎起尾巴並抬起前腳，"
+            "表示已完成計算，正期待主人給予獎勵；畫面不顯示食物。"
+        ),
+        default_message=(
+            "咪完成工作囉！一起看結果，也別忘了咪的獎勵。"
+        ),
+        asset_filename="goodcat-reward-hero.png",
     ),
     GoodCatState.CAUTION: _presentation(
         GoodCatState.CAUTION,
@@ -176,15 +195,13 @@ def render_goodcat_companion(
     ):
         st.image(
             presentation.asset_path,
-            caption=(
-                presentation.accessibility_text
-            ),
+            caption=None,
             width=image_width,
             output_format="PNG",
         )
         with st.container(gap="xsmall"):
             st.caption(
-                f"GoodCat｜{presentation.label}"
+                presentation.label
             )
             st.markdown(
                 f"**{rendered_message}**"

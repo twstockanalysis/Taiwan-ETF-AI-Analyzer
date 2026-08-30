@@ -91,7 +91,7 @@ def fetch_etf_actual_76w(
     code: str,
     timeout_seconds: float = 10.0,
 ) -> dict[str, Any]:
-    """取得 ETF 的正式 ACTUAL 76W 歷史摘要。"""
+    """取得 ETF 的正式 76W 與綜合資本利得分析摘要。"""
 
     normalized_code = (
         code.strip().upper()
@@ -231,6 +231,95 @@ def fetch_etf_actual_76w(
         )
     )
 
+    analysis_record_count = validate_non_negative_integer(
+        payload.get(
+            "analysis_record_count",
+            actual_record_count,
+        ),
+        "76W 綜合分析 analysis_record_count",
+    )
+    analysis_actual_count = validate_non_negative_integer(
+        payload.get(
+            "analysis_actual_count",
+            actual_record_count,
+        ),
+        "76W 綜合分析 analysis_actual_count",
+    )
+    analysis_estimated_count = validate_non_negative_integer(
+        payload.get(
+            "analysis_estimated_fallback_count",
+            0,
+        ),
+        "76W 綜合分析 analysis_estimated_fallback_count",
+    )
+    full_realized_gain_count = validate_non_negative_integer(
+        payload.get(
+            "full_realized_gain_count",
+            full_76w_count,
+        ),
+        "76W 綜合分析 full_realized_gain_count",
+    )
+    latest_realized_gain_ratio = validate_optional_number(
+        payload.get(
+            "latest_realized_gain_ratio_pct",
+            latest_ratio,
+        ),
+        "76W 綜合分析 latest_realized_gain_ratio_pct",
+        minimum=0,
+        maximum=100,
+    )
+    average_realized_gain_ratio = validate_optional_number(
+        payload.get(
+            "average_realized_gain_ratio_pct",
+            average_ratio,
+        ),
+        "76W 綜合分析 average_realized_gain_ratio_pct",
+        minimum=0,
+        maximum=100,
+    )
+    latest_basis_value = payload.get(
+        "latest_analysis_basis",
+        "ACTUAL" if actual_record_count else None,
+    )
+    latest_analysis_basis = (
+        None
+        if latest_basis_value is None
+        else validate_required_text(
+            latest_basis_value,
+            "76W 綜合分析 latest_analysis_basis",
+        ).upper()
+    )
+    if latest_analysis_basis not in {
+        None,
+        "ACTUAL",
+        "ESTIMATED_FALLBACK",
+    }:
+        raise APIResponseError(
+            "76W 綜合分析 latest_analysis_basis 不正確"
+        )
+    if (
+        analysis_actual_count + analysis_estimated_count
+        != analysis_record_count
+    ):
+        raise APIResponseError(
+            "76W 綜合分析來源筆數與總數不一致"
+        )
+    if full_realized_gain_count > analysis_record_count:
+        raise APIResponseError(
+            "100% 資本利得次數不可大於分析紀錄數"
+        )
+    if analysis_record_count == 0 and any(
+        value is not None
+        for value in (
+            latest_realized_gain_ratio,
+            average_realized_gain_ratio,
+            latest_analysis_basis,
+        )
+    ):
+        raise APIResponseError(
+            "沒有綜合分析紀錄時不得帶入比例或來源基礎"
+        )
+
     return {
         "etf_code": response_code,
         "total_dividend_count": (
@@ -248,6 +337,13 @@ def fetch_etf_actual_76w(
         "average_76w_ratio_pct": (
             average_ratio
         ),
+        "analysis_record_count": analysis_record_count,
+        "analysis_actual_count": analysis_actual_count,
+        "analysis_estimated_fallback_count": analysis_estimated_count,
+        "full_realized_gain_count": full_realized_gain_count,
+        "latest_realized_gain_ratio_pct": latest_realized_gain_ratio,
+        "average_realized_gain_ratio_pct": average_realized_gain_ratio,
+        "latest_analysis_basis": latest_analysis_basis,
         "items": validated_items,
     }
 

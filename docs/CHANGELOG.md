@@ -1,5 +1,111 @@
 # Changelog
 
+## 2026-08-27 — V4-7 page experience review started
+
+- Added the owner-led V4 page acceptance record and fixed review order.
+- Kept all page adjustments on one V4-7 branch and reserved merge until every
+  public and owner-administration page is accepted.
+- Started with the running home page; automated tests remain supporting
+  evidence and do not replace owner UI/UX approval.
+- Shortened the ETF search label to `搜尋` and aligned its results with the
+  borderless, whole-row detail links used by the performance ranking, without
+  changing the requested data-column order; each search column now keeps a
+  fixed content-derived width based on its heading or longest visible value.
+- Shortened the comparison page to `比較`, clarified its primary action and
+  placed the minimum-input hint beside that action; shortened the planner
+  holding-row action to `持股`.
+- Expanded comparison input from code-only entry to ETF code or name lookup;
+  exact codes, exact names and unique name keywords resolve deterministically,
+  while ambiguous names require a more complete entry. The hint now states the
+  two-to-four ETF comparison limit.
+- Moved private login out of the sidebar into a top-right `喵窩` dialog,
+  defaulted public navigation to collapsed and retained the native sidebar
+  control and per-session owner verification behavior.
+- Tightened the search result summary so its existing divider immediately
+  follows the result count, page and page-size metrics.
+- Renamed the public historical-quality presentation to `喵喵評等` across
+  planner, search, ranking, detail and comparison views without changing the
+  underlying grade contract.
+- Moved search and performance-ranking clear/reload actions into their filter
+  cards directly below the primary action, tightened their spacing and aligned
+  their left edge; renamed the primary actions to `搜尋` and `篩選`.
+- Shortened the ETF detail heading to `詳細資料`, removed the repeated query-code
+  caption and aligned its renamed `更新` action beside the return control.
+- Added a broker-style price trend chart to the detail performance card using
+  only saved official TWSE daily closes, placed it before the renamed
+  `資料來源於證交所` caption, and kept insufficient history visibly pending
+- Connected the ETF-detail `76W 與資本利得分析` to the shared composite
+  component selector on a per-dividend basis: complete ACTUAL composition is
+  preferred, while complete e添富 realized-capital-gain composition is used as
+  an explicitly labelled fallback without changing formal 76W coverage.
+  without filling missing dates or prices with zero.
+- Tightened the detail identity card, moved classification beside the ETF name,
+  removed its redundant core-data heading and standardized quality badges with
+  a colon plus `暫無` for unrated ETFs.
+- Kept public missing-data explanations concise while restricting detailed
+  evidence gaps and master-data diagnostics to verified `喵窩` sessions.
+- Aligned the desktop sidebar navigation start with the main return-home action
+  without changing navigation-item order or relative spacing on any page.
+- Restricted the unrated data-gate explanation to `喵窩` sessions and changed
+  detail-page missing-value copy to `資料抓取中`, preserving missing values in
+  the API and database rather than converting them to zero.
+- Tightened the ETF detail code/name spacing without changing card alignment.
+- Moved the top-right `喵窩` action into the same header row as the home brand
+  title or each inner page's return-home action, removing its former standalone
+  row; recalibrated the desktop sidebar so its home item stays vertically
+  aligned with the return action.
+- Removed the legacy target-cash-flow section from ETF detail and restricted
+  its separate single-ETF tax/reinvestment scenario tool to verified `喵窩`
+  sessions while preserving the public planner's portfolio tax calculation.
+- Simplified the detail performance heading and source copy, and grouped its
+  period metrics into a single bordered card.
+- Reworked the detail dividend summary as a compact card with three primary
+  metrics, a yearly stacked cash/stock dividend chart beside a separate yield
+  line chart, and concise TWSE source/fallback copy; missing stock-dividend data
+  remains explicit and is never converted to zero.
+- Removed redundant divider lines between consecutive ETF detail cards.
+- Removed the technical yield-basis column from the public dividend summary
+  table without changing source provenance or fallback calculations.
+- Combined dividend summary rows with event-composition disclosures so each row
+  expands in place, removing the duplicated lower history section.
+- Fixed dividend charts to a rolling five-year axis, simplified chart labels,
+  separated same-year payments with dashed stacked-bar borders and restricted
+  the stock-dividend ingestion notice to verified owner sessions.
+- Renamed the detail dividend card to `配息資料`; combined cash and stock
+  amounts as `現金/股票`, preserving unavailable stock data as `—` while
+  displaying a confirmed zero as `0`. Missing official periods now fall back
+  to the ex-dividend calendar quarter such as `2026/Q3`.
+- Matched the dividend-chart legend swatches to the exact bar colors, hid the
+  Streamlit chart toolbar, and made the expandable history list a compact
+  static-width presentation with a shaded header and no horizontal viewport.
+- Stabilized expandable dividend row columns with shared visual widths and a
+  header offset matching the disclosure arrow gutter.
+- Narrowed the dividend history `年/季` column, renamed `股利發放日` to
+  `發放日`, and replaced tab stops with display-width padding so every header
+  and row separator shares the same position.
+- Standardized every titled card, including the detail-page cards, to a compact
+  `10px` top inset, while leaving untitled containers and metric cards
+  unchanged.
+- Removed the standalone ETF-comparison section from the detail-page footer
+  then moved the shortened `加入比較` action to the identity card's upper-right
+  corner, aligned with the ETF code/name and restored to an unframed page link.
+- Renamed the expanded e添富 section to `現金股利組成`, reduced its public
+  table to composition, ratio and amount, and removed estimated wording from
+  component descriptions while retaining e添富 as the official fallback when
+  formal ACTUAL income composition is unavailable.
+- Removed the explanatory e添富 amount-conversion caption below the cash
+  dividend composition table while retaining raw provenance in the API.
+- Added a shared composite dividend-component service used by the event API,
+  tax/reinvestment, portfolio projection and market eligibility: it selects
+  one complete ACTUAL mix first, otherwise one complete e添富 fallback, and
+  never mixes bases. The detail page now renders only this selected mix under
+  `現金股利組成` and removes the separate `實際所得組成` block.
+- Added a distinct completed-work GoodCat reward state for successful and
+  partial planner results: the cat looks happy and raises one paw while the
+  reward itself remains intentionally absent from the transparent artwork.
+- Completed owner-led acceptance for every V4-7 page and global responsive
+  behavior, then passed Python compilation and the complete 1,040-test suite.
+
 ## 2026-08-27 — V4-6 functional integration acceptance
 
 - Added a bounded functional-integration acceptance matrix that separates
@@ -918,3 +1024,14 @@ Entries are ordered chronologically from oldest to newest.
 - Frontend architecture documentation now describes the facade, domain modules
   and shared transport boundary
 - Every extraction passed the focused Client tests and full regression suite
+- removed the repeated event-detail table from each dividend expander; the
+  summary row already carries period, amount, yield, ex-date and payment date,
+  so expanded content now starts with the useful composition details.
+- renamed the public dividend-expander heading from `預估配息組成` to the
+  shorter `股利組成`; the underlying estimated-basis semantics are unchanged.
+- replaced dashed outlines around every dividend-bar segment with horizontal
+  dashed rules only at internal cumulative-payment boundaries; the outside of
+  each annual bar is now unoutlined.
+- moved the cash/stock dividend legend inline to the right of the `股利`
+  heading, removed both chart y-axis titles while retaining numeric ticks, and
+  renamed the right chart heading to `殖利率(%)`.

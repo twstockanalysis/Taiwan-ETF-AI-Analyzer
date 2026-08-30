@@ -5,6 +5,9 @@ from unittest.mock import patch
 
 from frontend.pages.etf_search import (
     RESULT_ACTION_KEY,
+    build_etf_search_column_layout,
+    build_etf_search_table_html,
+    estimate_text_width_rem,
     format_etf_result_row,
     open_etf_detail,
 )
@@ -45,7 +48,7 @@ class TestFrontendETFClickableRows(
             {
                 "code": "0050",
                 "name": "元大台灣50",
-                "historical_quality": "暫不評等",
+                "historical_quality": "暫無",
                 "management_type": "被動式",
                 "listing_date": "2003-06-30",
                 "fund_size": "—",
@@ -76,6 +79,54 @@ class TestFrontendETFClickableRows(
             },
         )
         self.assertEqual(row["historical_quality"], "A+")
+
+    def test_table_html_has_clickable_rows_without_selection_column(
+        self,
+    ) -> None:
+        """確認搜尋結果整列皆可開啟詳細資料。"""
+
+        markup = build_etf_search_table_html(
+            [self.build_item()],
+            ETFSearchQueryState(
+                keyword="元大",
+                bond_label="非債券",
+                page=2,
+            ),
+        )
+
+        self.assertIn('role="table"', markup)
+        self.assertIn('class="performance-ranking-row"', markup)
+        self.assertIn('/etf-detail?code=0050&amp;', markup)
+        self.assertLess(markup.index("代號"), markup.index("名稱"))
+        self.assertNotIn("checkbox", markup.lower())
+        self.assertNotIn("selection", markup.lower())
+        self.assertIn("--etf-search-columns:", markup)
+        layout_style = (
+            markup.split('style="', 1)[1]
+            .split('"', 1)[0]
+        )
+        self.assertNotIn("minmax", layout_style)
+        self.assertNotIn("fr", layout_style)
+
+    def test_each_column_width_uses_its_longest_visible_text(self) -> None:
+        """確認所有欄寬都由該欄最長文字決定。"""
+
+        short_rows = [format_etf_result_row(self.build_item())]
+        wide_rows = [dict(short_rows[0], fund_size="12,345.67 億元")]
+
+        short_template, short_total = build_etf_search_column_layout(
+            short_rows
+        )
+        wide_template, wide_total = build_etf_search_column_layout(
+            wide_rows
+        )
+
+        self.assertGreater(
+            estimate_text_width_rem("喵喵評等"),
+            estimate_text_width_rem("A+"),
+        )
+        self.assertNotEqual(short_template, wide_template)
+        self.assertGreater(wide_total, short_total)
 
     @patch(
         "frontend.pages.etf_search."

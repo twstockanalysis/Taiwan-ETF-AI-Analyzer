@@ -130,8 +130,10 @@ from frontend.api.tax_reinvestment import (
 )
 from frontend.api.target_analysis import (
     fetch_etf_latest_close,
+    fetch_etf_price_history,
     fetch_etf_target_analysis,
     validate_latest_close,
+    validate_price_history,
     validate_target_analysis_result,
 )
 

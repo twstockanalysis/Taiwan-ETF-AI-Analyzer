@@ -381,6 +381,45 @@ class TestDividendAPI(
                 ),
             },
         )
+        self.assertEqual(
+            data["selected_component_basis"],
+            "ACTUAL",
+        )
+        self.assertEqual(
+            [
+                item["component_code"]
+                for item in data["selected_components"]
+            ],
+            ["76W"],
+        )
+
+    def test_dividend_detail_falls_back_without_mixing(self) -> None:
+        """正式組成不完整時只選完整 e添富組成。"""
+
+        response = self.client.get(
+            "/api/v1/dividends/1"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(
+            data["selected_component_basis"],
+            "ESTIMATED_FALLBACK",
+        )
+        self.assertEqual(
+            [
+                (
+                    item["component_basis"],
+                    item["component_code"],
+                )
+                for item in data["selected_components"]
+            ],
+            [
+                (
+                    "ESTIMATED",
+                    "EST_REALIZED_CAPITAL_GAIN",
+                )
+            ],
+        )
 
     def test_component_filters_are_applied(
         self,
@@ -465,6 +504,14 @@ class TestDividendAPI(
             90.0,
         )
 
+        self.assertEqual(data["analysis_record_count"], 2)
+        self.assertEqual(data["analysis_actual_count"], 1)
+        self.assertEqual(data["analysis_estimated_fallback_count"], 1)
+        self.assertEqual(data["full_realized_gain_count"], 2)
+        self.assertEqual(data["latest_realized_gain_ratio_pct"], 100.0)
+        self.assertEqual(data["average_realized_gain_ratio_pct"], 100.0)
+        self.assertEqual(data["latest_analysis_basis"], "ACTUAL")
+
         self.assertEqual(
             [
                 item["ratio_pct"]
@@ -479,7 +526,36 @@ class TestDividendAPI(
     def test_no_actual_76w_is_null_not_zero(
         self,
     ) -> None:
-        """確認缺少正式 76W 時不顯示為 0%。"""
+        """缺少正式 76W 時以完整 e添富組成提供替代分析。"""
+
+        connection = get_connection(self.database_path)
+        try:
+            connection.execute(
+                """
+                INSERT INTO etf_dividend (
+                    id, etf_code, source_event_id, ex_dividend_date,
+                    payment_date, amount_per_unit, currency, source_id
+                ) VALUES (4, '0050', 'estimated:0050:2026-08',
+                          '2026-08-05', '2026-08-31', 1.0, 'TWD',
+                          'twse_etfortune_dividend');
+                """
+            )
+            connection.executemany(
+                """
+                INSERT INTO etf_dividend_component (
+                    dividend_id, component_code, component_basis,
+                    component_name, ratio_pct, source_id
+                ) VALUES (4, ?, 'ESTIMATED', ?, ?,
+                          'twse_etfortune_dividend');
+                """,
+                [
+                    ("EST_DIVIDEND", "股利所得", 32.0),
+                    ("EST_REALIZED_CAPITAL_GAIN", "已實現資本利得", 68.0),
+                ],
+            )
+            connection.commit()
+        finally:
+            connection.close()
 
         response = self.client.get(
             "/api/v1/etfs/0050/dividends/76w"
@@ -509,6 +585,14 @@ class TestDividendAPI(
             data["items"],
             [],
         )
+
+        self.assertEqual(data["analysis_record_count"], 1)
+        self.assertEqual(data["analysis_actual_count"], 0)
+        self.assertEqual(data["analysis_estimated_fallback_count"], 1)
+        self.assertEqual(data["full_realized_gain_count"], 0)
+        self.assertEqual(data["latest_realized_gain_ratio_pct"], 68.0)
+        self.assertEqual(data["average_realized_gain_ratio_pct"], 68.0)
+        self.assertEqual(data["latest_analysis_basis"], "ESTIMATED_FALLBACK")
 
     def test_missing_dividend_returns_404(
         self,

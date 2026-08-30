@@ -3,6 +3,7 @@
 import streamlit as st
 
 from frontend.branding import SITE_NAME
+from frontend.config import get_api_base_url
 from frontend.navigation import (
     ETF_COMPARISON_ROUTE,
     ETF_SEARCH_ROUTE,
@@ -12,85 +13,59 @@ from frontend.navigation import (
 )
 from frontend.ui.goodcat import (
     GoodCatState,
-    render_beginner_card,
-    render_goodcat_companion,
+    get_goodcat_presentation,
 )
+from frontend.ui.theme_toggle import render_theme_toggle
+from frontend.owner_access import render_owner_access_trigger
 
 
 SITE_SLOGAN = (
-    "股利喵幫你算，ETF規劃不踩雷！\n\n"
-    "Your GoodCat, Easy ETF planning!"
+    "股利喵幫你算，規劃不踩雷！\n\n"
+    "Your GoodCat, Easy planning!"
 )
 PLANNER_INTRO = (
-    "咪想知道主人要在哪些月份領股利 → 目標是多少，幫咪輸入目前持有的 "
-    "ETF，或直接空白；\n\n"
-    "咪會幫忙計算並推薦以及所需資金唷，喵~"
+    "咪想幫主人能固定賺到罐頭錢，這樣才能買很多好吃的罐頭  \n"
+    "咪會幫主人規劃&計算所需資金吧，喵嗚~"
 )
-PLANNER_NOTICE = (
-    "不需登入，所有資料皆來源自證交所及投信，計算結果僅供用戶參考，"
-    "是否購買皆由用戶決定。"
-)
+HOME_GOODCAT_HERO_PATH = get_goodcat_presentation(
+    GoodCatState.IDLE
+).asset_path.with_name("goodcat-idle-hero.png")
 
 
 def render_primary_action() -> None:
     """將核心配置流程放在首頁第一個可操作位置。"""
 
     with st.container(border=True, key="home-primary-action"):
-        st.markdown("### 主人不用先挑 ETF")
-        st.write(PLANNER_INTRO)
-        st.page_link(
-            create_streamlit_page(PUBLIC_PLANNER_ROUTE),
-            label="開始讓股利喵規劃",
-            icon=":material/calculate:",
-            width="stretch",
+        cat_column, copy_column = st.columns(
+            [2, 3],
+            vertical_alignment="center",
+            gap="medium",
         )
-        st.caption(PLANNER_NOTICE)
-
-
-def render_planning_steps() -> None:
-    """用三張短卡說明初學者開始規劃前只要準備什麼。"""
-
-    st.subheader("三步就能開始")
-    columns = st.columns(3)
-    steps = (
-        (
-            "1. 選領息月份",
-            "勾選想收到股利的月份，也可以直接選每月、單數月或雙數月。",
-            ":material/calendar_month:",
-        ),
-        (
-            "2. 告訴咪目標",
-            "輸入每個目標月想領多少，咪會用相同目標逐月試算。",
-            ":material/payments:",
-        ),
-        (
-            "3. 庫存可留空",
-            "有 ETF 就輸入代號與股數；還沒開始投資也能直接規劃。",
-            ":material/account_balance_wallet:",
-        ),
-    )
-    for index, (column, step) in enumerate(
-        zip(columns, steps, strict=True),
-        start=1,
-    ):
-        title, body, icon = step
-        with column:
-            render_beginner_card(
-                title,
-                body,
-                icon=icon,
-                key=f"home-planning-step-{index}",
+        with cat_column:
+            st.image(
+                HOME_GOODCAT_HERO_PATH,
+                caption=None,
+                width=260,
+                output_format="PNG",
+            )
+        with copy_column:
+            st.write(PLANNER_INTRO)
+            st.page_link(
+                create_streamlit_page(PUBLIC_PLANNER_ROUTE),
+                label="開始!",
+                icon=":material/calculate:",
+                width="stretch",
             )
 
 
 def render_exploration_links() -> None:
     """呈現核心配置以外的次要資料探索入口。"""
 
-    st.subheader("也可以先了解 ETF")
+    st.subheader("也可以")
     routes = (
-        (ETF_SEARCH_ROUTE, "查 ETF 基本資料", ":material/search:"),
-        (PERFORMANCE_RANKING_ROUTE, "看歷史績效", ":material/query_stats:"),
-        (ETF_COMPARISON_ROUTE, "並排比較 ETF", ":material/compare_arrows:"),
+        (ETF_SEARCH_ROUTE, "查查基本資料", ":material/search:"),
+        (PERFORMANCE_RANKING_ROUTE, "看看績效", ":material/query_stats:"),
+        (ETF_COMPARISON_ROUTE, "比較比較", ":material/compare_arrows:"),
     )
     columns = st.columns(3)
     for column, (route, label, icon) in zip(columns, routes, strict=True):
@@ -106,15 +81,28 @@ def render_exploration_links() -> None:
 def render_home() -> None:
     """顯示以初學者核心任務為主的首頁。"""
 
-    st.title(SITE_NAME)
+    with st.container(
+        key="home-top-actions",
+        horizontal=True,
+        horizontal_alignment="distribute",
+        vertical_alignment="center",
+        gap="small",
+    ):
+        st.title(SITE_NAME, width="content")
+        render_owner_access_trigger(
+            get_api_base_url()
+        )
     slogan_zh, slogan_en = SITE_SLOGAN.split("\n\n", maxsplit=1)
-    st.subheader(slogan_zh)
-    st.caption(slogan_en)
-    render_goodcat_companion(
-        GoodCatState.IDLE,
-        message="主人先想想想在哪幾個月領股利，剩下的交給咪。",
-        key="home-goodcat",
-    )
+    with st.container(
+        key="home-slogan-actions",
+        horizontal=True,
+        horizontal_alignment="distribute",
+        vertical_alignment="center",
+        gap="small",
+    ):
+        with st.container(key="home-slogan", gap=None):
+            st.markdown(f"#### {slogan_zh}")
+            st.caption(slogan_en)
+        render_theme_toggle()
     render_primary_action()
-    render_planning_steps()
     render_exploration_links()

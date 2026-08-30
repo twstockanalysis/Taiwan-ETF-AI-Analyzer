@@ -37,17 +37,14 @@ def historical_quality_presentation(
             else "red"
         )
         return AssessmentPresentation(
-            label=f"歷史品質 {grade}",
+            label=f"喵喵評等：{grade}",
             explanation=explanation or "依目前可用歷史資料與固定門檻評定。",
             color=color,
         )
 
     return AssessmentPresentation(
-        label="歷史品質暫不評等",
-        explanation=(
-            explanation
-            or "核心歷史證據或市場校準尚不足，因此不以低分代替缺少資料。"
-        ),
+        label="喵喵評等：暫無",
+        explanation="核心資料不足或未通過資料閘門",
         color="gray",
     )
 

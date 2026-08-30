@@ -18,12 +18,29 @@ class TestFrontendPageTitle(unittest.TestCase):
         "create_streamlit_page",
         return_value="home-page",
     )
+    @patch(
+        "frontend.ui.components.get_api_base_url",
+        return_value="http://127.0.0.1:8000",
+    )
+    @patch(
+        "frontend.ui.components."
+        "render_owner_access_trigger"
+    )
+    @patch(
+        "frontend.ui.components."
+        "render_theme_toggle"
+    )
     @patch("frontend.ui.components.st.title")
     @patch("frontend.ui.components.st.page_link")
+    @patch("frontend.ui.components.st.container")
     def test_home_link_precedes_page_title(
         self,
+        mock_container,
         mock_page_link,
         mock_title,
+        mock_theme_toggle,
+        mock_owner_access,
+        mock_api_base_url,
         mock_create_page,
     ) -> None:
         """確認共用元件建立返回首頁及頁面標題。"""
@@ -37,8 +54,28 @@ class TestFrontendPageTitle(unittest.TestCase):
             icon=":material/arrow_back:",
             width="content",
         )
+        mock_owner_access.assert_called_once_with(
+            "http://127.0.0.1:8000"
+        )
         mock_title.assert_called_once_with(
-            "ETF 比較"
+            "ETF 比較",
+            width="content",
+        )
+        mock_theme_toggle.assert_called_once_with()
+        self.assertEqual(mock_container.call_count, 2)
+        mock_container.assert_any_call(
+            key="page-top-actions",
+            horizontal=True,
+            horizontal_alignment="distribute",
+            vertical_alignment="center",
+            gap="small",
+        )
+        mock_container.assert_any_call(
+            key="page-title-actions",
+            horizontal=True,
+            horizontal_alignment="distribute",
+            vertical_alignment="center",
+            gap="small",
         )
 
     def test_all_non_home_pages_use_shared_title(
@@ -54,9 +91,9 @@ class TestFrontendPageTitle(unittest.TestCase):
             "dividend_data_quality.py": (
                 "配息資料品質"
             ),
-            "etf_comparison.py": "ETF 比較",
-            "etf_detail.py": "ETF 詳細資料",
-            "etf_search.py": "搜尋&詳細資料",
+            "etf_comparison.py": "比較",
+            "etf_detail.py": "詳細資料",
+            "etf_search.py": "搜尋",
             "performance_ranking.py": (
                 "績效排行榜"
             ),
@@ -106,6 +143,25 @@ class TestFrontendPageTitle(unittest.TestCase):
             'label_visibility="collapsed"',
             source,
         )
+
+    def test_detail_actions_are_compact_and_remove_query_caption(
+        self,
+    ) -> None:
+        """確認詳細頁並列返回與更新，且不重複顯示查詢代號。"""
+
+        source = (
+            PROJECT_ROOT
+            / "frontend"
+            / "pages"
+            / "etf_detail.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('render_page_title("詳細資料")', source)
+        self.assertIn('"更新"', source)
+        self.assertIn("horizontal=True", source)
+        self.assertIn('gap="small"', source)
+        self.assertNotIn("查詢代號：", source)
+        self.assertNotIn('"重新載入資料"', source)
 
 
 if __name__ == "__main__":
