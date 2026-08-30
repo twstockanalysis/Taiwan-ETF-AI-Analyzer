@@ -1,0 +1,68 @@
+name: ETF 資料問題或來源提案
+description: 回報資料缺漏、來源差異、pipeline 問題或正式來源提案
+title: "[Data] "
+labels: ["type:data", "status:needs-triage", "risk:high"]
+body:
+  - type: input
+    id: subject
+    attributes:
+      label: ETF／事件／資料欄位
+      placeholder: 例如 0050、2026-08-05 除息事件、配息組成
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: 目前資料狀態
+      description: 清楚區分缺失、正式 0、估算值與疑似錯誤值。
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: 建議或比對來源
+      description: 提供公開官方頁面、文件名稱、發布單位與資料日期；不要上傳含個資或受限資料。
+    validations:
+      required: true
+  - type: dropdown
+    id: basis
+    attributes:
+      label: 資料 basis
+      options:
+        - 正式 ACTUAL 文件／通知書
+        - 證交所或其他正式市場資料
+        - e添富 fallback／估算組成
+        - 尚未確認
+    validations:
+      required: true
+  - type: checkboxes
+    id: semantics
+    attributes:
+      label: 語意確認
+      options:
+        - label: 我沒有把缺失值當成 0。
+          required: true
+        - label: 我沒有把 e添富估計資本利得稱為正式 76W。
+          required: true
+        - label: 我已提供資料日期與可查證來源，或明確標示尚未確認。
+          required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 驗收條件與回歸範圍
+      placeholder: |
+        - [ ] source/provenance retained
+        - [ ] missing/zero semantics tested
+        - [ ] API/UI contract updated
+    validations:
+      required: true
+  - type: dropdown
+    id: ai_scope
+    attributes:
+      label: AI 參與方式
+      options:
+        - AI 可協助本地實作，但正式來源認定由人類審核
+        - AI 僅限比對與 review
+        - 僅限人類處理
+    validations:
+      required: true

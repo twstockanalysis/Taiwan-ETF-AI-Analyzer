@@ -1,0 +1,77 @@
+name: 功能或改善
+description: 提議新的使用者功能、體驗改善或技術工作
+title: "[Feature] "
+labels: ["type:feature", "status:needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: 請先描述使用者問題；不要只填預定技術解法。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用者問題與目標
+      description: 誰遇到什麼問題，完成後應改善什麼？
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 驗收條件
+      description: 使用可觀察、可測試的條件逐項列出。
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope / Out of scope
+      placeholder: |
+        Included:
+        -
+        Out of scope:
+        -
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: 風險等級
+      options:
+        - 一般
+        - 高風險：財稅／配置計算
+        - 高風險：資料來源／schema
+        - 高風險：認證／資安／部署
+    validations:
+      required: true
+  - type: textarea
+    id: data_semantics
+    attributes:
+      label: 資料與計算語意
+      description: 說明 ACTUAL、估算、76W、缺失、0、稅務或配置公式影響；不涉及請填 N/A。
+    validations:
+      required: true
+  - type: dropdown
+    id: ai_scope
+    attributes:
+      label: AI 參與方式
+      options:
+        - 可由 AI 實作，需人類 sponsor
+        - AI 僅限分析或 review
+        - 僅限人類處理
+        - 尚待 maintainer 決定
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依賴、衝突與預計檔案
+      description: 列出依賴 Issue／PR、可能 claimed scope 與共享檔案。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前確認
+      options:
+        - label: 我已搜尋現有 Issue／PR，沒有重複工作。
+          required: true
+        - label: 我沒有在內容中貼入 secrets、個資或正式資料。
+          required: true

@@ -1,0 +1,14 @@
+# Replace or extend these entries when additional maintainers join.
+* @twstockanalysis
+
+# High-risk surfaces require explicit owner review under the merge policy.
+/backend/app/models/ @twstockanalysis
+/backend/app/services/ @twstockanalysis
+/backend/app/repositories/ @twstockanalysis
+/backend/app/db/ @twstockanalysis
+/deployment/ @twstockanalysis
+/.github/workflows/ @twstockanalysis
+/requirements.lock @twstockanalysis
+/SECURITY.md @twstockanalysis
+/docs/SECURITY* @twstockanalysis
+/docs/*CONTRACT*.md @twstockanalysis

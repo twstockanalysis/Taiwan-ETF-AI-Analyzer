@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 私密資安漏洞通報
+    url: https://github.com/twstockanalysis/Taiwan-ETF-AI-Analyzer/security/advisories/new
+    about: 不要在公開 Issue 張貼漏洞、token、cookie、個資或外洩資料。
+  - name: 協作與安全規範
+    url: https://github.com/twstockanalysis/Taiwan-ETF-AI-Analyzer/blob/main/docs/COLLABORATION_POLICY.md
+    about: 建立 Issue 前先確認 scope、AI 權限與高風險 gate。
