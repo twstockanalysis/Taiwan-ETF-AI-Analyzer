@@ -15,15 +15,20 @@ terms and this repository's license. Keep this provenance note with the files.
 | --- | --- | --- |
 | `goodcat-idle.png` | `IDLE` | Home, empty or waiting state |
 | `goodcat-idle-hero.png` | `IDLE` | Losslessly cropped home hero with even transparent padding |
+| `goodcat-sleeping-hero.png` | `IDLE` | Sleeping-cat artwork selected for the home planning hero |
 | `goodcat-attentive-v3.png` | `ATTENTIVE` | Rounder alert eyes and a brighter expression during input |
 | `goodcat-working.png` | `WORKING` | Natural crouch while calculation runs |
 | `goodcat-ready.png` | `READY` | Alert stance and raised tail for completion |
 | `goodcat-caution.png` | `CAUTION` | Sideways ears for missing data, risk or shortfall |
 | `goodcat-attentive-hero.png` | `ATTENTIVE` | Losslessly cropped planner hero on the shared hero canvas |
+| `goodcat-planner-start-hero.png` | `ATTENTIVE` | Bright-eyed first illustration shown on the dividend planner |
 | `goodcat-working-hero.png` | `WORKING` | Losslessly cropped planner hero on the shared hero canvas |
+| `goodcat-researching-hero.png` | `WORKING` | Laptop-and-books illustration shown while the planner checks data |
 | `goodcat-ready-hero.png` | `READY` | Losslessly cropped planner hero on the shared hero canvas |
 | `goodcat-reward-hero.png` | `REWARD` | Completed-work planner hero, happily waiting for a reward without showing food |
+| `goodcat-result-reward-hero.png` | `REWARD` | Treat-themed illustration shown after a successful or partial planner result |
 | `goodcat-caution-hero.png` | `CAUTION` | Losslessly cropped planner hero on the shared hero canvas |
+| `goodcat-warning-hero.png` | `CAUTION` | Worried-cat illustration shown for invalid input, missing data or no feasible result |
 
 `goodcat-attentive.png` is retained as the approved rollback asset. The V3
 attentive variant was generated from the accepted character reference on
@@ -33,6 +38,10 @@ transparency with the repository-local image workflow.
 The reward state was generated from the approved GoodCat reference on
 2026-08-30. It uses the raised paw and bright expression to imply an expected
 reward while intentionally omitting the reward object itself.
+
+The V5-1A page-state illustrations were selected by the product owner from the
+GoodCat image set generated with OpenAI's built-in image generation on
+2026-08-31. V5-1B is reserved for live-page visual and responsive review.
 
 All production files are PNG images with real alpha transparency. Character
 images supplement visible Traditional Chinese state text; they never replace

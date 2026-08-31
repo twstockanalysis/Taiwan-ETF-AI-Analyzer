@@ -29,7 +29,7 @@ PLANNER_INTRO = (
 )
 HOME_GOODCAT_HERO_PATH = get_goodcat_presentation(
     GoodCatState.IDLE
-).asset_path.with_name("goodcat-idle-hero.png")
+).asset_path.with_name("goodcat-sleeping-hero.png")
 
 
 def render_primary_action() -> None:
