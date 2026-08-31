@@ -11,12 +11,18 @@ from frontend.ui.theme_toggle import (
 
 
 class TestFrontendThemeToggle(unittest.TestCase):
-    def test_component_uses_streamlit_v2_and_native_theme_menu(self) -> None:
+    def test_component_uses_streamlit_v2_and_theme_url_option(self) -> None:
         self.assertIn("export default function", THEME_TOGGLE_JS)
-        self.assertIn("stMainMenuButton", THEME_TOGGLE_JS)
-        self.assertIn("stMainMenuItem-theme-", THEME_TOGGLE_JS)
+        self.assertNotIn("stMainMenuButton", THEME_TOGGLE_JS)
+        self.assertNotIn("stMainMenuItem-theme-", THEME_TOGGLE_JS)
         self.assertNotIn("window.Streamlit", THEME_TOGGLE_JS)
         self.assertNotIn("postMessage", THEME_TOGGLE_JS)
+        self.assertIn('new URL(window.location.href)', THEME_TOGGLE_JS)
+        self.assertIn('getAll("embed_options")', THEME_TOGGLE_JS)
+        self.assertIn('value !== "light_theme"', THEME_TOGGLE_JS)
+        self.assertIn('value !== "dark_theme"', THEME_TOGGLE_JS)
+        self.assertIn('url.searchParams.delete("embed_options")', THEME_TOGGLE_JS)
+        self.assertIn('window.location.replace(url.toString())', THEME_TOGGLE_JS)
         self.assertIn("var(--st-text-color)", THEME_TOGGLE_CSS)
         self.assertIn("var(--st-primary-color)", THEME_TOGGLE_CSS)
 
