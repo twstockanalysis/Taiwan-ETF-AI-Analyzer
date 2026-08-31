@@ -27,14 +27,28 @@ PLANNER_INTRO = (
     "咪想幫主人能固定賺到罐頭錢，這樣才能買很多好吃的罐頭  \n"
     "咪會幫主人規劃&計算所需資金吧，喵嗚~"
 )
-HOME_GOODCAT_HERO_PATH = get_goodcat_presentation(
+HOME_GOODCAT_LIGHT_HERO_PATH = get_goodcat_presentation(
     GoodCatState.IDLE
 ).asset_path.with_name("goodcat-sleeping-hero.png")
+HOME_GOODCAT_DARK_HERO_PATH = HOME_GOODCAT_LIGHT_HERO_PATH.with_name(
+    "goodcat-sleeping-white-hero.png"
+)
+
+
+def get_home_goodcat_hero_path(theme_type: str):
+    """依目前主題選擇對比清楚、情境一致的首頁貓咪。"""
+
+    if theme_type == "dark":
+        return HOME_GOODCAT_DARK_HERO_PATH
+    return HOME_GOODCAT_LIGHT_HERO_PATH
 
 
 def render_primary_action() -> None:
     """將核心配置流程放在首頁第一個可操作位置。"""
 
+    home_goodcat_hero_path = get_home_goodcat_hero_path(
+        st.context.theme.type
+    )
     with st.container(border=True, key="home-primary-action"):
         cat_column, copy_column = st.columns(
             [2, 3],
@@ -43,7 +57,7 @@ def render_primary_action() -> None:
         )
         with cat_column:
             st.image(
-                HOME_GOODCAT_HERO_PATH,
+                home_goodcat_hero_path,
                 caption=None,
                 width=260,
                 output_format="PNG",

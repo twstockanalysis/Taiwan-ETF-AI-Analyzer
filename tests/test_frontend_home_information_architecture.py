@@ -3,11 +3,15 @@
 import unittest
 from inspect import getsource
 
+from PIL import Image
+
 from frontend.pages.home import (
-    HOME_GOODCAT_HERO_PATH,
+    HOME_GOODCAT_DARK_HERO_PATH,
+    HOME_GOODCAT_LIGHT_HERO_PATH,
     PLANNER_INTRO,
     SITE_NAME,
     SITE_SLOGAN,
+    get_home_goodcat_hero_path,
     render_exploration_links,
     render_home,
     render_primary_action,
@@ -16,12 +20,70 @@ from frontend.ui.theme import GLOBAL_STYLES
 
 
 class TestFrontendHomeInformationArchitecture(unittest.TestCase):
-    def test_home_uses_sleeping_goodcat_hero(self) -> None:
+    def test_home_uses_theme_specific_sleeping_goodcat_heroes(
+        self,
+    ) -> None:
         self.assertEqual(
-            HOME_GOODCAT_HERO_PATH.name,
+            HOME_GOODCAT_LIGHT_HERO_PATH.name,
             "goodcat-sleeping-hero.png",
         )
-        self.assertTrue(HOME_GOODCAT_HERO_PATH.is_file())
+        self.assertEqual(
+            HOME_GOODCAT_DARK_HERO_PATH.name,
+            "goodcat-sleeping-white-hero.png",
+        )
+        self.assertTrue(HOME_GOODCAT_LIGHT_HERO_PATH.is_file())
+        self.assertTrue(HOME_GOODCAT_DARK_HERO_PATH.is_file())
+        self.assertEqual(
+            get_home_goodcat_hero_path("light"),
+            HOME_GOODCAT_LIGHT_HERO_PATH,
+        )
+        self.assertEqual(
+            get_home_goodcat_hero_path("dark"),
+            HOME_GOODCAT_DARK_HERO_PATH,
+        )
+
+    def test_home_sleeping_heroes_have_real_transparency(
+        self,
+    ) -> None:
+        for asset_path in (
+            HOME_GOODCAT_LIGHT_HERO_PATH,
+            HOME_GOODCAT_DARK_HERO_PATH,
+        ):
+            with Image.open(asset_path).convert("RGBA") as image:
+                self.assertEqual(image.size, (1254, 1254))
+                self.assertEqual(image.getpixel((0, 0))[3], 0)
+                self.assertEqual(
+                    image.getchannel("A").getextrema(),
+                    (0, 255),
+                )
+
+    def test_light_sleeping_hero_has_no_white_outer_border(
+        self,
+    ) -> None:
+        with Image.open(
+            HOME_GOODCAT_LIGHT_HERO_PATH
+        ).convert("RGBA") as image:
+            pixels = image.load()
+            width, height = image.size
+            boundary_colors = []
+            for y in range(1, height - 1):
+                for x in range(1, width - 1):
+                    red, green, blue, alpha = pixels[x, y]
+                    if alpha < 128:
+                        continue
+                    neighbors = (
+                        pixels[x - 1, y][3],
+                        pixels[x + 1, y][3],
+                        pixels[x, y - 1][3],
+                        pixels[x, y + 1][3],
+                    )
+                    if any(value < 128 for value in neighbors):
+                        boundary_colors.append((red, green, blue))
+
+        self.assertTrue(boundary_colors)
+        self.assertFalse(
+            any(min(color) > 220 for color in boundary_colors)
+        )
 
     def test_home_uses_approved_brand_and_beginner_copy(self) -> None:
         self.assertEqual(SITE_NAME, "GoodCat 股利喵")
@@ -52,7 +114,8 @@ class TestFrontendHomeInformationArchitecture(unittest.TestCase):
         self.assertIn("st.image", source)
         self.assertIn("st.columns", source)
         self.assertIn("[2, 3]", source)
-        self.assertIn("HOME_GOODCAT_HERO_PATH", source)
+        self.assertIn("get_home_goodcat_hero_path", source)
+        self.assertIn("st.context.theme.type", source)
         self.assertIn("width=260", source)
         self.assertLess(source.index("st.image"), source.index("st.write"))
         self.assertLess(source.index("st.write"), source.index("st.page_link"))
