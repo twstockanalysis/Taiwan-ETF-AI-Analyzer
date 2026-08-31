@@ -1,5 +1,5 @@
-name: AI 協作任務
-description: 將已確認的工作安全地交給一位 AI 實作者或 reviewer
+name: AI collaboration task
+description: Safely delegate a confirmed task to one AI implementer or reviewer
 title: "[AI Task] "
 labels: ["ai:allowed", "status:ready"]
 body:
@@ -7,61 +7,61 @@ body:
     id: sponsor
     attributes:
       label: Human sponsor
-      description: 對 scope、授權與驗收負責的人類 GitHub 帳號。
+      description: GitHub account responsible for scope, authorization, and acceptance.
       placeholder: "@username"
     validations:
       required: true
   - type: textarea
     id: objective
     attributes:
-      label: 明確目標
+      label: Concrete objective
     validations:
       required: true
   - type: textarea
     id: acceptance
     attributes:
-      label: 驗收條件
+      label: Acceptance criteria
       placeholder: "- [ ] ..."
     validations:
       required: true
   - type: textarea
     id: claimed_scope
     attributes:
-      label: 允許修改的範圍
-      description: 列出檔案／模組；未列出的視為 out of scope。
+      label: Allowed modification scope
+      description: List files and modules. Anything not listed is out of scope.
     validations:
       required: true
   - type: textarea
     id: forbidden
     attributes:
-      label: 禁止或需先確認的動作
-      placeholder: 例如不得改 schema、不得使用網路、不得 push。
+      label: Prohibited actions or actions requiring confirmation
+      placeholder: For example, do not change schema, use network access, or push.
     validations:
       required: true
   - type: dropdown
     id: permission
     attributes:
-      label: 最高 AI 權限
+      label: Maximum AI authorization
       options:
-        - A0 只讀分析
-        - A1 本地實作與測試
-        - A2 可建立 branch 與 commit
-        - A3 可推送並建立／更新 PR
+        - A0 read-only analysis
+        - A1 local implementation and tests
+        - A2 branch and commit creation
+        - A3 push and PR creation or updates
     validations:
       required: true
   - type: textarea
     id: dependencies
     attributes:
-      label: Base、依賴與其他 active work
-      description: 寫明 base branch／commit、依賴 PR 及不得重疊的 claimed scope。
+      label: Base, dependencies, and other active work
+      description: State the base branch and commit, dependent PRs, and claimed scopes that must not overlap.
     validations:
       required: true
   - type: textarea
     id: validation
     attributes:
-      label: 必跑驗證
+      label: Required validation
       placeholder: |
-        - targeted tests:
+        - focused tests:
         - full regression:
         - manual acceptance:
     validations:
@@ -69,9 +69,9 @@ body:
   - type: checkboxes
     id: checks
     attributes:
-      label: Sponsor 確認
+      label: Sponsor confirmation
       options:
-        - label: 我會負責需求決策與最終人類驗收。
+        - label: I am responsible for requirement decisions and final human acceptance.
           required: true
-        - label: 此任務不授權 AI merge、deploy、操作 secrets 或正式資料。
+        - label: This task does not authorize AI to merge, deploy, operate on secrets, or access production data.
           required: true

@@ -1,30 +1,30 @@
-name: 功能或改善
-description: 提議新的使用者功能、體驗改善或技術工作
+name: Feature or improvement
+description: Propose user functionality, experience improvements, or technical work
 title: "[Feature] "
 labels: ["type:feature", "status:needs-triage"]
 body:
   - type: markdown
     attributes:
-      value: 請先描述使用者問題；不要只填預定技術解法。
+      value: Describe the user problem before proposing a technical solution.
   - type: textarea
     id: problem
     attributes:
-      label: 使用者問題與目標
-      description: 誰遇到什麼問題，完成後應改善什麼？
+      label: User problem and objective
+      description: Who has what problem, and what should improve after completion?
     validations:
       required: true
   - type: textarea
     id: acceptance
     attributes:
-      label: 驗收條件
-      description: 使用可觀察、可測試的條件逐項列出。
+      label: Acceptance criteria
+      description: List observable and testable conditions.
       placeholder: "- [ ] ..."
     validations:
       required: true
   - type: textarea
     id: scope
     attributes:
-      label: Scope / Out of scope
+      label: Scope and out of scope
       placeholder: |
         Included:
         -
@@ -35,43 +35,43 @@ body:
   - type: dropdown
     id: risk
     attributes:
-      label: 風險等級
+      label: Risk level
       options:
-        - 一般
-        - 高風險：財稅／配置計算
-        - 高風險：資料來源／schema
-        - 高風險：認證／資安／部署
+        - General
+        - High risk: financial, tax, or allocation calculation
+        - High risk: data source or schema
+        - High risk: authentication, security, or deployment
     validations:
       required: true
   - type: textarea
     id: data_semantics
     attributes:
-      label: 資料與計算語意
-      description: 說明 ACTUAL、估算、76W、缺失、0、稅務或配置公式影響；不涉及請填 N/A。
+      label: Data and calculation semantics
+      description: Explain effects on ACTUAL, estimated, 76W, missing, zero, tax, or allocation formulas. Enter N/A if none.
     validations:
       required: true
   - type: dropdown
     id: ai_scope
     attributes:
-      label: AI 參與方式
+      label: AI participation
       options:
-        - 可由 AI 實作，需人類 sponsor
-        - AI 僅限分析或 review
-        - 僅限人類處理
-        - 尚待 maintainer 決定
+        - AI implementation with a human sponsor
+        - AI analysis or review only
+        - Human-only handling
+        - Maintainer decision required
     validations:
       required: true
   - type: textarea
     id: dependencies
     attributes:
-      label: 依賴、衝突與預計檔案
-      description: 列出依賴 Issue／PR、可能 claimed scope 與共享檔案。
+      label: Dependencies, conflicts, and expected files
+      description: List dependent Issues or PRs, possible claimed-scope conflicts, and shared files.
   - type: checkboxes
     id: checks
     attributes:
-      label: 提交前確認
+      label: Submission confirmation
       options:
-        - label: 我已搜尋現有 Issue／PR，沒有重複工作。
+        - label: I searched existing Issues and PRs and found no duplicate work.
           required: true
-        - label: 我沒有在內容中貼入 secrets、個資或正式資料。
+        - label: I did not include secrets, personal data, or production data.
           required: true

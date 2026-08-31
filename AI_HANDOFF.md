@@ -1,87 +1,73 @@
 # AI handoff
 
-此檔是人類與多 AI 之間的 repository 內交接點。進入任務時先閱讀，離開、暫停、受阻或交給另一位實作者前更新。已合併或失效的內容移至對應 Issue／PR，主檔只保留目前有效交接。
+This file is an exception log for collaboration facts that cannot be recovered
+from GitHub and the current Git worktree. It is not a live status dashboard.
 
-## Active handoff
+Issues and PRs are the source of truth for requirements, ownership, discussion,
+review, CI, approval, and merge state. Git is the source of truth for branches,
+commits, worktrees, and uncommitted changes. Always refresh and inspect those
+sources directly before starting or resuming work.
 
-- Status: `WAITING_FOR_HUMAN_REVIEW`
-- Issue: `#74` — https://github.com/twstockanalysis/goodcat-website/issues/74
-- Owner / human sponsor: `GoodCat owner / current requester`
-- Current implementer: `Codex /root`
-- Branch: `data/74-detail-page-official-data`
-- Base branch / commit: `main / 2d2d5f95fba52bac8b5cc191ed99fdf9291bf219`
-- Latest implementation commit: `3e35f6b4a985b1102ec70dfe7c5dfff70ecd53c2`
-- Pull request: Draft `#75` — https://github.com/twstockanalysis/goodcat-website/pull/75
-- Last updated: `2026-08-31`
+## Required live verification
 
-### Objective
+Use the relevant commands instead of relying on a status copied into this file:
 
-完成 V5-1 第一輪詳細資料候選、覆蓋 ledger 與 frozen planner replay，提供
-V5-2 owner 決策證據；不修改配置引擎或前端頁面。
+```powershell
+git fetch origin
+git status --short --branch
+git branch --show-current
+gh repo view --json defaultBranchRef
+gh issue view <number> --json state,title,url,body
+gh pr view <number> --json state,isDraft,baseRefName,headRefName,mergeStateStatus,statusCheckRollup,reviews,url
+```
 
-### Claimed scope
+Also inspect the current Issue and PR discussion when decisions or unresolved
+comments may affect the task. A prior chat summary or handoff entry never proves
+that a branch was pushed, a PR was approved, CI passed, or a change was merged.
 
-- Files/modules: `backend/app/data_sources/`, `deployment/detail_data_candidate.py`,
-  `deployment/v5_planner_replay.py`, V5 docs and related tests
-- Do not touch: allocation services/objective, frontend layout/copy, source database,
-  formal deployment, V4-8 and SEC-4
+## When an entry is required
 
-### Completed
+Add a short entry only when a successor needs material context that GitHub and
+Git cannot provide, for example:
 
-- Verified `origin/main` baseline `2d2d5f9` contains PR #72 and #73.
-- Created Issue #74 and switched to the dedicated data branch from exact main base.
-- Added an isolated no-overwrite candidate builder, per-ETF visible-field coverage
-  ledger, bond-inclusive price/performance refresh and cached official-price yield fallback.
-- Built candidate SHA `64a4ab5f947777b39e38edf90146db597512a2dad42f7a31edcab894331b10e5`;
-  integrity `ok`, foreign-key violations `0`.
-- Replayed four frozen planner cases and visually reviewed actual Streamlit detail and
-  public-planner results against the candidate database.
-- Recorded first-round coverage, result delta and V5-3 priorities in
-  `docs/V5_1_DATA_EVIDENCE.md`.
+- uncommitted work that cannot yet be committed or pushed;
+- local-only artifacts, test fixtures, or reproducible commands needed to
+  continue safely;
+- a non-public blocker or external dependency that is not appropriate for a
+  public Issue or PR;
+- claimed files or modules that are not already recorded on GitHub and could
+  conflict with another active worktree.
 
-### Remaining
+Each exception entry must state why GitHub and Git are insufficient, identify
+the related Issue or PR, describe the local-only state without exposing private
+data, list any claimed files, and give the next safe action. Remove an entry
+after its material facts become recoverable from GitHub or Git.
 
-- Owner/CODEOWNER and a second human review Draft PR #75; AI must not merge it.
-- Owner decides whether to accept V5-1 evidence and begin V5-3; V5-2 findings do not
-  authorize algorithm or page changes.
+## Do not record transient GitHub state
 
-### Validation evidence
+Do not add or update this file merely to record:
 
-- Candidate pipeline: 261 ETF master rows; official price history 231／261; 1M／3M／
-  6M／1Y coverage 230／223／210／190; dividend yield 113／261; ACTUAL 76W 1／261.
-- Planner: zero holdings 47 eligible and `TARGET_MET`; all frozen one／N holding cases
-  remain 0 eligible because constituent overlap data is unavailable.
-- Targeted V5 tests: 21 tests in 14.849s, all passed.
-- Compileall: passed for `backend frontend tests deployment`.
-- Full regression: 1,047 tests in 485.833s, all passed; only existing Streamlit
-  bare-mode／Arrow auto-conversion warnings were emitted.
-- `git diff --cached --check`: passed before commit.
-- Implementation commit `3e35f6b` pushed; Draft PR #75 created.
+- waiting for review, approval, a decision, CI, or merge;
+- Draft, ready-for-review, closed, or merged status;
+- the current approval count, reviewer assignment, or check result;
+- whether a branch is current with or behind its base;
+- the latest default-branch commit or a PR's latest commit;
+- completed-work summaries, test evidence, or decisions already present in an
+  Issue, PR, commit, or tracked project document.
 
-### Decisions and invariants
+Ordinary pauses, review transitions, new CI runs, approvals, and merges require
+no `AI_HANDOFF.md` edit. Collaborators must verify those states live.
 
-- V5 order is data round 1 -> result review 1 -> result-driven data round 2 -> result review 2 -> closeout.
-- V4-8, formal deployment and SEC-4 remain paused through V5-5.
-- First data round freezes the allocation engine and accepted page layout.
-- Missing official data remains unavailable; estimated capital gain never becomes formal 76W.
+## Current repository-only exceptions
 
-### Risks or blockers
+None. Verify current work and review state through GitHub and Git.
 
-- This is high-risk official-data work and the Draft PR requires CODEOWNER and two human
-  approvals before a human maintainer may merge.
-- Candidate artifacts and database are local/ignored and must not be committed.
-- Fund size, expense ratio, distribution period, stock dividend, broader ACTUAL evidence,
-  constituent overlap and adjusted long-term history remain incomplete.
+## Safety invariants
 
-### Next safe action
-
-Review Draft PR #75 and decide the V5-3 data priority; do not merge without required
-human approvals, deploy, resume V4-8 or sign SEC-4.
-
-## 更新規則
-
-1. 使用精確 commit SHA、branch、Issue／PR 連結，不寫「最新」或「剛才」。
-2. 區分「已修改」「已 commit」「已 push」「已建立 PR」「已 merge」；不得用「完成」概括不同狀態。
-3. 記錄未執行的測試及原因，不把局部測試描述成完整回歸。
-4. 列出目前占用的檔案；接手者確認工作樹與遠端狀態後才可清除 claimed scope。
-5. 不在此檔放 token、帳號、cookie、正式資料或本機密鑰路徑。
+- Never record tokens, account details, cookies, personal data, production
+  data, browsing history, or local secrets.
+- A handoff entry never expands AI authorization.
+- AI must not merge, deploy, change repository settings or secrets, operate on
+  production data, approve SEC-4, or declare a public launch.
+- Keep ACTUAL, eFortune estimated fallback, formal `76W`, missing data, and
+  formal zero semantically distinct.

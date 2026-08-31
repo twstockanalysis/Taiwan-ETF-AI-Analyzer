@@ -1,28 +1,28 @@
-name: 錯誤回報
-description: 回報可重現的網站、API、資料或計算錯誤
+name: Bug report
+description: Report a reproducible website, API, data, or calculation defect
 title: "[Bug] "
 labels: ["type:bug", "status:needs-triage"]
 body:
   - type: markdown
     attributes:
-      value: 安全漏洞、認證繞過、token／cookie 或資料外洩請改用 Security Advisory 私密通報，不要填入公開 Issue。
+      value: Report vulnerabilities, authentication bypasses, tokens, cookies, and suspected data leaks privately through a Security Advisory, not a public Issue.
   - type: textarea
     id: observed
     attributes:
-      label: 實際結果
-      description: 發生了什麼？缺失值與 0 請分開描述。
+      label: Observed result
+      description: What happened? Describe missing values and formal zero separately.
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: 預期結果
+      label: Expected result
     validations:
       required: true
   - type: textarea
     id: reproduce
     attributes:
-      label: 重現步驟
+      label: Reproduction steps
       placeholder: |
         1.
         2.
@@ -32,40 +32,40 @@ body:
   - type: input
     id: location
     attributes:
-      label: 頁面／API／ETF／日期
-      description: 請勿附 token、cookie、內網網址或個資。
+      label: Page, API, ETF, or date
+      description: Do not include tokens, cookies, private-network URLs, or personal data.
   - type: dropdown
     id: impact
     attributes:
-      label: 影響範圍
+      label: Impact
       options:
-        - 顯示或文字
-        - 單一功能不可用
-        - 資料或計算可能錯誤
+        - Display or copy issue
+        - One feature is unavailable
+        - Data or calculation may be incorrect
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
-      label: 可公開的錯誤訊息或截圖
-      description: 移除 secrets、路徑、帳號與正式資料後再貼上。
+      label: Public-safe error message or screenshot
+      description: Remove secrets, local paths, accounts, and production data before posting.
   - type: dropdown
     id: ai_scope
     attributes:
-      label: AI 參與方式
+      label: AI participation
       options:
-        - 可由 AI 診斷與修正，需人類 sponsor
-        - AI 只讀診斷
-        - 僅限人類處理
-        - 尚待 maintainer 決定
+        - AI may diagnose and fix with a human sponsor
+        - AI may perform read-only diagnosis
+        - Human-only handling
+        - Maintainer decision required
     validations:
       required: true
   - type: checkboxes
     id: checks
     attributes:
-      label: 回報確認
+      label: Report confirmation
       options:
-        - label: 我已搜尋現有 Issue／PR。
+        - label: I searched existing Issues and PRs.
           required: true
-        - label: 我已移除 secrets、個資、token、cookie 與未匿名化正式資料。
+        - label: I removed secrets, personal data, tokens, cookies, and non-anonymized production data.
           required: true
