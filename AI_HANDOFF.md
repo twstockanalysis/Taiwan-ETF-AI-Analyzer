@@ -4,15 +4,15 @@
 
 ## Active handoff
 
-- Status: `ACTIVE — DRAFT PR PREPARATION`
+- Status: `WAITING_FOR_HUMAN_REVIEW`
 - Issue: `#74` — https://github.com/twstockanalysis/goodcat-website/issues/74
 - Owner / human sponsor: `GoodCat owner / current requester`
 - Current implementer: `Codex /root`
 - Branch: `data/74-detail-page-official-data`
 - Base branch / commit: `main / 2d2d5f95fba52bac8b5cc191ed99fdf9291bf219`
-- Latest commit: `2d2d5f95fba52bac8b5cc191ed99fdf9291bf219` (V5-1 working-tree changes not committed)
-- Pull request: `N/A`
-- Last updated: `2026-08-30`
+- Latest implementation commit: `3e35f6b4a985b1102ec70dfe7c5dfff70ecd53c2`
+- Pull request: Draft `#75` — https://github.com/twstockanalysis/goodcat-website/pull/75
+- Last updated: `2026-08-31`
 
 ### Objective
 
@@ -41,8 +41,7 @@ V5-2 owner 決策證據；不修改配置引擎或前端頁面。
 
 ### Remaining
 
-- Complete targeted and full regression, `git diff --check`, commit and push.
-- Create Draft PR linked to #74 and wait for owner/CODEOWNER review.
+- Owner/CODEOWNER and a second human review Draft PR #75; AI must not merge it.
 - Owner decides whether to accept V5-1 evidence and begin V5-3; V5-2 findings do not
   authorize algorithm or page changes.
 
@@ -56,7 +55,8 @@ V5-2 owner 決策證據；不修改配置引擎或前端頁面。
 - Compileall: passed for `backend frontend tests deployment`.
 - Full regression: 1,047 tests in 485.833s, all passed; only existing Streamlit
   bare-mode／Arrow auto-conversion warnings were emitted.
-- Pending: final staged diff check, commit, push and Draft PR creation.
+- `git diff --cached --check`: passed before commit.
+- Implementation commit `3e35f6b` pushed; Draft PR #75 created.
 
 ### Decisions and invariants
 
@@ -75,7 +75,8 @@ V5-2 owner 決策證據；不修改配置引擎或前端頁面。
 
 ### Next safe action
 
-Finish verification and create the Draft PR; do not merge, deploy, resume V4-8 or sign SEC-4.
+Review Draft PR #75 and decide the V5-3 data priority; do not merge without required
+human approvals, deploy, resume V4-8 or sign SEC-4.
 
 ## 更新規則
 
