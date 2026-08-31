@@ -248,6 +248,47 @@ class TestDividendYieldPipeline(
             future["yield_pct"]
         )
 
+    def test_pipeline_prefers_saved_official_close(
+        self,
+    ) -> None:
+        """確認績效批次已保存的價格可直接供殖利率使用。"""
+
+        connection = get_connection(
+            self.database_path
+        )
+        try:
+            connection.execute(
+                """
+                INSERT INTO etf_daily_close (
+                    etf_code, trade_date, close_price, source_id
+                )
+                VALUES ('00918', '2026-03-19', 25, 'twse_stock_day');
+                """
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        def unexpected_fetch(*args, **kwargs):
+            raise AssertionError("不應重複下載已保存的官方價格")
+
+        result = run_dividend_yield_pipeline(
+            database_path=self.database_path,
+            request_interval_seconds=0,
+            today=date(2026, 8, 1),
+            price_fetcher=unexpected_fetch,
+        )
+
+        self.assertEqual(result.calculated_count, 1)
+        self.assertEqual(result.failed_count, 1)
+
+        items = list_etf_dividends(
+            etf_code="00918",
+            database_path=self.database_path,
+        )
+        historical = next(item for item in items if item["id"] == 1)
+        self.assertEqual(historical["yield_pct"], 2.0)
+
 
 if __name__ == "__main__":
     unittest.main()

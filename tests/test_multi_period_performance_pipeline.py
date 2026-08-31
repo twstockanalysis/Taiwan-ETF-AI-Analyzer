@@ -406,6 +406,62 @@ class TestMultiPeriodPerformancePipeline(
             10.0,
         )
 
+    @patch(
+        "backend.app.data_sources."
+        "performance_pipeline."
+        "fetch_price_history"
+    )
+    def test_detail_snapshot_can_include_bond_etf(
+        self,
+        mock_fetch,
+    ) -> None:
+        """確認詳細頁全市場快照可明確包含債券 ETF。"""
+
+        connection = get_connection(
+            self.database_path
+        )
+        try:
+            connection.execute(
+                """
+                INSERT INTO etf_master (
+                    code, name, is_active, is_bond, listing_date
+                )
+                VALUES ('00679B', '債券測試ETF', 0, 1, '2017-01-11');
+                """
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        mock_fetch.return_value = [
+            self.build_price_record(
+                "00679B",
+                "2026-06-29",
+                "30",
+            ),
+            self.build_price_record(
+                "00679B",
+                "2026-07-29",
+                "31",
+            ),
+        ]
+
+        result = run_multi_period_performance_pipeline(
+            database_path=self.database_path,
+            end_date=date(2026, 7, 29),
+            codes=["00679B"],
+            periods=["1M"],
+            include_bond=True,
+            request_interval_seconds=0,
+            inter_etf_interval_seconds=0,
+            processed_output_root=self.processed_root,
+            rejected_output_root=self.rejected_root,
+            save_raw_snapshots=False,
+        )
+
+        self.assertEqual(result.candidate_count, 1)
+        self.assertEqual(result.successful_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

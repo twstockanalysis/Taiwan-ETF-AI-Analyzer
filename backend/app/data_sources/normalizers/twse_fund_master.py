@@ -1,7 +1,7 @@
 """TWSE 基金基本資料正規化器。"""
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time, timezone
 from typing import Any
 
 from pydantic import ValidationError
@@ -33,6 +33,10 @@ LISTING_DATE_FIELDS = (
     "上市日期",
     "上櫃日期",
     "掛牌日期",
+)
+
+SOURCE_UPDATED_FIELDS = (
+    "出表日期",
 )
 
 ETF_KEYWORDS = (
@@ -351,6 +355,14 @@ def normalize_twse_fund_record(
         LISTING_DATE_FIELDS,
     )
 
+    source_updated_value = get_first_value(
+        record,
+        SOURCE_UPDATED_FIELDS,
+    )
+    source_updated_date = parse_listing_date(
+        source_updated_value
+    )
+
     return ETFImportRecord.model_validate(
         {
             "code": str(code),
@@ -368,6 +380,15 @@ def normalize_twse_fund_record(
             "expense_ratio": None,
             "market": Market.TWSE,
             "source_id": "twse_openapi",
+            "source_updated_at": (
+                datetime.combine(
+                    source_updated_date,
+                    time.min,
+                    tzinfo=timezone.utc,
+                )
+                if source_updated_date
+                else None
+            ),
         }
     )
 

@@ -24,6 +24,9 @@ from backend.app.repositories.dividend_repository import (
     list_dividend_yield_candidates,
     upsert_dividend_summary_metrics,
 )
+from backend.app.repositories.daily_close_repository import (
+    list_daily_closes,
+)
 
 
 @dataclass(
@@ -118,8 +121,14 @@ def run_dividend_yield_pipeline(
     request_interval_seconds: float = 0.4,
     today: date | None = None,
     price_fetcher: PriceFetcher | None = None,
+    prefer_cached_prices: bool = True,
 ) -> DividendYieldPipelineResult:
-    """為尚無官方值的事件建立並保存回退殖利率。"""
+    """為尚無官方值的事件建立並保存回退殖利率。
+
+    已保存的官方日收盤價優先於網路請求；快取沒有除息日前
+    價格時才呼叫 price_fetcher。這讓全市場績效與殖利率批次
+    共用同一份 TWSE facts，並保留完全相同的來源語意。
+    """
 
     if request_interval_seconds < 0:
         raise ValueError(
@@ -180,13 +189,44 @@ def run_dividend_yield_pipeline(
                     "非 TWD 配息不可使用 TWSE 收盤價回退"
                 )
 
-            price_records = price_fetcher(
-                code,
-                ex_dividend_date
-                - timedelta(days=1),
-                2,
-                request_interval_seconds,
-            )
+            price_records: list[
+                ETFDailyCloseRecord
+            ] = []
+
+            if prefer_cached_prices:
+                price_records = [
+                    ETFDailyCloseRecord(
+                        etf_code=str(
+                            item["etf_code"]
+                        ),
+                        trade_date=date.fromisoformat(
+                            str(item["trade_date"])
+                        ),
+                        close_price=Decimal(
+                            str(item["close_price"])
+                        ),
+                        source_id=str(
+                            item["source_id"]
+                        ),
+                    )
+                    for item in list_daily_closes(
+                        code,
+                        database_path=(
+                            target_database_path
+                        ),
+                    )
+                    if str(item["trade_date"])
+                    < ex_dividend_date.isoformat()
+                ]
+
+            if not price_records:
+                price_records = price_fetcher(
+                    code,
+                    ex_dividend_date
+                    - timedelta(days=1),
+                    2,
+                    request_interval_seconds,
+                )
 
             reference = (
                 select_previous_trading_close(
