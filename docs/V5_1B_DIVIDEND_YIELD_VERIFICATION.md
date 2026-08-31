@@ -55,7 +55,42 @@ V5-1B 確認殖利率圖表缺點位不是 Vega／Streamlit 彙總錯誤，而�
 
 ## 驗證邊界
 
-- 本次只提交 pipeline、deterministic tests 與核對證據；本機 SQLite 資料庫
-  不進入 Git。
+- 本機 SQLite 資料庫不進入 Git；協作者使用下列經白名單匯出的可攜式
+  殖利率資料包重建相同的 419 筆結果。
 - 正式資料庫仍需由人類 sponsor 依候選快照與部署程序審核後匯入。
 - Draft PR 不代表作者核准、正式資料驗收、部署或 READY。
+
+## 協作者資料同步
+
+版本控制保留兩個不含 SQLite 自增 ID、本機路徑、raw snapshot 或其他資料表
+內容的檔案：
+
+- `data/collaboration/v5-1b/dividend-yields.json`
+- `data/collaboration/v5-1b/dividend-yields.manifest.json`
+
+manifest 固定記錄資料包 SHA-256、來源資料庫 SHA-256／容量、SQLite 完整性、
+外鍵結果、筆數及 `yield_basis` 分布。資料包只保留重建殖利率所需的事件穩定
+鍵、事件指紋、殖利率、來源與參考價格欄位。
+
+協作者必須先以 V5-1 候選流程建立含相同配息事件的本機資料庫，再執行：
+
+```powershell
+.venv\Scripts\python.exe -m deployment.dividend_yield_bundle import `
+  --database <collaborator-candidate.db> `
+  --bundle data\collaboration\v5-1b\dividend-yields.json `
+  --manifest data\collaboration\v5-1b\dividend-yields.manifest.json
+```
+
+匯入前會驗證資料包 SHA-256 與筆數，並以 `source_id + source_event_id` 尋找
+事件，再比對 ETF 代號、除息日、每單位金額與幣別。任何事件缺少、重複、
+指紋不一致、SQLite integrity 失敗或外鍵錯誤都會在寫入前停止。既有 repository
+規則仍會阻止 calculated yield 覆蓋正式 `OFFICIAL` yield。
+
+需要重新產生資料包時，輸出路徑必須尚不存在：
+
+```powershell
+.venv\Scripts\python.exe -m deployment.dividend_yield_bundle export `
+  --database <verified-source.db> `
+  --bundle <new-dividend-yields.json> `
+  --manifest <new-dividend-yields.manifest.json>
+```

@@ -1,0 +1,14 @@
+{
+  "bundle_file": "dividend-yields.json",
+  "bundle_sha256": "b18ca4c1b568b1231d5126511041fb2f5907c27f85a599bed20eff44ff27f24c",
+  "dataset": "goodcat-v5-1b-dividend-yields",
+  "format_version": 1,
+  "record_count": 419,
+  "source_database_sha256": "4c2cabb98b4df0be79700d99a138d2d11d95da1e153733112945d0f4c513e2fc",
+  "source_database_size": 2871296,
+  "source_foreign_key_violation_count": 0,
+  "source_integrity_check": "ok",
+  "yield_basis_counts": {
+    "CALCULATED": 419
+  }
+}
