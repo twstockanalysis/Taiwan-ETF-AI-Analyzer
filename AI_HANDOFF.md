@@ -1,87 +1,122 @@
 # AI handoff
 
-此檔是人類與多 AI 之間的 repository 內交接點。進入任務時先閱讀，離開、暫停、受阻或交給另一位實作者前更新。已合併或失效的內容移至對應 Issue／PR，主檔只保留目前有效交接。
+This file is the repository handoff point for human and multi-AI work. Read it
+before starting. Update it when work pauses, is blocked, or changes implementer.
+Move merged or obsolete entries to their Issue or PR so this file contains only
+current work.
 
 ## Active handoff
 
-- Status: `WAITING_FOR_HUMAN_REVIEW`
-- Issue: `#74` — https://github.com/twstockanalysis/goodcat-website/issues/74
+- Status: `ACTIVE`
+- Issue: `#76` — https://github.com/twstockanalysis/goodcat-website/issues/76
 - Owner / human sponsor: `GoodCat owner / current requester`
 - Current implementer: `Codex /root`
-- Branch: `data/74-detail-page-official-data`
-- Base branch / commit: `main / 2d2d5f95fba52bac8b5cc191ed99fdf9291bf219`
-- Latest implementation commit: `3e35f6b4a985b1102ec70dfe7c5dfff70ecd53c2`
-- Pull request: Draft `#75` — https://github.com/twstockanalysis/goodcat-website/pull/75
+- Branch: `docs/76-english-collaboration`
+- Base branch / commit: `data/74-detail-page-official-data / 0669ba058942f4615040e8dd725bd30da3045c05`
+- Implementation commit: `7b9e9ef8391bce0cb51bcff0aa17e1a81b845e34`
+- Pull request: Draft `#77` — https://github.com/twstockanalysis/goodcat-website/pull/77
 - Last updated: `2026-08-31`
 
 ### Objective
 
-完成 V5-1 第一輪詳細資料候選、覆蓋 ledger 與 frozen planner replay，提供
-V5-2 owner 決策證據；不修改配置引擎或前端頁面。
+Rewrite repository-facing collaboration documentation and templates in English
+while preserving the product name `GoodCat 股利喵`, policy meaning, data
+semantics, safety boundaries, links, commands, and exact handoff facts. Remove
+the duplicated collaboration introduction from README because GitHub already
+provides a dedicated Contributing page.
 
 ### Claimed scope
 
-- Files/modules: `backend/app/data_sources/`, `deployment/detail_data_candidate.py`,
-  `deployment/v5_planner_replay.py`, V5 docs and related tests
-- Do not touch: allocation services/objective, frontend layout/copy, source database,
-  formal deployment, V4-8 and SEC-4
+- `README.md`
+- `AGENTS.md`
+- `CONTRIBUTING.md`
+- `docs/COLLABORATION_POLICY.md`
+- `AI_HANDOFF.md`
+- `.github/pull_request_template.md`
+- `.github/ISSUE_TEMPLATE/*.yml`
+
+Do not modify product UI copy, source-code comments, API messages, historical
+acceptance evidence, financial contracts, V5 implementation, deployment,
+repository settings, or production data.
 
 ### Completed
 
-- Verified `origin/main` baseline `2d2d5f9` contains PR #72 and #73.
-- Created Issue #74 and switched to the dedicated data branch from exact main base.
-- Added an isolated no-overwrite candidate builder, per-ETF visible-field coverage
-  ledger, bond-inclusive price/performance refresh and cached official-price yield fallback.
-- Built candidate SHA `64a4ab5f947777b39e38edf90146db597512a2dad42f7a31edcab894331b10e5`;
-  integrity `ok`, foreign-key violations `0`.
-- Replayed four frozen planner cases and visually reviewed actual Streamlit detail and
-  public-planner results against the candidate database.
-- Recorded first-round coverage, result delta and V5-3 priorities in
-  `docs/V5_1_DATA_EVIDENCE.md`.
+- Created Issue #76 with the owner-approved documentation scope.
+- Created an isolated stacked worktree from the exact PR #75 branch commit so
+  the V5-1 website and data-review work remain unchanged.
+- Inventoried all collaboration documents, PR templates, and Issue Forms that
+  contain Traditional Chinese prose.
+- Rewrote README, collaboration rules, contributor guidance, policy, PR
+  template, Issue Forms, and this handoff in English.
+- Kept `GoodCat 股利喵` as the product name and moved the collaboration entry
+  point exclusively to `CONTRIBUTING.md`.
+- Updated Issue #76 and PR #75 so their review wording matches the owner's
+  one-human approval decision.
+- Validated the translated documents, Issue Forms, local links, and whitespace.
+- Committed and pushed the documentation branch, then opened Draft PR #77
+  against the current PR #75 branch.
 
 ### Remaining
 
-- Owner/CODEOWNER and a second human review Draft PR #75; AI must not merge it.
-- Owner decides whether to accept V5-1 evidence and begin V5-3; V5-2 findings do not
-  authorize algorithm or page changes.
+- After PR #75 merges, retarget and synchronize the documentation PR with
+  `main` before human review and merge.
 
 ### Validation evidence
 
-- Candidate pipeline: 261 ETF master rows; official price history 231／261; 1M／3M／
-  6M／1Y coverage 230／223／210／190; dividend yield 113／261; ACTUAL 76W 1／261.
-- Planner: zero holdings 47 eligible and `TARGET_MET`; all frozen one／N holding cases
-  remain 0 eligible because constituent overlap data is unavailable.
-- Targeted V5 tests: 21 tests in 14.849s, all passed.
-- Compileall: passed for `backend frontend tests deployment`.
-- Full regression: 1,047 tests in 485.833s, all passed; only existing Streamlit
-  bare-mode／Arrow auto-conversion warnings were emitted.
-- `git diff --cached --check`: passed before commit.
-- Implementation commit `3e35f6b` pushed; Draft PR #75 created.
+- Parsed all 5 Issue template YAML files with PyYAML and validated required
+  Issue Form structure and unique field IDs.
+- Confirmed all in-scope Markdown prose is English after excluding the literal
+  product name `GoodCat 股利喵`.
+- Checked local Markdown links in README, AGENTS, CONTRIBUTING, the
+  collaboration policy, this handoff, and the PR template; no broken links.
+- Searched for obsolete two-human approval wording; no matches.
+- `git diff --check` passed.
+- Runtime regression was not repeated because this branch changes only
+  repository documentation and GitHub templates; PR #75 retains its separate
+  1,047-test implementation evidence.
 
 ### Decisions and invariants
 
-- V5 order is data round 1 -> result review 1 -> result-driven data round 2 -> result review 2 -> closeout.
-- V4-8, formal deployment and SEC-4 remain paused through V5-5.
-- First data round freezes the allocation engine and accepted page layout.
-- Missing official data remains unavailable; estimated capital gain never becomes formal 76W.
+- All in-scope prose is English except the product name `GoodCat 股利喵`.
+- README begins with the project introduction; collaboration instructions live
+  in the dedicated Contributing page and collaboration documents.
+- The owner changed the approval policy: general PRs require one non-author
+  human approval, and high-risk PRs require one human CODEOWNER approval.
+  Authorization levels, merge restrictions, data semantics, and SEC-4
+  requirements remain unchanged.
+- ACTUAL, eFortune estimated fallback, formal `76W`, missing, and formal zero remain
+  distinct.
 
 ### Risks or blockers
 
-- This is high-risk official-data work and the Draft PR requires CODEOWNER and two human
-  approvals before a human maintainer may merge.
-- Candidate artifacts and database are local/ignored and must not be committed.
-- Fund size, expense ratio, distribution period, stock dividend, broader ACTUAL evidence,
-  constituent overlap and adjusted long-term history remain incomplete.
+- This is a stacked documentation branch until PR #75 merges.
+- Translating policy text can accidentally change meaning; review must compare
+  every safety and financial-data invariant with the source wording.
 
 ### Next safe action
 
-Review Draft PR #75 and decide the V5-3 data priority; do not merge without required
-human approvals, deploy, resume V4-8 or sign SEC-4.
+Review Draft PR #77. After PR #75 merges, retarget and synchronize PR #77 with
+`main`, then obtain one non-author human approval. AI must not merge, deploy,
+change repository settings, or operate on production data.
 
-## 更新規則
+## Concurrent review
 
-1. 使用精確 commit SHA、branch、Issue／PR 連結，不寫「最新」或「剛才」。
-2. 區分「已修改」「已 commit」「已 push」「已建立 PR」「已 merge」；不得用「完成」概括不同狀態。
-3. 記錄未執行的測試及原因，不把局部測試描述成完整回歸。
-4. 列出目前占用的檔案；接手者確認工作樹與遠端狀態後才可清除 claimed scope。
-5. 不在此檔放 token、帳號、cookie、正式資料或本機密鑰路徑。
+- Issue: `#74` — https://github.com/twstockanalysis/goodcat-website/issues/74
+- Draft PR: `#75` — https://github.com/twstockanalysis/goodcat-website/pull/75
+- Branch: `data/74-detail-page-official-data`
+- Latest implementation commit: `3e35f6b4a985b1102ec70dfe7c5dfff70ecd53c2`
+- Latest branch commit: `0669ba058942f4615040e8dd725bd30da3045c05`
+- Status: waiting for one human CODEOWNER approval; AI must not merge.
+- V4-8, formal deployment, and SEC-4 remain paused through V5-5.
+
+## Update rules
+
+1. Record exact commit SHAs, branches, Issues, and PR links. Do not write
+   "latest" or "just now."
+2. Distinguish modified, committed, pushed, PR created, and merged states.
+3. Record omitted tests and reasons. Never describe focused tests as a full
+   regression.
+4. List claimed files. A new implementer must verify the worktree and remote
+   state before clearing the scope.
+5. Never record tokens, accounts, cookies, production data, browsing history,
+   or local secrets in this file.

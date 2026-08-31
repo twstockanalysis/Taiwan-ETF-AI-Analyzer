@@ -1,51 +1,51 @@
-## 關聯 Issue
+## Related Issue
 
 Closes #
 
-## 目的與使用者影響
+## Purpose and user impact
 
-<!-- 先描述使用者問題，再描述技術解法。 -->
+<!-- Describe the user problem first, then the technical solution. -->
 
 ## Scope
 
 - Included:
 - Out of scope:
 
-## 主要變更
+## Main changes
 
 -
 
-## 驗收與證據
+## Acceptance and evidence
 
-- [ ] 已符合 Issue acceptance criteria
-- [ ] 已執行針對性測試
-- [ ] 已執行完整 regression，或在下方說明未執行原因
-- [ ] `git diff --check` 通過
-- [ ] UI 變更附實頁驗收說明／截圖；不適用請註明
+- [ ] Meets the Issue acceptance criteria
+- [ ] Focused tests completed
+- [ ] Full regression completed, or the reason for not running it is documented below
+- [ ] `git diff --check` passed
+- [ ] UI changes include real-page acceptance notes or screenshots; mark N/A when not applicable
 
 ```text
 Commands and results:
 
 ```
 
-### 未執行驗證
+### Validation not performed
 
-<!-- 寫明未執行項目、原因與殘餘風險；沒有請填 N/A。 -->
+<!-- State the omitted checks, reason, and residual risk. Use N/A if none. -->
 
-## 資料與計算語意
+## Data and calculation semantics
 
-- [ ] 不涉及 ACTUAL／估算／76W／缺失／0／稅務或配置公式
-- [ ] 若涉及，已更新測試與 contract，並在下方說明
+- [ ] Does not affect ACTUAL, estimated, 76W, missing, zero, tax, or allocation-formula semantics
+- [ ] If affected, tests and contracts were updated and the details are documented below
 
-說明：
+Details:
 
-## 安全、隱私與部署
+## Security, privacy, and deployment
 
-- [ ] 不含 secrets、正式資料、個資、log、database 或本機設定
-- [ ] 不會改變認證、授權、部署或公開 API 安全邊界
-- [ ] 高風險變更已標記並要求兩位人類及 CODEOWNER review
+- [ ] Contains no secrets, production data, personal data, logs, databases, or local settings
+- [ ] Does not change authentication, authorization, deployment, or public API security boundaries
+- [ ] High-risk changes are labeled and require one human CODEOWNER approval
 
-## AI 參與揭露
+## AI participation disclosure
 
 - Human sponsor:
 - Implementer: `human / AI / mixed`
@@ -55,7 +55,7 @@ Commands and results:
 - Human-verified areas:
 - Not manually line-reviewed:
 
-## 交接與回復
+## Handoff and rollback
 
 - Branch / latest commit:
 - `AI_HANDOFF.md` updated: `yes / not needed`
@@ -64,8 +64,8 @@ Commands and results:
 
 ## Reviewer checklist
 
-- [ ] Reviewer 與作者不是同一個 AI 身分
-- [ ] CI 與 required security gate 全綠
-- [ ] 對話已 resolved，branch 已同步 base
-- [ ] 已取得規範要求的人類核准數
-- [ ] 由人類 maintainer 執行 merge
+- [ ] Reviewer is not the same AI identity as the author
+- [ ] CI and required security gates passed
+- [ ] Conversations are resolved and the branch is current with its base
+- [ ] Required human approvals were obtained
+- [ ] A human maintainer will perform the merge
