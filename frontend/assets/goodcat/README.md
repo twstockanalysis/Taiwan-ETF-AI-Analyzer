@@ -15,7 +15,8 @@ terms and this repository's license. Keep this provenance note with the files.
 | --- | --- | --- |
 | `goodcat-idle.png` | `IDLE` | Home, empty or waiting state |
 | `goodcat-idle-hero.png` | `IDLE` | Losslessly cropped home hero with even transparent padding |
-| `goodcat-sleeping-hero.png` | `IDLE` | Sleeping-cat artwork selected for the home planning hero |
+| `goodcat-sleeping-hero.png` | `IDLE` | Borderless gray sleeping cat used by the light-theme home hero |
+| `goodcat-sleeping-white-hero.png` | `IDLE` | Matching borderless white sleeping cat used by the dark-theme home hero |
 | `goodcat-attentive-v3.png` | `ATTENTIVE` | Rounder alert eyes and a brighter expression during input |
 | `goodcat-working.png` | `WORKING` | Natural crouch while calculation runs |
 | `goodcat-ready.png` | `READY` | Alert stance and raised tail for completion |
@@ -42,6 +43,11 @@ reward while intentionally omitting the reward object itself.
 The V5-1A page-state illustrations were selected by the product owner from the
 GoodCat image set generated with OpenAI's built-in image generation on
 2026-08-31. V5-1B is reserved for live-page visual and responsive review.
+
+The theme-specific home pair was generated from the selected sleeping-cat
+reference on 2026-08-31. Both variants use the same sleeping situation and
+expression without an outer white sticker border. The gray cat is used in the
+light theme and the white cat is used in the dark theme.
 
 All production files are PNG images with real alpha transparency. Character
 images supplement visible Traditional Chinese state text; they never replace
