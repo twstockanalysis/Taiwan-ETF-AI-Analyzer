@@ -23,6 +23,9 @@ from backend.app.models.etf_price import (
 from backend.app.repositories.dividend_repository import (
     list_etf_dividends,
 )
+from backend.app.repositories.daily_close_repository import (
+    upsert_daily_close_records,
+)
 
 
 class TestDividendYieldPipeline(
@@ -288,6 +291,46 @@ class TestDividendYieldPipeline(
         )
         historical = next(item for item in items if item["id"] == 1)
         self.assertEqual(historical["yield_pct"], 2.0)
+
+    def test_cached_close_outside_download_window_is_not_used(
+        self,
+    ) -> None:
+        """過舊快取不可冒充除息日前一交易日。"""
+
+        upsert_daily_close_records(
+            [
+                self.build_price(
+                    date(2025, 12, 1),
+                    "20",
+                )
+            ],
+            self.database_path,
+        )
+        calls: list[tuple] = []
+
+        def fake_price_fetcher(*args):
+            calls.append(args)
+            return [
+                self.build_price(
+                    date(2026, 3, 19),
+                    "25",
+                )
+            ]
+
+        result = run_dividend_yield_pipeline(
+            database_path=self.database_path,
+            etf_code="00918",
+            request_interval_seconds=0,
+            today=date(2026, 8, 1),
+            price_fetcher=fake_price_fetcher,
+            prefer_cached_prices=True,
+        )
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            result.calculated_count,
+            1,
+        )
 
 
 if __name__ == "__main__":
