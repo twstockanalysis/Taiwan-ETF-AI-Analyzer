@@ -4,9 +4,11 @@
 
 Enable people and multiple AI agents to work in parallel while preserving
 single ownership, traceable decisions, financial-data semantics, security
-boundaries, and reversible Git history. Issues are the source of requirements,
-PRs are the source of review and merge decisions, and `AI_HANDOFF.md` is the
-current repository source for unfinished work.
+boundaries, and reversible Git history. Issues are the source of requirements
+and decisions, PRs are the source of review and merge state, and Git is the
+source of branch, commit, worktree, and uncommitted-change state.
+`AI_HANDOFF.md` is only an exception log for material context those sources
+cannot provide.
 
 ## 2. Roles
 
@@ -97,11 +99,18 @@ Protect `main` with:
 
 ## 8. Handoff and failure recovery
 
-When an AI or person changes, work pauses, or authorization blocks progress,
-record the exact branch, base, commit, PR, claimed files, completed and remaining
-work, tests, and next step in `AI_HANDOFF.md`. The next implementer must recheck
-GitHub and the worktree instead of assuming from chat memory that work was
-pushed or merged.
+Before starting or resuming work, refresh and inspect the live Issue, PR,
+reviews, CI, default branch, current branch, and worktree. Never rely on a copied
+status or chat memory to decide whether work was pushed, approved, passed, or
+merged.
+
+Do not update `AI_HANDOFF.md` for ordinary pauses, review or CI waiting,
+approval-count changes, Draft-to-ready transitions, branch synchronization, or
+merge state. Add an exception only when a successor needs material local-only
+or non-public context that GitHub and Git cannot provide, such as uncommitted
+work, local artifacts, an external blocker that cannot be recorded publicly, or
+an unrecorded claimed scope. Remove the exception after its facts become
+recoverable from GitHub or Git.
 
 If CI fails, reproduce the smallest failure and determine whether the PR caused
 it. Never modify or skip a test merely to obtain a passing result. Return to the

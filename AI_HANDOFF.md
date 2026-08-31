@@ -1,122 +1,73 @@
 # AI handoff
 
-This file is the repository handoff point for human and multi-AI work. Read it
-before starting. Update it when work pauses, is blocked, or changes implementer.
-Move merged or obsolete entries to their Issue or PR so this file contains only
-current work.
+This file is an exception log for collaboration facts that cannot be recovered
+from GitHub and the current Git worktree. It is not a live status dashboard.
 
-## Active handoff
+Issues and PRs are the source of truth for requirements, ownership, discussion,
+review, CI, approval, and merge state. Git is the source of truth for branches,
+commits, worktrees, and uncommitted changes. Always refresh and inspect those
+sources directly before starting or resuming work.
 
-- Status: `ACTIVE`
-- Issue: `#76` — https://github.com/twstockanalysis/goodcat-website/issues/76
-- Owner / human sponsor: `GoodCat owner / current requester`
-- Current implementer: `Codex /root`
-- Branch: `docs/76-english-collaboration`
-- Base branch / commit: `data/74-detail-page-official-data / 0669ba058942f4615040e8dd725bd30da3045c05`
-- Implementation commit: `7b9e9ef8391bce0cb51bcff0aa17e1a81b845e34`
-- Pull request: Draft `#77` — https://github.com/twstockanalysis/goodcat-website/pull/77
-- Last updated: `2026-08-31`
+## Required live verification
 
-### Objective
+Use the relevant commands instead of relying on a status copied into this file:
 
-Rewrite repository-facing collaboration documentation and templates in English
-while preserving the product name `GoodCat 股利喵`, policy meaning, data
-semantics, safety boundaries, links, commands, and exact handoff facts. Remove
-the duplicated collaboration introduction from README because GitHub already
-provides a dedicated Contributing page.
+```powershell
+git fetch origin
+git status --short --branch
+git branch --show-current
+gh repo view --json defaultBranchRef
+gh issue view <number> --json state,title,url,body
+gh pr view <number> --json state,isDraft,baseRefName,headRefName,mergeStateStatus,statusCheckRollup,reviews,url
+```
 
-### Claimed scope
+Also inspect the current Issue and PR discussion when decisions or unresolved
+comments may affect the task. A prior chat summary or handoff entry never proves
+that a branch was pushed, a PR was approved, CI passed, or a change was merged.
 
-- `README.md`
-- `AGENTS.md`
-- `CONTRIBUTING.md`
-- `docs/COLLABORATION_POLICY.md`
-- `AI_HANDOFF.md`
-- `.github/pull_request_template.md`
-- `.github/ISSUE_TEMPLATE/*.yml`
+## When an entry is required
 
-Do not modify product UI copy, source-code comments, API messages, historical
-acceptance evidence, financial contracts, V5 implementation, deployment,
-repository settings, or production data.
+Add a short entry only when a successor needs material context that GitHub and
+Git cannot provide, for example:
 
-### Completed
+- uncommitted work that cannot yet be committed or pushed;
+- local-only artifacts, test fixtures, or reproducible commands needed to
+  continue safely;
+- a non-public blocker or external dependency that is not appropriate for a
+  public Issue or PR;
+- claimed files or modules that are not already recorded on GitHub and could
+  conflict with another active worktree.
 
-- Created Issue #76 with the owner-approved documentation scope.
-- Created an isolated stacked worktree from the exact PR #75 branch commit so
-  the V5-1 website and data-review work remain unchanged.
-- Inventoried all collaboration documents, PR templates, and Issue Forms that
-  contain Traditional Chinese prose.
-- Rewrote README, collaboration rules, contributor guidance, policy, PR
-  template, Issue Forms, and this handoff in English.
-- Kept `GoodCat 股利喵` as the product name and moved the collaboration entry
-  point exclusively to `CONTRIBUTING.md`.
-- Updated Issue #76 and PR #75 so their review wording matches the owner's
-  one-human approval decision.
-- Validated the translated documents, Issue Forms, local links, and whitespace.
-- Committed and pushed the documentation branch, then opened Draft PR #77
-  against the current PR #75 branch.
+Each exception entry must state why GitHub and Git are insufficient, identify
+the related Issue or PR, describe the local-only state without exposing private
+data, list any claimed files, and give the next safe action. Remove an entry
+after its material facts become recoverable from GitHub or Git.
 
-### Remaining
+## Do not record transient GitHub state
 
-- After PR #75 merges, retarget and synchronize the documentation PR with
-  `main` before human review and merge.
+Do not add or update this file merely to record:
 
-### Validation evidence
+- waiting for review, approval, a decision, CI, or merge;
+- Draft, ready-for-review, closed, or merged status;
+- the current approval count, reviewer assignment, or check result;
+- whether a branch is current with or behind its base;
+- the latest default-branch commit or a PR's latest commit;
+- completed-work summaries, test evidence, or decisions already present in an
+  Issue, PR, commit, or tracked project document.
 
-- Parsed all 5 Issue template YAML files with PyYAML and validated required
-  Issue Form structure and unique field IDs.
-- Confirmed all in-scope Markdown prose is English after excluding the literal
-  product name `GoodCat 股利喵`.
-- Checked local Markdown links in README, AGENTS, CONTRIBUTING, the
-  collaboration policy, this handoff, and the PR template; no broken links.
-- Searched for obsolete two-human approval wording; no matches.
-- `git diff --check` passed.
-- Runtime regression was not repeated because this branch changes only
-  repository documentation and GitHub templates; PR #75 retains its separate
-  1,047-test implementation evidence.
+Ordinary pauses, review transitions, new CI runs, approvals, and merges require
+no `AI_HANDOFF.md` edit. Collaborators must verify those states live.
 
-### Decisions and invariants
+## Current repository-only exceptions
 
-- All in-scope prose is English except the product name `GoodCat 股利喵`.
-- README begins with the project introduction; collaboration instructions live
-  in the dedicated Contributing page and collaboration documents.
-- The owner changed the approval policy: general PRs require one non-author
-  human approval, and high-risk PRs require one human CODEOWNER approval.
-  Authorization levels, merge restrictions, data semantics, and SEC-4
-  requirements remain unchanged.
-- ACTUAL, eFortune estimated fallback, formal `76W`, missing, and formal zero remain
-  distinct.
+None. Verify current work and review state through GitHub and Git.
 
-### Risks or blockers
+## Safety invariants
 
-- This is a stacked documentation branch until PR #75 merges.
-- Translating policy text can accidentally change meaning; review must compare
-  every safety and financial-data invariant with the source wording.
-
-### Next safe action
-
-Review Draft PR #77. After PR #75 merges, retarget and synchronize PR #77 with
-`main`, then obtain one non-author human approval. AI must not merge, deploy,
-change repository settings, or operate on production data.
-
-## Concurrent review
-
-- Issue: `#74` — https://github.com/twstockanalysis/goodcat-website/issues/74
-- Draft PR: `#75` — https://github.com/twstockanalysis/goodcat-website/pull/75
-- Branch: `data/74-detail-page-official-data`
-- Latest implementation commit: `3e35f6b4a985b1102ec70dfe7c5dfff70ecd53c2`
-- Latest branch commit: `0669ba058942f4615040e8dd725bd30da3045c05`
-- Status: waiting for one human CODEOWNER approval; AI must not merge.
-- V4-8, formal deployment, and SEC-4 remain paused through V5-5.
-
-## Update rules
-
-1. Record exact commit SHAs, branches, Issues, and PR links. Do not write
-   "latest" or "just now."
-2. Distinguish modified, committed, pushed, PR created, and merged states.
-3. Record omitted tests and reasons. Never describe focused tests as a full
-   regression.
-4. List claimed files. A new implementer must verify the worktree and remote
-   state before clearing the scope.
-5. Never record tokens, accounts, cookies, production data, browsing history,
-   or local secrets in this file.
+- Never record tokens, account details, cookies, personal data, production
+  data, browsing history, or local secrets.
+- A handoff entry never expands AI authorization.
+- AI must not merge, deploy, change repository settings or secrets, operate on
+  production data, approve SEC-4, or declare a public launch.
+- Keep ACTUAL, eFortune estimated fallback, formal `76W`, missing data, and
+  formal zero semantically distinct.

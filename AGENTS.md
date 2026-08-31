@@ -3,8 +3,8 @@
 This file applies to the entire repository. Every AI assistant, agent, and
 automation tool must read it before starting work. See
 [`docs/COLLABORATION_POLICY.md`](docs/COLLABORATION_POLICY.md) for the complete
-policy, and update [`AI_HANDOFF.md`](AI_HANDOFF.md) whenever work is paused or
-transferred.
+policy. [`AI_HANDOFF.md`](AI_HANDOFF.md) contains only exceptional local or
+non-public context that GitHub and Git cannot provide.
 
 ## Product and architecture
 
@@ -24,10 +24,12 @@ SQLite.
 
 ## Before starting work
 
-1. Read the Issue, relevant PRD or contract, `AI_HANDOFF.md`, and current
-   `git status`.
-2. Verify the branch, base, existing PR, uncommitted changes, and claimed scope.
-   Never assume that a previous AI committed, pushed, or merged its work.
+1. Refresh and inspect the live Issue, PR, default branch, current branch,
+   uncommitted changes, and relevant PRD or contract. Read `AI_HANDOFF.md` for
+   any repository-only exception.
+2. Verify the branch, base, existing PR, review and CI state, and claimed scope
+   from GitHub and Git. Never assume that a previous AI committed, pushed,
+   passed CI, obtained approval, or merged its work.
 3. Use one primary branch and one active implementer per Issue. Concurrent AI
    work must use separate branches and worktrees; never share a writable tree.
 4. Identify the files and modules you expect to modify. Stop and coordinate if
@@ -75,8 +77,9 @@ SQLite.
   directly on `main`.
 - Keep commits small and reversible, using
   `<type>: <imperative summary>`. Do not mix unrelated fixes.
-- Every PR must link an Issue and include test, risk, data-semantic, AI
-  participation, and handoff evidence. Use a Draft PR while work is in progress.
+- Every PR must link an Issue and include test, risk, data-semantic, and AI
+  participation evidence, plus any applicable repository-only handoff context.
+  Use a Draft PR while work is in progress.
 - `main` accepts changes only through PRs. A human maintainer may squash-merge
   only after CI passes, the branch is current, and at least one non-author human
   approves.
@@ -86,7 +89,9 @@ SQLite.
 
 ## Handoff
 
-Update `AI_HANDOFF.md` immediately when work is incomplete, transferred, or
-waiting on an external decision. Record the objective, branch and commit,
-completed and remaining work, tests, known risks, claimed files, and next safe
-step. A chat summary alone is not a valid handoff.
+GitHub and Git are the source of truth for live work and review state. Do not
+copy waiting, review, CI, approval, branch-current, or merge status into
+`AI_HANDOFF.md`. Update it only when a successor needs local-only or non-public
+context that cannot be recovered from GitHub and Git, such as uncommitted work,
+local artifacts, an unrecorded external blocker, or an unrecorded claimed scope.
+A chat summary alone is not a valid source for either live state or exceptions.

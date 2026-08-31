@@ -57,8 +57,7 @@ Details:
 
 ## Handoff and rollback
 
-- Branch / latest commit:
-- `AI_HANDOFF.md` updated: `yes / not needed`
+- Repository-only handoff exception: `N/A` or explain why GitHub and Git are insufficient
 - Rollback plan:
 - Follow-up Issue:
 

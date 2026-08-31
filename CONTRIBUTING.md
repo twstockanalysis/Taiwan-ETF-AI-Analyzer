@@ -2,8 +2,9 @@
 
 Human contributors and AI-assisted tools are welcome. Before starting, read
 `AGENTS.md`, `docs/COLLABORATION_POLICY.md`, and the relevant product or
-calculation contracts. Active AI work and transfers are recorded in
-`AI_HANDOFF.md`.
+calculation contracts. GitHub Issues and PRs record active work, decisions, and
+review state. `AI_HANDOFF.md` is reserved for exceptional context that GitHub
+and Git cannot provide.
 
 ## Standard workflow
 
@@ -11,8 +12,9 @@ calculation contracts. Active AI work and transfers are recorded in
    criteria, and risk level.
 2. Create a single-purpose branch from the current `main`. Do not share a
    writable branch between multiple people or AI agents.
-3. Post the claimed scope on the Issue and update `AI_HANDOFF.md` when work is
-   transferred.
+3. Post the claimed scope on the Issue. Add an `AI_HANDOFF.md` exception only
+   when local-only or non-public context cannot be recovered from GitHub and
+   Git.
 4. Implement the change with tests and documentation while preserving the
    distinction between ACTUAL, estimated, missing, and formal zero values.
 5. Open a Draft PR for early review. Complete the PR template before marking it
