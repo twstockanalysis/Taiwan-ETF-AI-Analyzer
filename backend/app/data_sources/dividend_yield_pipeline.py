@@ -27,6 +27,9 @@ from backend.app.repositories.dividend_repository import (
 from backend.app.repositories.daily_close_repository import (
     list_daily_closes,
 )
+from backend.app.utils.date_tools import (
+    list_month_starts,
+)
 
 
 @dataclass(
@@ -139,13 +142,6 @@ def run_dividend_yield_pipeline(
         database_path
     )
 
-    if price_fetcher is None:
-        from backend.app.data_sources.twse_stock_day import (
-            fetch_price_history,
-        )
-
-        price_fetcher = fetch_price_history
-
     candidates = list_dividend_yield_candidates(
         database_path=target_database_path,
         etf_code=etf_code,
@@ -161,6 +157,10 @@ def run_dividend_yield_pipeline(
     failures: list[
         DividendYieldFailure
     ] = []
+    cached_prices_by_code: dict[
+        str,
+        list[ETFDailyCloseRecord],
+    ] = {}
 
     for candidate in candidates:
         dividend_id = int(
@@ -189,41 +189,54 @@ def run_dividend_yield_pipeline(
                     "非 TWD 配息不可使用 TWSE 收盤價回退"
                 )
 
-            price_records: list[
-                ETFDailyCloseRecord
-            ] = []
+            price_end_date = (
+                ex_dividend_date
+                - timedelta(days=1)
+            )
+            price_month_starts = (
+                list_month_starts(
+                    end_date=price_end_date,
+                    month_count=2,
+                )
+            )
+            price_records = []
 
             if prefer_cached_prices:
+                if code not in cached_prices_by_code:
+                    cached_prices_by_code[code] = [
+                        ETFDailyCloseRecord.model_validate(
+                            row
+                        )
+                        for row in list_daily_closes(
+                            code,
+                            target_database_path,
+                        )
+                    ]
+
                 price_records = [
-                    ETFDailyCloseRecord(
-                        etf_code=str(
-                            item["etf_code"]
-                        ),
-                        trade_date=date.fromisoformat(
-                            str(item["trade_date"])
-                        ),
-                        close_price=Decimal(
-                            str(item["close_price"])
-                        ),
-                        source_id=str(
-                            item["source_id"]
-                        ),
-                    )
-                    for item in list_daily_closes(
-                        code,
-                        database_path=(
-                            target_database_path
-                        ),
-                    )
-                    if str(item["trade_date"])
-                    < ex_dividend_date.isoformat()
+                    row
+                    for row in cached_prices_by_code[
+                        code
+                    ]
+                    if row.trade_date
+                    >= price_month_starts[0]
+                    and row.trade_date
+                    <= price_end_date
                 ]
 
             if not price_records:
+                if price_fetcher is None:
+                    from backend.app.data_sources.twse_stock_day import (
+                        fetch_price_history,
+                    )
+
+                    price_fetcher = (
+                        fetch_price_history
+                    )
+
                 price_records = price_fetcher(
                     code,
-                    ex_dividend_date
-                    - timedelta(days=1),
+                    price_end_date,
                     2,
                     request_interval_seconds,
                 )
