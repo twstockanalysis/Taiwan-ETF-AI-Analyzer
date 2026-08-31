@@ -13,8 +13,8 @@ current work.
 - Current implementer: `Codex /root`
 - Branch: `docs/76-english-collaboration`
 - Base branch / commit: `data/74-detail-page-official-data / 0669ba058942f4615040e8dd725bd30da3045c05`
-- Latest commit: `N/A — working-tree changes are not committed`
-- Pull request: `N/A`
+- Implementation commit: `7b9e9ef8391bce0cb51bcff0aa17e1a81b845e34`
+- Pull request: Draft `#77` — https://github.com/twstockanalysis/goodcat-website/pull/77
 - Last updated: `2026-08-31`
 
 ### Objective
@@ -53,10 +53,11 @@ repository settings, or production data.
 - Updated Issue #76 and PR #75 so their review wording matches the owner's
   one-human approval decision.
 - Validated the translated documents, Issue Forms, local links, and whitespace.
+- Committed and pushed the documentation branch, then opened Draft PR #77
+  against the current PR #75 branch.
 
 ### Remaining
 
-- Commit, push, and open a Draft stacked PR against the PR #75 branch.
 - After PR #75 merges, retarget and synchronize the documentation PR with
   `main` before human review and merge.
 
@@ -94,8 +95,9 @@ repository settings, or production data.
 
 ### Next safe action
 
-Validate the English diff and templates, then create a Draft stacked PR. Do not
-merge, deploy, change repository settings, or operate on production data.
+Review Draft PR #77. After PR #75 merges, retarget and synchronize PR #77 with
+`main`, then obtain one non-author human approval. AI must not merge, deploy,
+change repository settings, or operate on production data.
 
 ## Concurrent review
 
