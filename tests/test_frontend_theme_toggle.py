@@ -23,11 +23,12 @@ class TestFrontendThemeToggle(unittest.TestCase):
         self.assertIn('value !== "dark_theme"', THEME_TOGGLE_JS)
         self.assertIn('url.searchParams.delete("embed_options")', THEME_TOGGLE_JS)
         self.assertIn('window.location.replace(url.toString())', THEME_TOGGLE_JS)
+        self.assertNotIn("setTriggerValue", THEME_TOGGLE_JS)
+        self.assertNotIn("window.setTimeout", THEME_TOGGLE_JS)
         self.assertIn("var(--st-text-color)", THEME_TOGGLE_CSS)
         self.assertIn("var(--st-primary-color)", THEME_TOGGLE_CSS)
 
         self.assertIn("pageIsDark", THEME_TOGGLE_JS)
-        self.assertIn('setTriggerValue("changed", nextTarget)', THEME_TOGGLE_JS)
         self.assertIn(
             'pageIsDark() ? "Light" : "Dark"',
             THEME_TOGGLE_JS,

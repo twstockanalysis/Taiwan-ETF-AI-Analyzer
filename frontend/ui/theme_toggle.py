@@ -39,7 +39,7 @@ THEME_TOGGLE_CSS = """
 
 THEME_TOGGLE_JS = r"""
 export default function (component) {
-  const { parentElement, setTriggerValue } = component
+  const { parentElement } = component
   const button = parentElement.querySelector("#goodcat-theme-toggle")
   if (!button) return
 
@@ -84,10 +84,7 @@ export default function (component) {
       "embed_options",
       nextTarget === "Dark" ? "dark_theme" : "light_theme"
     )
-    setTriggerValue("changed", nextTarget)
-    window.setTimeout(() => {
-      window.location.replace(url.toString())
-    }, 0)
+    window.location.replace(url.toString())
   }
 }
 """
