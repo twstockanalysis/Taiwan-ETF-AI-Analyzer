@@ -54,11 +54,11 @@ MARGINAL_TAX_RATE_HELP = (
     "40%：5,190,001 元以上"
 )
 PLANNER_GOODCAT_HERO_FILENAMES = {
-    GoodCatState.ATTENTIVE: "goodcat-attentive-hero.png",
-    GoodCatState.WORKING: "goodcat-working-hero.png",
+    GoodCatState.ATTENTIVE: "goodcat-planner-start-hero.png",
+    GoodCatState.WORKING: "goodcat-researching-hero.png",
     GoodCatState.READY: "goodcat-ready-hero.png",
-    GoodCatState.REWARD: "goodcat-reward-hero.png",
-    GoodCatState.CAUTION: "goodcat-caution-hero.png",
+    GoodCatState.REWARD: "goodcat-result-reward-hero.png",
+    GoodCatState.CAUTION: "goodcat-warning-hero.png",
 }
 
 

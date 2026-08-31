@@ -4,6 +4,7 @@ import unittest
 from inspect import getsource
 
 from frontend.pages.home import (
+    HOME_GOODCAT_HERO_PATH,
     PLANNER_INTRO,
     SITE_NAME,
     SITE_SLOGAN,
@@ -15,6 +16,13 @@ from frontend.ui.theme import GLOBAL_STYLES
 
 
 class TestFrontendHomeInformationArchitecture(unittest.TestCase):
+    def test_home_uses_sleeping_goodcat_hero(self) -> None:
+        self.assertEqual(
+            HOME_GOODCAT_HERO_PATH.name,
+            "goodcat-sleeping-hero.png",
+        )
+        self.assertTrue(HOME_GOODCAT_HERO_PATH.is_file())
+
     def test_home_uses_approved_brand_and_beginner_copy(self) -> None:
         self.assertEqual(SITE_NAME, "GoodCat 股利喵")
         self.assertEqual(

@@ -243,6 +243,30 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
                 GoodCatState.CAUTION,
             },
         )
+        self.assertEqual(
+            PLANNER_GOODCAT_HERO_FILENAMES[
+                GoodCatState.ATTENTIVE
+            ],
+            "goodcat-planner-start-hero.png",
+        )
+        self.assertEqual(
+            PLANNER_GOODCAT_HERO_FILENAMES[
+                GoodCatState.WORKING
+            ],
+            "goodcat-researching-hero.png",
+        )
+        self.assertEqual(
+            PLANNER_GOODCAT_HERO_FILENAMES[
+                GoodCatState.REWARD
+            ],
+            "goodcat-result-reward-hero.png",
+        )
+        self.assertEqual(
+            PLANNER_GOODCAT_HERO_FILENAMES[
+                GoodCatState.CAUTION
+            ],
+            "goodcat-warning-hero.png",
+        )
         self.assertTrue(
             all(
                 filename.endswith("-hero.png")
