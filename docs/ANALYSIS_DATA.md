@@ -118,7 +118,8 @@ One dividend event can have one row per issue type.
 
 The multi-period price Pipeline:
 
-1. Selects non-bond ETF candidates.
+1. Selects non-bond ETF candidates by default; a detail-page coverage run may
+   explicitly include bond ETFs.
 2. Downloads each ETF price history once.
 3. Reuses that history for all requested periods.
 4. Writes only periods with sufficient price history.
@@ -141,6 +142,16 @@ Run:
 ```powershell
 python -m backend.app.data_sources.performance_pipeline
 ```
+
+For a V5 detail-page universe refresh, include bond ETFs explicitly:
+
+```powershell
+python -m backend.app.data_sources.performance_pipeline --include-bond
+```
+
+The dividend-yield fallback reuses saved official daily closes before making a
+new request. This preserves the same TWSE source semantics and avoids fetching
+the same price fact twice; absence of a pre-ex-dividend close remains missing.
 
 ## Dividend composition policy
 

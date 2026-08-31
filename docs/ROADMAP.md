@@ -1368,7 +1368,63 @@ Delivered:
 - Passed Python compilation and the complete 1,040-test automated regression
 - Evidence: `V4_PAGE_ACCEPTANCE.md`
 
-### V4-8 — Pre-launch candidate and real-environment gate
+## V5 — Data-first result iteration
+
+V5 pauses release-candidate selection and uses two measured data-enrichment
+rounds to determine whether GoodCat produces useful public planning results.
+The allocation engine and accepted V4 page structure remain frozen during the
+first data round so data effects can be separated from algorithm changes.
+
+### V5-0 — Scope, field manifest and reproducible baseline
+
+- Inventory every fact actually rendered by the ETF detail page
+- Map each visible field to its API, database storage, source and current
+  coverage
+- Freeze representative detail-page and zero-to-N planner inputs
+- Record the pre-enrichment database snapshot and result baseline
+- Evidence: `docs/V5_DATA_RESULT_ITERATION.md`
+
+### V5-1 — First-round detail-page data acquisition
+
+- Acquire the complete available official data needed by the currently
+  rendered detail page across the ETF universe
+- Preserve `ACTUAL`, estimated fallback, formal zero and unavailable semantics
+- Reconcile source dates, import evidence, rejected rows and coverage after
+  every pipeline run
+- Do not change the allocation objective or public page merely to improve the
+  measured outcome
+
+### V5-2 — First page and automatic-planning review
+
+- Review representative detail pages using the first-round database snapshot
+- Replay the frozen zero-, one- and multiple-holding planning cases
+- Measure candidate count, exclusions, whole-share results, capital, monthly
+  shortfall, component basis, overlap and long-term availability
+- Let the owner judge usefulness before choosing the second-round scope
+
+### V5-3 — Result-driven remaining data acquisition
+
+- Rank remaining data work by the blockers observed in V5-2
+- Add constituent, adjusted history, broader ACTUAL evidence or other facts
+  only when they materially improve explainability or planning usefulness
+- Keep data-source changes separate from any later calculation-method change
+
+### V5-4 — Second automatic-planning review
+
+- Replay the exact V5-2 requests against the second immutable data snapshot
+- Compare coverage, exclusions, zero-to-N success, plan diversity, capital,
+  monthly cash, tax provenance and long-term evidence
+- Propose algorithm or output changes only after the data-only delta is known
+
+### V5-5 — V5 closeout and owner acceptance
+
+- Resolve accepted data and calculation findings with deterministic tests
+- Record unavailable official data and remaining limitations without treating
+  them as zero
+- Pass complete regression against one exact commit and database snapshot
+- Obtain owner acceptance of usefulness before resuming V4-8
+
+### V4-8 — Pre-launch candidate and real-environment gate — Paused for V5
 
 - Run the final frontend, API, calculation, data-quality and local security
   regression after V4-7 page acceptance
@@ -1376,6 +1432,8 @@ Delivered:
   experience acceptance are complete
 - Deploy that exact candidate to the real host and domain
 - Complete SEC-4 on the deployed candidate before public launch
+
+V4-8 must not resume until V5-5 data and planning acceptance is complete.
 
 ## Post-security optional integrations
 

@@ -268,6 +268,7 @@ def run_multi_period_performance_pipeline(
     ) = None,
     month_count: int | None = None,
     candidate_minimum_history_months: int = 0,
+    include_bond: bool = False,
     request_interval_seconds: float = 0.4,
     inter_etf_interval_seconds: float = 0.5,
     processed_output_root: Path | None = None,
@@ -275,7 +276,7 @@ def run_multi_period_performance_pipeline(
     save_raw_snapshots: bool = True,
     verbose: bool = False,
 ) -> PerformancePipelineResult:
-    """批次計算非債券 ETF 多期間市價報酬率。
+    """批次計算 ETF 多期間市價報酬率。
 
     每檔 ETF 只下載一次價格資料，再依序計算
     1M、3M、6M、1Y 中指定的期間。
@@ -308,7 +309,7 @@ def run_multi_period_performance_pipeline(
     candidates = list_performance_candidates(
         database_path=database_path,
         end_date=end_date,
-        include_bond=False,
+        include_bond=include_bond,
         codes=codes,
         limit=limit,
         minimum_history_months=(
@@ -787,6 +788,7 @@ def run_six_month_performance_pipeline(
     codes: list[str] | None = None,
     limit: int | None = None,
     month_count: int = 8,
+    include_bond: bool = False,
     request_interval_seconds: float = 0.4,
     inter_etf_interval_seconds: float = 0.5,
     processed_output_root: Path | None = None,
@@ -805,6 +807,7 @@ def run_six_month_performance_pipeline(
             PerformancePeriod.SIX_MONTHS,
         ),
         month_count=month_count,
+        include_bond=include_bond,
         candidate_minimum_history_months=6,
         request_interval_seconds=(
             request_interval_seconds
@@ -901,6 +904,14 @@ def build_argument_parser(
     )
 
     parser.add_argument(
+        "--include-bond",
+        action="store_true",
+        help=(
+            "包含債券 ETF；詳細資料頁全市場快照使用"
+        ),
+    )
+
+    parser.add_argument(
         "--request-interval",
         type=float,
         default=0.4,
@@ -947,6 +958,7 @@ def main() -> None:
             limit=arguments.limit,
             periods=arguments.periods,
             month_count=arguments.months,
+            include_bond=arguments.include_bond,
             request_interval_seconds=(
                 arguments.request_interval
             ),

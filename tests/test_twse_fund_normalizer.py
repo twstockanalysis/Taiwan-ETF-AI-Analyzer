@@ -1,7 +1,7 @@
 """TWSE 基金基本資料正規化測試。"""
 
 import unittest
-from datetime import date
+from datetime import date, datetime, timezone
 
 from backend.app.data_sources.normalizers.twse_fund_master import (
     normalize_twse_fund_record,
@@ -22,6 +22,7 @@ class TestTWSEFundNormalizer(
         """建立合法 ETF 測試紀錄。"""
 
         record: dict[str, object] = {
+            "出表日期": "1150829",
             "基金代號": "00918",
             "基金簡稱": (
                 "大華優利高填息30 ETF"
@@ -54,6 +55,10 @@ class TestTWSEFundNormalizer(
         )
         self.assertFalse(
             record.is_bond
+        )
+        self.assertEqual(
+            record.source_updated_at,
+            datetime(2026, 8, 29, tzinfo=timezone.utc),
         )
 
     def test_active_etf_is_detected(

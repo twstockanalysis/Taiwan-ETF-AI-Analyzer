@@ -30,7 +30,9 @@ Use:
 - Listing date
 
 The Pipeline stores raw snapshots, normalized records, rejected records,
-checksums and import-batch results.
+checksums and import-batch results. The official `出表日期` is parsed as the
+dataset-level source date in processed/import evidence; it is not presented as
+an independently observed update timestamp for every ETF.
 
 ## Historical market price
 
@@ -46,6 +48,9 @@ Use:
 - 1M, 3M, 6M and 1Y market-price returns
 
 Current performance records are `PRICE_RETURN` and exclude distributions.
+The standard calculation excludes bond ETFs. A full detail-page coverage run
+must opt in to bonds explicitly and keeps insufficient listing history separate
+from retrieval failures.
 
 ## Estimated dividend information
 
@@ -153,3 +158,5 @@ to the requested ETF.
 - Actual coverage depends on publicly available or manually reviewed official
   documents.
 - Vendor and broker APIs are deferred until after the core website roadmap.
+- Fund size, total expense ratio, distribution period and stock dividend do not
+  yet have a verified project source; they remain unavailable rather than zero.
