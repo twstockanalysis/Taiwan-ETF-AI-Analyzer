@@ -1,68 +1,68 @@
-name: ETF 資料問題或來源提案
-description: 回報資料缺漏、來源差異、pipeline 問題或正式來源提案
+name: ETF data issue or source proposal
+description: Report missing data, source differences, pipeline defects, or an official-source proposal
 title: "[Data] "
 labels: ["type:data", "status:needs-triage", "risk:high"]
 body:
   - type: input
     id: subject
     attributes:
-      label: ETF／事件／資料欄位
-      placeholder: 例如 0050、2026-08-05 除息事件、配息組成
+      label: ETF, event, or data field
+      placeholder: For example, 0050, 2026-08-05 ex-dividend event, or dividend composition
     validations:
       required: true
   - type: textarea
     id: observed
     attributes:
-      label: 目前資料狀態
-      description: 清楚區分缺失、正式 0、估算值與疑似錯誤值。
+      label: Current data state
+      description: Clearly distinguish missing data, formal zero, estimates, and suspected incorrect values.
     validations:
       required: true
   - type: textarea
     id: source
     attributes:
-      label: 建議或比對來源
-      description: 提供公開官方頁面、文件名稱、發布單位與資料日期；不要上傳含個資或受限資料。
+      label: Proposed or comparison source
+      description: Provide a public official page, document name, publisher, and data date. Do not upload personal or restricted data.
     validations:
       required: true
   - type: dropdown
     id: basis
     attributes:
-      label: 資料 basis
+      label: Data basis
       options:
-        - 正式 ACTUAL 文件／通知書
-        - 證交所或其他正式市場資料
-        - e添富 fallback／估算組成
-        - 尚未確認
+        - Formal ACTUAL document or notice
+        - TWSE or other official market data
+        - eFortune fallback or estimated composition
+        - Not yet confirmed
     validations:
       required: true
   - type: checkboxes
     id: semantics
     attributes:
-      label: 語意確認
+      label: Semantic confirmation
       options:
-        - label: 我沒有把缺失值當成 0。
+        - label: I did not treat missing data as zero.
           required: true
-        - label: 我沒有把 e添富估計資本利得稱為正式 76W。
+        - label: I did not describe eFortune estimated realized capital gain as formal 76W.
           required: true
-        - label: 我已提供資料日期與可查證來源，或明確標示尚未確認。
+        - label: I provided a data date and verifiable source, or clearly marked them as unconfirmed.
           required: true
   - type: textarea
     id: acceptance
     attributes:
-      label: 驗收條件與回歸範圍
+      label: Acceptance criteria and regression scope
       placeholder: |
-        - [ ] source/provenance retained
-        - [ ] missing/zero semantics tested
-        - [ ] API/UI contract updated
+        - [ ] source and provenance retained
+        - [ ] missing and zero semantics tested
+        - [ ] API and UI contracts updated
     validations:
       required: true
   - type: dropdown
     id: ai_scope
     attributes:
-      label: AI 參與方式
+      label: AI participation
       options:
-        - AI 可協助本地實作，但正式來源認定由人類審核
-        - AI 僅限比對與 review
-        - 僅限人類處理
+        - AI may assist with local implementation; humans approve official-source status
+        - AI comparison and review only
+        - Human-only handling
     validations:
       required: true

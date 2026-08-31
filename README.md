@@ -1,56 +1,81 @@
 # GoodCat 股利喵
 
-多人與多 AI 協作請先閱讀 [`CONTRIBUTING.md`](CONTRIBUTING.md)、[`AGENTS.md`](AGENTS.md) 與 [`docs/COLLABORATION_POLICY.md`](docs/COLLABORATION_POLICY.md)。進行中的 AI 工作以 [`AI_HANDOFF.md`](AI_HANDOFF.md) 為 repository 內交接來源。
-
 ## Project introduction
 
-GoodCat 股利喵是為 ETF 初學者設計的台灣 ETF 現金流規劃網站。V3 將從使用者的領息目標、指定月份與 0～N 檔現有持股出發，提供透明的 ETF、整數股數與所需資金配置情境。
+GoodCat 股利喵 is a Taiwan ETF cash-flow planning website for ETF beginners.
+Users start with a dividend-income target, selected payment months, and zero or
+more existing ETF holdings. The website produces transparent scenarios that
+show ETF selections, whole-share quantities, required capital, assumptions,
+risks, limitations, and exclusion reasons.
 
-Main function:
-- ETF performance analysis
-- 76W analysis
-- dividends for every months
-- Explainable allocation fit and risks
-- Excel Dashboard
----
+## Main features
+
+- ETF search, detail, comparison, and performance analysis
+- Dividend-event and dividend-yield history
+- Formal ACTUAL dividend-composition evidence and clearly labeled estimated fallback data
+- Explainable whole-share cash-flow allocation scenarios
+- Monthly after-tax cash-flow, tax, reinvestment, and long-term projections
+- Excel decision exports
+
+The website does not place orders or provide buy or sell instructions. Missing
+official data remains unavailable instead of being converted to zero.
+
 ## Author
+
 TU
----
-## Develop enviroment
+
+## Development environment
+
 - Python
-- VS Code
+- FastAPI
+- Streamlit
+- SQLite
+- Visual Studio Code
 - GitHub
----
-## ETF API
-Start the development server:
-```powershell
-python -m uvicorn backend.app.main:app --reload
----
-## Update ETF Master Data
-Run the complete official data pipeline:
-```powershell
-python -m backend.app.data_sources.etf_master_pipeline
----
-## Streamlit Website
-Start the FastAPI backend:
+
+## FastAPI backend
+
+Start the development API:
+
 ```powershell
 python -m uvicorn backend.app.main:app --reload
 ```
-Start the Streamlit frontend in another terminal:
+
+The local API documentation is available at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## ETF master data
+
+Run the official ETF master-data pipeline:
+
+```powershell
+python -m backend.app.data_sources.etf_master_pipeline
+```
+
+## Streamlit website
+
+Start the FastAPI backend first, then start the Streamlit frontend in another
+terminal:
+
 ```powershell
 python -m streamlit run frontend/app.py
 ```
-Open the website:
-```text
-http://localhost:8501
-```
-Current website features:
 
-- FastAPI health status
-- ETF keyword search
-- Active and passive ETF filters
-- Bond and non-bond filters
-- ETF pagination
-- ETF detail page
-- Gregorian listing dates
-- Frontend connection error handling
+Open the website at:
+
+```text
+http://127.0.0.1:8501
+```
+
+## Validation
+
+Run the standard pre-PR validation from the project virtual environment:
+
+```powershell
+.venv\Scripts\python.exe -m compileall -q backend frontend tests deployment
+.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py"
+git diff --check
+```
