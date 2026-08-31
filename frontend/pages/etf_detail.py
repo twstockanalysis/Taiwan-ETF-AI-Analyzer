@@ -788,6 +788,53 @@ def format_dividend_period(
     return f"{parsed_date.year}/Q{quarter}"
 
 
+def infer_dividend_cycle(
+    items: list[dict[str, Any]],
+) -> str:
+    """依近期除息日間隔推定配息週期；資料不足時保留缺值。"""
+
+    ex_dividend_dates: set[date] = set()
+    for item in items:
+        value = item.get("ex_dividend_date")
+        try:
+            ex_dividend_dates.add(
+                date.fromisoformat(str(value))
+            )
+        except (TypeError, ValueError):
+            continue
+
+    recent_dates = sorted(
+        ex_dividend_dates,
+        reverse=True,
+    )[:9]
+    if len(recent_dates) < 2:
+        return "—"
+
+    intervals = sorted(
+        (
+            recent_dates[index] - recent_dates[index + 1]
+        ).days
+        for index in range(len(recent_dates) - 1)
+    )
+    middle = len(intervals) // 2
+    if len(intervals) % 2:
+        median_interval = float(intervals[middle])
+    else:
+        median_interval = (
+            intervals[middle - 1] + intervals[middle]
+        ) / 2
+
+    if median_interval <= 45:
+        return "月月配"
+    if median_interval <= 76:
+        return "隔月配"
+    if median_interval <= 137:
+        return "季配"
+    if median_interval <= 274:
+        return "半年配"
+    return "年配"
+
+
 def chart_axis_upper_bound(
     values: list[float | int | None],
     *,
@@ -1277,9 +1324,20 @@ def _render_dividend_summary_card(
 
     latest = items[0]
 
-    date_column, amount_column, payment_column = (
-        st.columns(3)
+    (
+        cycle_column,
+        date_column,
+        amount_column,
+        payment_column,
+    ) = (
+        st.columns(4)
     )
+
+    with cycle_column:
+        st.metric(
+            "週期",
+            infer_dividend_cycle(items),
+        )
 
     with date_column:
         st.metric(

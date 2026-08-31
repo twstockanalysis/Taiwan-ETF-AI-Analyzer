@@ -18,6 +18,7 @@ from frontend.pages.etf_detail import (
     format_dividend_percentage,
     get_component_display_name,
     get_display_width,
+    infer_dividend_cycle,
 )
 
 
@@ -720,6 +721,59 @@ class TestFrontendDividendUI(
             rows[1],
         )
 
+    def test_dividend_cycle_uses_recent_median_interval(self) -> None:
+        """週期依近期除息日中位間隔分類，並忽略重複與無效日期。"""
+
+        cases = {
+            "月月配": [
+                "2026-08-19",
+                "2026-07-21",
+                "2026-06-17",
+                "invalid",
+            ],
+            "隔月配": [
+                "2026-07-15",
+                "2026-05-15",
+                "2026-03-16",
+            ],
+            "季配": [
+                "2026-07-21",
+                "2026-04-23",
+                "2026-01-22",
+            ],
+            "半年配": [
+                "2026-07-21",
+                "2026-01-22",
+                "2025-07-21",
+            ],
+            "年配": [
+                "2025-11-21",
+                "2024-11-18",
+                "2023-11-16",
+            ],
+        }
+
+        for expected, values in cases.items():
+            with self.subTest(expected=expected):
+                items = [
+                    {"ex_dividend_date": value}
+                    for value in values
+                ]
+                items.append(
+                    {"ex_dividend_date": values[0]}
+                )
+                self.assertEqual(
+                    infer_dividend_cycle(items),
+                    expected,
+                )
+
+        self.assertEqual(
+            infer_dividend_cycle(
+                [{"ex_dividend_date": "2026-07-21"}]
+            ),
+            "—",
+        )
+
     def test_expandable_rows_keep_fixed_visual_column_widths(
         self,
     ) -> None:
@@ -973,6 +1027,18 @@ class TestFrontendDividendUI(
             str(item.value)
             for item in app.metric
         ]
+
+        metric_labels = [
+            item.label
+            for item in app.metric
+        ]
+
+        self.assertIn("週期", metric_labels)
+
+        self.assertIn(
+            "季配",
+            metric_values,
+        )
 
         self.assertIn(
             "2 次",
