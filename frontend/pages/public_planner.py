@@ -54,12 +54,37 @@ MARGINAL_TAX_RATE_HELP = (
     "40%：5,190,001 元以上"
 )
 PLANNER_GOODCAT_HERO_FILENAMES = {
-    GoodCatState.ATTENTIVE: "goodcat-planner-start-hero.png",
-    GoodCatState.WORKING: "goodcat-researching-hero.png",
-    GoodCatState.READY: "goodcat-ready-hero.png",
-    GoodCatState.REWARD: "goodcat-result-reward-hero.png",
-    GoodCatState.CAUTION: "goodcat-warning-hero.png",
+    GoodCatState.ATTENTIVE: {
+        "light": "goodcat-planner-start-hero.png",
+        "dark": "goodcat-planner-start-white-hero.png",
+    },
+    GoodCatState.WORKING: {
+        "light": "goodcat-researching-hero.png",
+        "dark": "goodcat-researching-white-hero.png",
+    },
+    GoodCatState.READY: {
+        "light": "goodcat-ready-hero.png",
+        "dark": "goodcat-ready-white-hero.png",
+    },
+    GoodCatState.REWARD: {
+        "light": "goodcat-result-reward-hero.png",
+        "dark": "goodcat-result-reward-white-hero.png",
+    },
+    GoodCatState.CAUTION: {
+        "light": "goodcat-warning-hero.png",
+        "dark": "goodcat-warning-white-hero.png",
+    },
 }
+
+
+def get_planner_goodcat_hero_filename(
+    state: GoodCatState,
+    theme_type: str,
+) -> str:
+    """依規劃狀態與主題挑選一致情境的灰貓或白貓。"""
+
+    theme_key = "dark" if theme_type == "dark" else "light"
+    return PLANNER_GOODCAT_HERO_FILENAMES[state][theme_key]
 
 
 def allocation_goodcat_feedback(
@@ -148,7 +173,10 @@ def render_planner_goodcat(
 
     presentation = get_goodcat_presentation(state)
     hero_asset_path = presentation.asset_path.with_name(
-        PLANNER_GOODCAT_HERO_FILENAMES[state]
+        get_planner_goodcat_hero_filename(
+            state,
+            st.context.theme.type,
+        )
     )
 
     slot.empty()

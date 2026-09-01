@@ -22,14 +22,19 @@ terms and this repository's license. Keep this provenance note with the files.
 | `goodcat-ready.png` | `READY` | Alert stance and raised tail for completion |
 | `goodcat-caution.png` | `CAUTION` | Sideways ears for missing data, risk or shortfall |
 | `goodcat-attentive-hero.png` | `ATTENTIVE` | Losslessly cropped planner hero on the shared hero canvas |
-| `goodcat-planner-start-hero.png` | `ATTENTIVE` | Bright-eyed first illustration shown on the dividend planner |
+| `goodcat-planner-start-hero.png` | `ATTENTIVE` | Borderless gray first illustration shown in the light-theme dividend planner |
+| `goodcat-planner-start-white-hero.png` | `ATTENTIVE` | Matching borderless white illustration shown in the dark-theme dividend planner |
 | `goodcat-working-hero.png` | `WORKING` | Losslessly cropped planner hero on the shared hero canvas |
-| `goodcat-researching-hero.png` | `WORKING` | Laptop-and-books illustration shown while the planner checks data |
-| `goodcat-ready-hero.png` | `READY` | Losslessly cropped planner hero on the shared hero canvas |
+| `goodcat-researching-hero.png` | `WORKING` | Borderless gray laptop-and-books illustration shown while the light-theme planner checks data |
+| `goodcat-researching-white-hero.png` | `WORKING` | Matching borderless white researching illustration used in the dark theme |
+| `goodcat-ready-hero.png` | `READY` | Borderless gray ready-state illustration used in the light theme |
+| `goodcat-ready-white-hero.png` | `READY` | Matching borderless white ready-state illustration used in the dark theme |
 | `goodcat-reward-hero.png` | `REWARD` | Completed-work planner hero, happily waiting for a reward without showing food |
-| `goodcat-result-reward-hero.png` | `REWARD` | Treat-themed illustration shown after a successful or partial planner result |
+| `goodcat-result-reward-hero.png` | `REWARD` | Borderless gray treat-themed result illustration used in the light theme |
+| `goodcat-result-reward-white-hero.png` | `REWARD` | Matching borderless white result illustration used in the dark theme |
 | `goodcat-caution-hero.png` | `CAUTION` | Losslessly cropped planner hero on the shared hero canvas |
-| `goodcat-warning-hero.png` | `CAUTION` | Worried-cat illustration shown for invalid input, missing data or no feasible result |
+| `goodcat-warning-hero.png` | `CAUTION` | Borderless gray warning illustration used in the light theme |
+| `goodcat-warning-white-hero.png` | `CAUTION` | Matching borderless white warning illustration used in the dark theme |
 
 `goodcat-attentive.png` is retained as the approved rollback asset. The V3
 attentive variant was generated from the accepted character reference on
@@ -48,6 +53,11 @@ The theme-specific home pair was generated from the selected sleeping-cat
 reference on 2026-08-31. Both variants use the same sleeping situation and
 expression without an outer white sticker border. The gray cat is used in the
 light theme and the white cat is used in the dark theme.
+
+The five dividend-planner state pairs were generated from their approved
+V5-1A references on 2026-09-01. Each pair preserves the same state, expression
+and props, removes the outer sticker border, and uses a gray cat in the light
+theme and a white cat in the dark theme.
 
 All production files are PNG images with real alpha transparency. Character
 images supplement visible Traditional Chinese state text; they never replace
