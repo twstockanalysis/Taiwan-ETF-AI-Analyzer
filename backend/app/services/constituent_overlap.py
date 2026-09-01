@@ -196,7 +196,10 @@ def calculate_weighted_overlap(
             )
         )
     shared.sort(key=lambda item: (-item.weight_pct, item.constituent_id))
-    overlap = sum(item.weight_pct for item in shared).quantize(
+    overlap = sum(
+        (item.weight_pct for item in shared),
+        Decimal("0"),
+    ).quantize(
         _PERCENT_QUANTUM,
         rounding=ROUND_HALF_UP,
     )

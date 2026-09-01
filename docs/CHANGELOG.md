@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-02 - V5-3B zero shared constituent overlap
+
+- Fixed pairwise overlap calculation for valid constituent snapshots with no
+  shared disclosed constituents by preserving Decimal zero semantics.
+- Added deterministic overlap and allocation-strategy regression coverage.
+- Replayed representative 0050 and 00929 holding requests without the former
+  `quantize()` exception while retaining the remaining V5-3 limitations.
+
 ## 2026-08-27 — V4-7 page experience review started
 
 - Added the owner-led V4 page acceptance record and fixed review order.

@@ -1415,6 +1415,16 @@ recorded in `docs/V5_ALLOCATION_ASSESSMENT_DECISIONS.md`.
   not rating-score factors
 - Keep data-source changes separate from calculation-method changes
 
+V5-3B calculation prerequisite:
+
+- Treat an empty intersection between two valid, quality-gated constituent
+  snapshots as formal Decimal zero overlap while preserving missing evidence as
+  unavailable.
+- Confirmed isolated 0050 and 00929 holding replays no longer raise the
+  pairwise-overlap `quantize()` exception; 00929 still exceeds the approved
+  maximum-five-ETF direction and remains dependent on Issue #91 semantics.
+- Evidence: `docs/V5_3B_ZERO_OVERLAP_FIX.md`
+
 ### V5-4 — Allocation-result algorithm
 
 - Solve the complete zero-to-N holding and one-to-five added-ETF portfolio

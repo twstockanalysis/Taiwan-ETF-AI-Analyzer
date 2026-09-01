@@ -121,6 +121,49 @@ class TestETFConstituentFoundation(unittest.TestCase):
         self.assertEqual(result.shared_constituents[0].constituent_id, "2330")
         self.assertEqual(result.method, "SUM_MIN_DISCLOSED_WEIGHTS_V1")
 
+    def test_disjoint_complete_snapshots_return_formal_zero_overlap(self):
+        left = save_constituent_snapshot(
+            self.payload(
+                "0050",
+                [
+                    {
+                        "constituent_id": "2330",
+                        "constituent_name": "台積電",
+                        "weight_pct": 90,
+                    }
+                ],
+            ),
+            self.database_path,
+        )
+        right = save_constituent_snapshot(
+            self.payload(
+                "006208",
+                [
+                    {
+                        "constituent_id": "2454",
+                        "constituent_name": "聯發科",
+                        "weight_pct": 90,
+                    }
+                ],
+            ),
+            self.database_path,
+        )
+
+        direct = calculate_weighted_overlap(left, right)
+        gated = calculate_gated_pair_overlap(
+            "0050",
+            "006208",
+            self.database_path,
+            evaluated_on=date(2026, 8, 14),
+        )
+
+        self.assertEqual(direct.overlap_pct, Decimal("0.000000"))
+        self.assertEqual(direct.shared_constituent_count, 0)
+        self.assertEqual(direct.shared_constituents, [])
+        self.assertEqual(gated.decision, "READY")
+        self.assertEqual(gated.overlap_pct, Decimal("0.000000"))
+        self.assertEqual(gated.reasons, ())
+
     def test_duplicate_constituent_and_excess_total_are_rejected(self):
         with self.assertRaises(ValidationError):
             self.payload(

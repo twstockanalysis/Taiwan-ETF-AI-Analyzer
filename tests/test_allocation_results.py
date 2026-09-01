@@ -13,6 +13,7 @@ from backend.app.models.integer_allocation import (
     IntegerAllocationResponse,
 )
 from backend.app.services.allocation_results import build_allocation_results
+from backend.app.services.constituent_overlap import GatedConstituentOverlap
 
 
 _SNAPSHOT = "sha256:" + "a" * 64
@@ -155,6 +156,42 @@ class TestAllocationResults(unittest.TestCase):
 
         self.assertEqual(len(response.plans), 1)
         self.assertIn(
+            "ALTERNATIVE_OVERLAP_DATA_UNAVAILABLE",
+            {issue.code for issue in response.strategy_issues},
+        )
+
+    @patch("backend.app.services.allocation_results.build_integer_allocation")
+    @patch("backend.app.services.allocation_results.build_market_eligibility_index")
+    @patch("backend.app.services.allocation_results.calculate_gated_pair_overlap")
+    def test_formal_zero_pair_overlap_remains_available_to_strategy_selection(
+        self,
+        pair_overlap,
+        build_index,
+        build_integer,
+    ) -> None:
+        build_index.return_value = self.built_index
+        pair_overlap.return_value = GatedConstituentOverlap(
+            decision="READY",
+            overlap_pct=Decimal("0.000000"),
+            reasons=(),
+            snapshot_dates=(date(2026, 1, 1),),
+            method="SUM_MIN_DISCLOSED_WEIGHTS_V1",
+        )
+        build_integer.side_effect = [
+            allocation_result("0050"),
+            allocation_result("00878"),
+            allocation_result("0056"),
+        ]
+
+        response = build_allocation_results(
+            self.request,
+            Path("unused.db"),
+            as_of_date=date(2026, 1, 1),
+        )
+
+        self.assertEqual(len(response.plans), 3)
+        self.assertEqual(pair_overlap.call_count, 3)
+        self.assertNotIn(
             "ALTERNATIVE_OVERLAP_DATA_UNAVAILABLE",
             {issue.code for issue in response.strategy_issues},
         )
