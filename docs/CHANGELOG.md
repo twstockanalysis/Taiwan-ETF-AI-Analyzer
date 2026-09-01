@@ -8,6 +8,11 @@
 - Recorded that zero-holding calculations return results but existing-holding
   cases remain blocked by missing overlap data, while current target-met plans
   exceed the approved five-added-ETF V5 direction.
+- Recorded the isolated 121-ETF official constituent import, the remaining
+  116/157 quality coverage, and the zero-shared-constituent Decimal exception
+  exposed by representative existing-holding replays.
+- Made the audit matrix preserve allocator exceptions as explicit `ERROR`
+  evidence instead of aborting the remaining cases.
 
 ## 2026-08-27 — V4-7 page experience review started
 

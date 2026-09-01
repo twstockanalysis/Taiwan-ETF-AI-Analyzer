@@ -13,6 +13,7 @@ from deployment.v5_full_database_audit import (
     _reference_etf_evidence,
     _request,
     _summarize_case,
+    _summarize_case_safely,
     build_audit_cases,
 )
 
@@ -146,6 +147,24 @@ class V5FullDatabaseAuditTests(unittest.TestCase):
             {"code": "STALE_DATA", "count": 2},
         )
         self.assertEqual(len(summary["exclusion_codes"]), 2)
+
+    def test_safe_case_summary_records_allocator_exception(self) -> None:
+        with patch(
+            "deployment.v5_full_database_audit.build_allocation_results",
+            side_effect=AttributeError("zero overlap cannot be quantized"),
+        ):
+            summary = _summarize_case_safely(
+                "case",
+                _request("100", [1], []),
+                self.database,
+                date(2026, 9, 1),
+            )
+
+        self.assertEqual(summary["status"], "ERROR")
+        self.assertEqual(summary["plan_count"], 0)
+        self.assertEqual(summary["eligible_count"], 0)
+        self.assertEqual(summary["error"]["type"], "AttributeError")
+        self.assertIn("zero overlap", summary["error"]["message"])
 
     def test_00929_evidence_separates_paid_and_future_payments(self) -> None:
         connection = get_connection(self.database)

@@ -171,6 +171,40 @@ def _summarize_case(
     }
 
 
+def _summarize_case_safely(
+    case_id: str,
+    request: AllocationResultsRequest,
+    database: Path,
+    evaluated_on: date,
+) -> dict:
+    try:
+        return _summarize_case(case_id, request, database, evaluated_on)
+    except Exception as error:
+        return {
+            "case_id": case_id,
+            "request": request.model_dump(mode="json"),
+            "snapshot_id": None,
+            "status": "ERROR",
+            "optimality": None,
+            "universe_count": None,
+            "eligible_count": 0,
+            "plan_count": 0,
+            "plan_strategies": [],
+            "added_etf_count": 0,
+            "within_v5_max_five_added_etfs": False,
+            "total_required_additional_capital": None,
+            "additions": [],
+            "selected_months": [],
+            "issue_codes": [],
+            "strategy_issue_codes": [],
+            "exclusion_codes": [],
+            "error": {
+                "type": type(error).__name__,
+                "message": str(error),
+            },
+        }
+
+
 def _reference_etf_evidence(
     database: Path,
     evaluated_on: date,
@@ -247,7 +281,7 @@ def build_full_database_audit(
         raise FileNotFoundError(f"database does not exist: {database}")
     coverage = build_detail_page_coverage(database)
     cases = [
-        _summarize_case(case_id, request, database, evaluated_on)
+        _summarize_case_safely(case_id, request, database, evaluated_on)
         for case_id, request in build_audit_cases(database)
     ]
     return {
@@ -264,6 +298,9 @@ def build_full_database_audit(
             _reference_etf_evidence(database, evaluated_on, "00929")
         ],
         "acceptance": {
+            "all_cases_completed_without_exception": all(
+                case["status"] != "ERROR" for case in cases
+            ),
             "all_cases_have_explicit_result_state": all(
                 bool(case["status"]) for case in cases
             ),

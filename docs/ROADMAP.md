@@ -1425,6 +1425,12 @@ Audit evidence started:
   million, outside the approved V5 result direction.
 - Confirmed every audited existing-holding request has zero eligible additions
   because 198 otherwise supported candidates lack portfolio-overlap evidence.
+- Imported official constituent snapshots for 121 ETFs and 9,049 positions;
+  the gate remains `NO_GO` at 116/157 ETFs and 18/21 issuers, with 23 sources
+  not automated and 13 automated retrievals failing.
+- Confirmed populated overlap data exposes a Decimal-zero defect that crashes
+  representative 0050 and 00929 holding requests when a valid pair has no
+  shared disclosed constituents.
 - Confirmed 00929 is a passive listed ETF and that its future scheduled
   2026-09-14 payment is incorrectly entering the current historical
   `as_of_date` projection.
