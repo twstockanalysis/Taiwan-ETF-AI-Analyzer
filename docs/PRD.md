@@ -271,6 +271,31 @@ not owner-goal fit. Portfolio holdings, optimization limits, excluded ETFs,
 historical evidence, long-term scenarios and tax/reinvestment assumptions stay
 available in secondary disclosures without hiding missing-data warnings.
 
+### V5 assessment and allocation correction
+
+The V4 result experience above remains the implemented baseline, but V5 owner
+review changes the next contract direction as recorded in
+`docs/V5_ALLOCATION_ASSESSMENT_DECISIONS.md`:
+
+- Data completeness, source reliability and pipeline coverage remain internal
+  calculation gates and do not contribute points to a historical-quality,
+  ETF-risk or planning-fit score.
+- Historical ETF quality does not use owner conditions or pairwise constituent
+  overlap. ETF risk remains separate from historical quality.
+- The allocator solves the complete zero-to-N holding and one-to-five added-ETF
+  portfolio before calculating a request-specific planning grade.
+- A normal cash-target card must meet every requested month, so its collapsed
+  summary does not repeat an achieved-month count.
+- V5 result cards show the planning grade rather than the included ETFs'
+  historical grades. ETF-level history and risk remain available outside the
+  compact result card.
+- The expanded result card retains shares, capital, monthly cash, holding
+  contribution, tax treatment, exclusions, risks and limitations, but does not
+  repeat source dates that belong on ETF detail, evidence and owner pages.
+
+Exact score formulas, thresholds, capital bands and final card titles remain
+deferred until representative V5-4 algorithm output is available.
+
 ## Analysis modes and data semantics
 
 The product must distinguish:
