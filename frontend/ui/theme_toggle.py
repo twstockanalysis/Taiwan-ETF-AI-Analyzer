@@ -39,7 +39,7 @@ THEME_TOGGLE_CSS = """
 
 THEME_TOGGLE_JS = r"""
 export default function (component) {
-  const { parentElement, setTriggerValue } = component
+  const { parentElement } = component
   const button = parentElement.querySelector("#goodcat-theme-toggle")
   if (!button) return
 
@@ -70,31 +70,21 @@ export default function (component) {
   updateButton()
 
   button.onclick = () => {
-    const menuButton = document.querySelector(
-      '[data-testid="stMainMenuButton"]'
-    )
-    if (!menuButton) return
-
-    menuButton.click()
-    window.setTimeout(() => {
-      const themeOption = document.querySelector(
-        `[data-testid="stMainMenuItem-theme-${nextTarget}"]`
+    const url = new URL(window.location.href)
+    const retainedEmbedOptions = url.searchParams
+      .getAll("embed_options")
+      .filter(
+        (value) => value !== "light_theme" && value !== "dark_theme"
       )
-      if (!themeOption) return
-
-      themeOption.click()
-      nextTarget = nextTarget === "Dark" ? "Light" : "Dark"
-      updateButton()
-      window.setTimeout(() => {
-        setTriggerValue("changed", nextTarget)
-      }, 50)
-
-      window.setTimeout(() => {
-        if (menuButton.getAttribute("aria-expanded") === "true") {
-          menuButton.click()
-        }
-      }, 0)
-    }, 0)
+    url.searchParams.delete("embed_options")
+    retainedEmbedOptions.forEach((value) => {
+      url.searchParams.append("embed_options", value)
+    })
+    url.searchParams.append(
+      "embed_options",
+      nextTarget === "Dark" ? "dark_theme" : "light_theme"
+    )
+    window.location.replace(url.toString())
   }
 }
 """
@@ -109,7 +99,7 @@ _THEME_TOGGLE = st.components.v2.component(
 
 
 def render_theme_toggle() -> None:
-    """呈現單鍵模式切換，交由 Streamlit 原生主題系統套用。"""
+    """呈現不依賴主選單的 Streamlit 原生模式切換。"""
 
     _THEME_TOGGLE(
         key="goodcat-theme-toggle",

@@ -3,6 +3,7 @@
 import unittest
 from inspect import getsource
 
+from PIL import Image
 from streamlit.testing.v1 import AppTest
 
 from frontend.pages.public_planner import (
@@ -11,11 +12,12 @@ from frontend.pages.public_planner import (
     MARGINAL_TAX_RATE_OPTIONS,
     MONTH_OPTIONS,
     PLANNER_GOODCAT_HERO_FILENAMES,
+    get_planner_goodcat_hero_filename,
     render_allocation_results,
     render_planner_goodcat,
     render_public_planner,
 )
-from frontend.ui.goodcat import GoodCatState
+from frontend.ui.goodcat import GOODCAT_ASSET_DIRECTORY, GoodCatState
 from frontend.ui.theme import GLOBAL_STYLES
 
 
@@ -244,35 +246,45 @@ class TestFrontendPublicPlannerUI(unittest.TestCase):
             },
         )
         self.assertEqual(
-            PLANNER_GOODCAT_HERO_FILENAMES[
-                GoodCatState.ATTENTIVE
-            ],
+            get_planner_goodcat_hero_filename(
+                GoodCatState.ATTENTIVE,
+                "light",
+            ),
             "goodcat-planner-start-hero.png",
         )
         self.assertEqual(
-            PLANNER_GOODCAT_HERO_FILENAMES[
-                GoodCatState.WORKING
-            ],
-            "goodcat-researching-hero.png",
+            get_planner_goodcat_hero_filename(
+                GoodCatState.ATTENTIVE,
+                "dark",
+            ),
+            "goodcat-planner-start-white-hero.png",
         )
         self.assertEqual(
-            PLANNER_GOODCAT_HERO_FILENAMES[
-                GoodCatState.REWARD
-            ],
-            "goodcat-result-reward-hero.png",
+            get_planner_goodcat_hero_filename(
+                GoodCatState.WORKING,
+                "dark",
+            ),
+            "goodcat-researching-white-hero.png",
         )
         self.assertEqual(
-            PLANNER_GOODCAT_HERO_FILENAMES[
-                GoodCatState.CAUTION
-            ],
-            "goodcat-warning-hero.png",
+            get_planner_goodcat_hero_filename(
+                GoodCatState.REWARD,
+                "dark",
+            ),
+            "goodcat-result-reward-white-hero.png",
         )
-        self.assertTrue(
-            all(
-                filename.endswith("-hero.png")
-                for filename in PLANNER_GOODCAT_HERO_FILENAMES.values()
-            )
-        )
+        for theme_mapping in PLANNER_GOODCAT_HERO_FILENAMES.values():
+            self.assertEqual(set(theme_mapping), {"light", "dark"})
+            for filename in theme_mapping.values():
+                self.assertTrue(filename.endswith("-hero.png"))
+                with Image.open(GOODCAT_ASSET_DIRECTORY / filename) as image:
+                    self.assertEqual(image.mode, "RGBA")
+                    self.assertEqual(image.size, (1254, 1254))
+                    self.assertEqual(image.getpixel((0, 0))[3], 0)
+                    self.assertEqual(
+                        image.getchannel("A").getextrema(),
+                        (0, 255),
+                    )
         self.assertLess(
             source.index("goodcat_slot = st.empty()"),
             source.index('"讓咪開始工作"'),
