@@ -1415,6 +1415,21 @@ recorded in `docs/V5_ALLOCATION_ASSESSMENT_DECISIONS.md`.
   not rating-score factors
 - Keep data-source changes separate from calculation-method changes
 
+Audit evidence started:
+
+- Rebuilt a no-overwrite 263-ETF candidate at
+  `sha256:6e245b0bd79d43a19bc38dee4e7f6e4672a5a2140e6ffd15087ea00f19349e95`
+  and verified SQLite integrity plus zero foreign-key violations.
+- Confirmed zero-holding requests can produce modeled results, but the
+  all-month TWD 3,000 result uses thirteen added ETFs and more than TWD 4.15
+  million, outside the approved V5 result direction.
+- Confirmed every audited existing-holding request has zero eligible additions
+  because 198 otherwise supported candidates lack portfolio-overlap evidence.
+- Confirmed 00929 is a passive listed ETF and that its future scheduled
+  2026-09-14 payment is incorrectly entering the current historical
+  `as_of_date` projection.
+- Evidence: `docs/V5_3_FULL_DATABASE_AUDIT.md`
+
 ### V5-4 — Allocation-result algorithm
 
 - Solve the complete zero-to-N holding and one-to-five added-ETF portfolio

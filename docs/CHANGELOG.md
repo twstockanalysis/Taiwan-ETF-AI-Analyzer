@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-01 - V5-3 full-database readiness audit
+
+- Added a reproducible full-database audit covering field availability, all
+  planner exclusion codes, zero-to-N holdings, all-month targets, formal zero,
+  missing-data cases and the 00929 paid-versus-future evidence boundary.
+- Recorded that zero-holding calculations return results but existing-holding
+  cases remain blocked by missing overlap data, while current target-met plans
+  exceed the approved five-added-ETF V5 direction.
+
 ## 2026-08-27 — V4-7 page experience review started
 
 - Added the owner-led V4 page acceptance record and fixed review order.
