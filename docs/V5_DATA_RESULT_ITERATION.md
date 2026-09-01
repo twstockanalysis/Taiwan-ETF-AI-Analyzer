@@ -15,7 +15,12 @@ V5 不以最低 launch-data gate 或單一資料覆蓋率宣告完成。核心�
 4. 使用相同輸入再看一次自動規劃結果；
 5. 完成資料、計算、頁面與限制的收尾驗收。
 
-V4-8、release candidate、正式部署與 SEC-4 在 V5-5 通過前暫停。
+V4-8、release candidate、正式部署與 SEC-4 在 V5-6 通過前暫停。
+
+V5-2 owner review changed the later sequence. The approved assessment,
+allocation and result-card direction is recorded in
+`docs/V5_ALLOCATION_ASSESSMENT_DECISIONS.md`; that document takes precedence
+over the original V5-4 and V5-5 planning text below where the two differ.
 
 ## 2. 不變語意與工作邊界
 
@@ -35,7 +40,7 @@ V4-8、release candidate、正式部署與 SEC-4 在 V5-5 通過前暫停。
 
 產出：
 
-- 本文件及 `docs/ROADMAP.md` 的 V5-0～V5-5；
+- 本文件及 `docs/ROADMAP.md` 的 V5-0～V5-6；
 - 詳細資料頁 visible-field manifest；
 - 第一輪資料取得清單；
 - 固定頁面樣本、planner requests 與比較指標；
@@ -73,14 +78,27 @@ V4-8、release candidate、正式部署與 SEC-4 在 V5-5 通過前暫停。
 - 結果過度集中或方案無差異是否確實來自資料而非求解器。
 
 V5-3 不追求「資料越多越好」的無界匯入；優先取得能解除結果阻塞、增加解釋力
-或降低錯誤稅務推論的資料。
+或降低錯誤稅務推論的資料。資料完整度與來源可靠度仍是內部資料及可計算 gate，
+但不作為喵喵評等、ETF 風險評等或喵喵規劃評等的加減分因素。
 
-### V5-4 — 第二次自動規劃檢視
+V5-3 必須修正有效產品狀態，以及已公告未付款與已付款歷史的語意。00929 為
+第一個 acceptance case。
 
-使用與 V5-2 完全相同的 requests，比較兩個 immutable snapshots。只有這次
-比較完成後，才提出配置演算法、門檻、稅務口徑或結果頁層級的修改建議。
+### V5-4 — 配置結果演算法
 
-### V5-5 — 收尾
+先求解符合月份／現金流或可投入資金條件的完整 1～5 檔整數股數配置，再計算
+喵喵規劃評等。評分不得先選 ETF 再嘗試湊出配置。此階段建立 deterministic
+replay、資金效率、現有持股邊際貢獻、非劣勢方案與 00929 reference cases，
+不調整結果頁主要版面。
+
+### V5-5 — 結果頁整合與第二次檢視
+
+- 將通過 V5-4 的 2～3 種實質不同結果整合為精簡／展開卡片；
+- 正常配息目標卡片必須達成每個指定月份，因此折疊前不顯示達成月份數；
+- 展開卡片不顯示資料日期，但保留現金流、股數、稅務、現有持股貢獻、風險與限制；
+- 以相同 frozen requests 比較資料與演算法前後結果，再由主人檢查實際頁面。
+
+### V5-6 — 收尾
 
 - 由主人確認詳細資料與規劃結果是否有用；
 - 固定通過驗收的資料 snapshot、commit、contracts 與 tests；

@@ -1370,10 +1370,12 @@ Delivered:
 
 ## V5 — Data-first result iteration
 
-V5 pauses release-candidate selection and uses two measured data-enrichment
-rounds to determine whether GoodCat produces useful public planning results.
-The allocation engine and accepted V4 page structure remain frozen during the
-first data round so data effects can be separated from algorithm changes.
+V5 pauses release-candidate selection and uses measured data enrichment,
+algorithm correction and real-page review to determine whether GoodCat
+produces useful public planning results. The allocation engine and accepted V4
+page structure remain frozen during the first data round so data effects can be
+separated from algorithm changes. Owner-approved post-review decisions are
+recorded in `docs/V5_ALLOCATION_ASSESSMENT_DECISIONS.md`.
 
 ### V5-0 — Scope, field manifest and reproducible baseline
 
@@ -1405,18 +1407,35 @@ first data round so data effects can be separated from algorithm changes.
 ### V5-3 — Result-driven remaining data acquisition
 
 - Rank remaining data work by the blockers observed in V5-2
+- Reconcile active-product status and announced-versus-paid dividend semantics,
+  with 00929 as the first acceptance case
 - Add constituent, adjusted history, broader ACTUAL evidence or other facts
   only when they materially improve explainability or planning usefulness
-- Keep data-source changes separate from any later calculation-method change
+- Keep data completeness and source reliability as internal calculation gates,
+  not rating-score factors
+- Keep data-source changes separate from calculation-method changes
 
-### V5-4 — Second automatic-planning review
+### V5-4 — Allocation-result algorithm
 
-- Replay the exact V5-2 requests against the second immutable data snapshot
-- Compare coverage, exclusions, zero-to-N success, plan diversity, capital,
-  monthly cash, tax provenance and long-term evidence
-- Propose algorithm or output changes only after the data-only delta is known
+- Solve the complete zero-to-N holding and one-to-five added-ETF portfolio
+  before calculating a planning grade
+- Support exact whole shares, cash-target and investable-budget modes, existing
+  holding contribution and non-dominated plan selection
+- Separate historical ETF quality, ETF risk and request-specific plan fit
+- Add deterministic replay and 00929 evidence-convention acceptance cases
+- Keep the result-page layout out of this milestone
 
-### V5-5 — V5 closeout and owner acceptance
+### V5-5 — Result-page integration and second review
+
+- Integrate two or three materially distinct compact and expandable result
+  cards, with no more than five added ETFs per plan
+- Require every requested month to meet the target for a normal cash-target
+  card; omit achieved-month count from the collapsed card
+- Keep source dates out of the expanded result card while retaining cash-flow,
+  tax, holding contribution, risk and limitation evidence
+- Review representative real pages before finalizing titles and capital bands
+
+### V5-6 — V5 closeout and owner acceptance
 
 - Resolve accepted data and calculation findings with deterministic tests
 - Record unavailable official data and remaining limitations without treating
@@ -1433,7 +1452,8 @@ first data round so data effects can be separated from algorithm changes.
 - Deploy that exact candidate to the real host and domain
 - Complete SEC-4 on the deployed candidate before public launch
 
-V4-8 must not resume until V5-5 data and planning acceptance is complete.
+V4-8 must not resume until V5-6 data, allocation and page acceptance is
+complete.
 
 ## Post-security optional integrations
 
