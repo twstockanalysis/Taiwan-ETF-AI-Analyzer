@@ -40,8 +40,9 @@ class TestProductionDeployment(unittest.TestCase):
             "CADDY_COMMIT=8ec11a4b7e39a5fd00da2fc5cb9b543e31fd7926",
             caddyfile,
         )
+        self.assertIn("golang.org/x/crypto@v0.55.0", caddyfile)
         self.assertIn("golang.org/x/net@v0.57.0", caddyfile)
-        self.assertIn("golang.org/x/text@v0.40.0", caddyfile)
+        self.assertIn("golang.org/x/text@v0.41.0", caddyfile)
         self.assertIn("google.golang.org/grpc@v1.82.1", caddyfile)
         self.assertIn("USER 10001:10001", caddyfile)
         self.assertNotIn("image: caddy:", compose)
