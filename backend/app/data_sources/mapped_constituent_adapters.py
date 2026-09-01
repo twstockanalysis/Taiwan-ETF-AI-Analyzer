@@ -319,8 +319,10 @@ def parse_first_constituent_payload(
             constituent_id = str(row.get("A", "")).strip().upper()
             constituent_name = str(row.get("B", "")).strip()
             weight = Decimal(str(row.get("C", "")).replace("%", "").strip())
-            if not constituent_id or not constituent_name or weight <= 0:
+            if not constituent_id or not constituent_name or weight < 0:
                 raise ValueError("第一金官方持股包含無效股票資料列")
+            if weight == 0:
+                continue
             positions.append({
                 "constituent_id": constituent_id,
                 "constituent_name": constituent_name,
@@ -332,6 +334,8 @@ def parse_first_constituent_payload(
         )
     except InvalidOperation as error:
         raise ValueError("第一金官方持股包含無效股票權重") from error
+    if not positions:
+        raise ValueError("第一金官方持股沒有正權重股票")
     if abs(sum(row["weight_pct"] for row in positions) - declared_total) > Decimal("0.01"):
         raise ValueError("第一金官方持股與股票資產合計不符，疑似資料不完整")
     return _snapshot(

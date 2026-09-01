@@ -15,6 +15,7 @@ from backend.app.models.etf_constituent import ETFConstituentSnapshotCreate
 
 
 MINIMUM_STOCK_WEIGHT_PCT = Decimal("90")
+MINIMUM_FUBON_STOCK_WEIGHT_PCT = Decimal("85")
 USER_AGENT = "TW-ETF-AI-Analyzer/0.1 (official-data-downloader)"
 
 SINOPAC_URL = "https://sitc.sinopac.com/SinopacEtfs/Etfs/Pcf/{etf_code}"
@@ -94,6 +95,7 @@ def _stock_table(
 def _positions(
     table: list[list[str]], *, code_index: int, name_index: int,
     weight_index: int, issuer: str,
+    minimum_stock_weight_pct: Decimal = MINIMUM_STOCK_WEIGHT_PCT,
 ) -> list[dict[str, Any]]:
     values: list[dict[str, Any]] = []
     for row in table[1:]:
@@ -117,7 +119,7 @@ def _positions(
     if not values:
         raise ValueError(f"{issuer}官方持股沒有股票權重")
     total = sum(item["weight_pct"] for item in values)
-    if total < MINIMUM_STOCK_WEIGHT_PCT:
+    if total < minimum_stock_weight_pct:
         raise ValueError(f"{issuer}官方持股股票權重僅 {total}%，疑似資料不完整")
     return values
 
@@ -140,6 +142,7 @@ def _parse_html_source(
     content: str, *, etf_code: str, issuer: str, source_id: str,
     source_url: str, fetched_at: datetime, expected_headers: tuple[str, ...],
     date_value: str, weight_index: int,
+    minimum_stock_weight_pct: Decimal = MINIMUM_STOCK_WEIGHT_PCT,
 ) -> ETFConstituentSnapshotCreate:
     if etf_code not in content.upper():
         raise ValueError(f"{issuer}官方持股回應與要求的 {etf_code} 不符")
@@ -152,6 +155,7 @@ def _parse_html_source(
         _positions(
             table, code_index=0, name_index=1,
             weight_index=weight_index, issuer=issuer,
+            minimum_stock_weight_pct=minimum_stock_weight_pct,
         ),
         fetched_at,
     )
@@ -204,12 +208,25 @@ def parse_fubon_constituent_html(
 ) -> ETFConstituentSnapshotCreate:
     normalized = _normalize_code(etf_code)
     date_match = re.search(r"資料日期[：:]\s*(20\d{2}/\d{1,2}/\d{1,2})", content)
-    return _parse_html_source(
+    result = _parse_html_source(
         content, etf_code=normalized, issuer="富邦", source_id="fubon_official_assets",
         source_url=source_url, fetched_at=fetched_at,
         expected_headers=("股票代碼", "股票名稱", "權重(%)"),
         date_value=date_match.group(1) if date_match else "", weight_index=4,
+        minimum_stock_weight_pct=MINIMUM_FUBON_STOCK_WEIGHT_PCT,
     )
+    stock_total = sum(item.weight_pct for item in result.positions)
+    if stock_total < MINIMUM_STOCK_WEIGHT_PCT:
+        parser = _TableParser()
+        parser.feed(content)
+        non_stock_headers = {"期貨代碼", "債券代碼", "基金代碼", "ETF代碼"}
+        has_non_stock_positions = any(
+            len(table) > 1 and any(header in table[0] for header in non_stock_headers)
+            for table in parser.tables
+        )
+        if not has_non_stock_positions:
+            raise ValueError("富邦官方股票權重低於 90%，且缺少非股票資產表供對帳")
+    return result
 
 
 def parse_nomura_constituent_payload(

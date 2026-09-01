@@ -83,6 +83,37 @@ class TestDirectHtmlConstituentAdapters(unittest.TestCase):
         )
         self.assertEqual(result.positions[0].weight_pct, 60)
 
+    def test_fubon_accepts_quality_gate_stock_weight_with_non_stock_evidence(self):
+        rows = """
+        <tr><td>7203 JP</td><td>豐田汽車</td><td>100</td><td>1000</td><td>50</td></tr>
+        <tr><td>6758 JP</td><td>索尼集團</td><td>80</td><td>900</td><td>37.8</td></tr>
+        """
+        content = f"""00645 資料日期：2026/09/02
+        <table><tr><th>股票代碼</th><th>股票名稱</th><th>股數</th><th>金額</th>
+        <th>權重(%)</th></tr>{rows}</table>
+        <table><tr><th>期貨代碼</th><th>期貨名稱</th><th>口數</th>
+        <th>金額</th><th>權重(%)</th></tr>
+        <tr><td>NK225</td><td>日經期貨</td><td>2</td><td>100</td><td>8</td></tr></table>"""
+        result = parse_fubon_constituent_html(
+            content, etf_code="00645", source_url="https://example.test",
+            fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(
+            str(sum(item.weight_pct for item in result.positions)), "87.8"
+        )
+
+    def test_fubon_lower_stock_weight_requires_non_stock_evidence(self):
+        content = """00645 資料日期：2026/09/02
+        <table><tr><th>股票代碼</th><th>股票名稱</th><th>股數</th><th>金額</th>
+        <th>權重(%)</th></tr>
+        <tr><td>7203 JP</td><td>豐田汽車</td><td>100</td><td>1000</td><td>87.8</td></tr>
+        </table>"""
+        with self.assertRaisesRegex(ValueError, "缺少非股票資產表"):
+            parse_fubon_constituent_html(
+                content, etf_code="00645", source_url="https://example.test",
+                fetched_at=FETCHED_AT,
+            )
+
     def test_partial_and_wrong_pages_are_rejected(self):
         content = """00930 資料日期：2026/08/13
         <table><tr><th>證券代碼</th><th>證券名稱</th><th>股數</th>

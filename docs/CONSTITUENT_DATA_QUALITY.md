@@ -60,6 +60,28 @@ rerun reuses equivalent position content as `UNCHANGED`. If an issuer changes
 positions for an already stored ETF, source and effective date, the pipeline
 refuses to overwrite the immutable snapshot.
 
+For an interrupted or partially failed full-market refresh, write an atomic
+checkpoint and resume from it:
+
+```powershell
+.venv\Scripts\python.exe -m backend.app.data_sources.constituent_batch_pipeline `
+  --database C:\absolute\test-data\tw_etf-calculation.db `
+  --checkpoint C:\absolute\test-data\constituent-checkpoint.json `
+  --allow-network `
+  --output C:\absolute\test-data\constituent-quality.json
+
+.venv\Scripts\python.exe -m backend.app.data_sources.constituent_batch_pipeline `
+  --database C:\absolute\test-data\tw_etf-calculation.db `
+  --checkpoint C:\absolute\test-data\constituent-checkpoint.json `
+  --resume `
+  --allow-network `
+  --output C:\absolute\test-data\constituent-quality-resumed.json
+```
+
+Resume skips checkpointed `IMPORTED` and `UNCHANGED` codes and retries only
+failed codes. A checkpoint names one database and contains bounded result
+metadata, not source payloads or credentials.
+
 Passing V2-10 proves constituent-data readiness only. Performance, dividend
 events and ACTUAL/estimated dividend-composition coverage retain their own
 separate gates.
@@ -103,7 +125,9 @@ $env:TW_ETF_DATABASE_PATH = 'C:\absolute\test-data\tw_etf-calculation.db'
 Remove-Item Env:TW_ETF_DATABASE_PATH
 ```
 
-The current full-market constituent ceiling can remain below the 90% default
-because Cathay and BlackRock are fail-closed. This does not prevent a bounded
-pair or saved portfolio from calculating when every ETF in that specific set
-passes the gates.
+The 2026-09-02 V5-3C candidate covers 129/157 target ETFs and 19/21 issuers.
+Issuer coverage passes 90%, but ETF coverage remains `NO_GO` at 82.165605%
+because Cathay and BlackRock are fail-closed and five automated-source products
+remain explicitly unavailable. This does not prevent a bounded pair or saved
+portfolio from calculating when every ETF in that specific set passes the
+gates. See `V5_3C_CONSTITUENT_RECOVERY.md`.

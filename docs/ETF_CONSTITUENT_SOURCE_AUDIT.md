@@ -97,6 +97,19 @@ their official production endpoints on 2026-08-13 and 2026-08-14:
   interactive users, but the product page and tested official CSV variants
   returned HTTP 403 on `2026-08-14`. No adapter is enabled while automated
   access remains protected.
+- The V5-3C replay on `2026-09-02` recovered eight of thirteen measured
+  automated-source failures. Four were transient source-connectivity failures;
+  three Fubon products had complete official stock plus futures tables with
+  87.8471% to 89.8784% stock weight; and First `00728` reconciled to its 97.19%
+  official stock-asset total after one formally zero row was excluded from
+  positions.
+- `0061` and `009812` expose ETF/futures rather than direct-stock portfolios,
+  `00924` exposes only 54.789% unreconciled direct stock weight, and currency
+  share classes `00625K` and `00643K` do not resolve to verified official
+  holdings. They remain unavailable instead of borrowing another share class.
+- Cathay's official product page returned an edge-service HTTP 500 on the
+  `2026-09-02` recheck. Its status remains `FULL_DISCLOSURE_VERIFIED`, not
+  `AUTOMATED`.
 
 These observations prove source availability and request mapping. They are not
 runtime guarantees: production adapters must still enforce schema, identity,
