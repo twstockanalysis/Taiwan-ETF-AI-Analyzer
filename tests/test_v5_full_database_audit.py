@@ -149,9 +149,38 @@ class V5FullDatabaseAuditTests(unittest.TestCase):
         self.assertEqual(len(summary["exclusion_codes"]), 2)
 
     def test_safe_case_summary_records_allocator_exception(self) -> None:
+        market_response = SimpleNamespace(
+            snapshot_id="sha256:" + "0" * 64,
+            universe_count=1,
+            supported_product_count=1,
+            eligible_count=1,
+            excluded_count=0,
+            actual_component_count=0,
+            estimated_component_fallback_count=1,
+            candidates=[
+                SimpleNamespace(
+                    etf_code="0050",
+                    existing_holding=False,
+                    supported_product=True,
+                    eligible_for_addition=True,
+                    component_basis="ESTIMATED_FALLBACK",
+                    component_source_date=date(2026, 8, 1),
+                    actual_76w_available=False,
+                    holding_overlap_status="NOT_APPLICABLE",
+                    holding_overlap_pct=0,
+                    constituent_snapshot_dates=[],
+                    completeness_pct=80,
+                    data_is_fresh=True,
+                    reasons=[],
+                )
+            ],
+        )
         with patch(
             "deployment.v5_full_database_audit.build_allocation_results",
             side_effect=AttributeError("zero overlap cannot be quantized"),
+        ), patch(
+            "deployment.v5_full_database_audit.build_market_eligibility_index",
+            return_value=SimpleNamespace(response=market_response),
         ):
             summary = _summarize_case_safely(
                 "case",
@@ -162,9 +191,18 @@ class V5FullDatabaseAuditTests(unittest.TestCase):
 
         self.assertEqual(summary["status"], "ERROR")
         self.assertEqual(summary["plan_count"], 0)
-        self.assertEqual(summary["eligible_count"], 0)
+        self.assertEqual(summary["eligible_count"], 1)
         self.assertEqual(summary["error"]["type"], "AttributeError")
+        self.assertEqual(summary["error"]["stage"], "ALLOCATION_RESULTS")
         self.assertIn("zero overlap", summary["error"]["message"])
+        self.assertEqual(
+            summary["market_evidence"]["supported_product_count"],
+            1,
+        )
+        self.assertEqual(
+            summary["market_evidence"]["candidates"][0]["component_basis"],
+            "ESTIMATED_FALLBACK",
+        )
 
     def test_00929_evidence_separates_paid_and_future_payments(self) -> None:
         connection = get_connection(self.database)

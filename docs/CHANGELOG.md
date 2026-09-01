@@ -13,6 +13,9 @@
   exposed by representative existing-holding replays.
 - Made the audit matrix preserve allocator exceptions as explicit `ERROR`
   evidence instead of aborting the remaining cases.
+- Expanded the consolidated audit to retain all 263 per-ETF field records and
+  all 263 market candidates for each planner case, while keeping the broader
+  V5-3 phase explicitly incomplete until normal holding requests are usable.
 
 ## 2026-08-27 — V4-7 page experience review started
 

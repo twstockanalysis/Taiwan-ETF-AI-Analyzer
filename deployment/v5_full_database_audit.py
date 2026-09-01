@@ -171,6 +171,61 @@ def _summarize_case(
     }
 
 
+def _market_evidence(
+    request: AllocationResultsRequest,
+    database: Path,
+    evaluated_on: date,
+) -> dict:
+    response = build_market_eligibility_index(
+        request,
+        database,
+        as_of_date=evaluated_on,
+    ).response
+    return {
+        "snapshot_id": response.snapshot_id,
+        "universe_count": response.universe_count,
+        "supported_product_count": response.supported_product_count,
+        "eligible_count": response.eligible_count,
+        "excluded_count": response.excluded_count,
+        "actual_component_count": response.actual_component_count,
+        "estimated_component_fallback_count": (
+            response.estimated_component_fallback_count
+        ),
+        "candidates": [
+            {
+                "etf_code": item.etf_code,
+                "existing_holding": item.existing_holding,
+                "supported_product": item.supported_product,
+                "eligible_for_addition": item.eligible_for_addition,
+                "component_basis": item.component_basis,
+                "component_source_date": (
+                    item.component_source_date.isoformat()
+                    if item.component_source_date is not None
+                    else None
+                ),
+                "actual_76w_available": item.actual_76w_available,
+                "holding_overlap_status": item.holding_overlap_status,
+                "holding_overlap_pct": (
+                    str(item.holding_overlap_pct)
+                    if item.holding_overlap_pct is not None
+                    else None
+                ),
+                "constituent_snapshot_dates": [
+                    value.isoformat() for value in item.constituent_snapshot_dates
+                ],
+                "completeness_pct": (
+                    str(item.completeness_pct)
+                    if item.completeness_pct is not None
+                    else None
+                ),
+                "data_is_fresh": item.data_is_fresh,
+                "reason_codes": [reason.code for reason in item.reasons],
+            }
+            for item in response.candidates
+        ],
+    }
+
+
 def _summarize_case_safely(
     case_id: str,
     request: AllocationResultsRequest,
@@ -178,31 +233,74 @@ def _summarize_case_safely(
     evaluated_on: date,
 ) -> dict:
     try:
-        return _summarize_case(case_id, request, database, evaluated_on)
+        market_evidence = _market_evidence(
+            request,
+            database,
+            evaluated_on,
+        )
     except Exception as error:
-        return {
-            "case_id": case_id,
-            "request": request.model_dump(mode="json"),
-            "snapshot_id": None,
-            "status": "ERROR",
-            "optimality": None,
-            "universe_count": None,
-            "eligible_count": 0,
-            "plan_count": 0,
-            "plan_strategies": [],
-            "added_etf_count": 0,
-            "within_v5_max_five_added_etfs": False,
-            "total_required_additional_capital": None,
-            "additions": [],
-            "selected_months": [],
-            "issue_codes": [],
-            "strategy_issue_codes": [],
-            "exclusion_codes": [],
-            "error": {
-                "type": type(error).__name__,
-                "message": str(error),
-            },
-        }
+        return _error_case(
+            case_id,
+            request,
+            stage="MARKET_ELIGIBILITY",
+            error=error,
+            market_evidence=None,
+        )
+    try:
+        summary = _summarize_case(case_id, request, database, evaluated_on)
+        summary["market_evidence"] = market_evidence
+        return summary
+    except Exception as error:
+        return _error_case(
+            case_id,
+            request,
+            stage="ALLOCATION_RESULTS",
+            error=error,
+            market_evidence=market_evidence,
+        )
+
+
+def _error_case(
+    case_id: str,
+    request: AllocationResultsRequest,
+    *,
+    stage: str,
+    error: Exception,
+    market_evidence: dict | None,
+) -> dict:
+    return {
+        "case_id": case_id,
+        "request": request.model_dump(mode="json"),
+        "snapshot_id": None,
+        "status": "ERROR",
+        "optimality": None,
+        "universe_count": (
+            market_evidence["universe_count"]
+            if market_evidence is not None
+            else None
+        ),
+        "eligible_count": (
+            market_evidence["eligible_count"]
+            if market_evidence is not None
+            else 0
+        ),
+        "plan_count": 0,
+        "plan_strategies": [],
+        "added_etf_count": 0,
+        "within_v5_max_five_added_etfs": False,
+        "total_required_additional_capital": None,
+        "additions": [],
+        "selected_months": [],
+        "issue_codes": [],
+        "strategy_issue_codes": [],
+        "exclusion_codes": [],
+        "market_evidence": market_evidence,
+        "error": {
+            "stage": stage,
+            "type": type(error).__name__,
+            "message": str(error),
+        },
+    }
 
 
 def _reference_etf_evidence(
@@ -293,11 +391,23 @@ def build_full_database_audit(
             "sha256_verified": sha256_file(database),
         },
         "field_coverage": coverage["field_coverage"],
+        "field_items": coverage["items"],
+        "import_reconciliation": coverage["import_reconciliation"],
+        "coverage_notes": coverage["notes"],
         "planner_cases": cases,
         "reference_etfs": [
             _reference_etf_evidence(database, evaluated_on, "00929")
         ],
         "acceptance": {
+            "every_etf_field_has_explicit_status_and_reason": all(
+                field["status"] == "AVAILABLE"
+                or (
+                    field["status"] == "UNAVAILABLE"
+                    and bool(field["reason"])
+                )
+                for item in coverage["items"]
+                for field in item["fields"].values()
+            ),
             "all_cases_completed_without_exception": all(
                 case["status"] != "ERROR" for case in cases
             ),
@@ -316,6 +426,12 @@ def build_full_database_audit(
                 case["eligible_count"] > 0
                 for case in cases
                 if case["request"]["existing_holdings"]
+            ),
+            "every_case_records_full_market_evidence": all(
+                case["market_evidence"] is not None
+                and case["market_evidence"]["universe_count"]
+                == len(case["market_evidence"]["candidates"])
+                for case in cases
             ),
         },
         "invariants": [

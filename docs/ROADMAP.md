@@ -1436,6 +1436,12 @@ Audit evidence started:
   `as_of_date` projection.
 - Evidence: `docs/V5_3_FULL_DATABASE_AUDIT.md`
 
+The Issue #90 audit pass is complete, but the broader V5-3 phase remains in
+progress. The audit now preserves 263 ETFs by 18 fields and the complete
+263-candidate evidence for each of eight planner requests. V5-3 is not accepted
+while representative normal holding requests still raise an allocator error or
+return no eligible allocation.
+
 ### V5-4 — Allocation-result algorithm
 
 - Solve the complete zero-to-N holding and one-to-five added-ETF portfolio

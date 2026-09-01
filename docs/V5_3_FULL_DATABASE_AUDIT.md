@@ -18,6 +18,13 @@ result contract.
 This is an audit result, not a launch-data decision. V4-8, deployment and SEC-4
 remain paused.
 
+The reproducible audit pass defined by Issue #90 is complete after recording
+all 263 ETFs across all 18 required detail fields and all 263 market candidates
+for each of eight planner requests. This does not complete the broader V5-3
+product phase. V5-3 remains in progress until the accepted data fixes are
+applied and representative normal requests produce usable results without an
+allocator exception.
+
 ## Reproducible evidence
 
 - Code base used to build the candidate: `main@d4cc17c`
@@ -35,11 +42,21 @@ remain paused.
   out-of-scope rejections
 - Local candidate and source artifacts:
   git-ignored `reports/v5-3-20260901/`
+- Consolidated full audit:
+  git-ignored `reports/v5-3-20260901/complete-v5-3-audit.json`
+  (`2,447,164` bytes)
 
 The source database was not overwritten. The candidate was produced through
 `deployment.detail_data_candidate`, enriched through
 `backend.app.data_sources.constituent_batch_pipeline`, then checked through
 `deployment.v5_full_database_audit`.
+
+The consolidated audit contains 263 per-ETF field records with explicit
+`AVAILABLE` or reasoned `UNAVAILABLE` status. Every planner request also keeps
+its 263-candidate market evidence, including supported and eligible counts,
+component basis, formal 76W availability, holding-overlap status and percentage,
+constituent snapshot dates, freshness and all reason codes. Allocation-stage
+exceptions retain the successfully completed market-eligibility evidence.
 
 ## Full-database coverage
 
