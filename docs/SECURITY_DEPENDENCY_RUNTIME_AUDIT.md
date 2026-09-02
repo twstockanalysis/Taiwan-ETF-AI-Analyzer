@@ -1,6 +1,6 @@
 # SEC-3 dependency, container and runtime audit
 
-Date: 2026-08-21
+Date: 2026-09-02
 
 ## Decision
 
@@ -25,6 +25,10 @@ authorized public host.
   and fixed `x/net`, `x/text` and gRPC versions, then copied into a patched
   Alpine 3.24 runtime. This removes fixable scanner findings without consuming
   unreleased Caddy master behavior.
+- The 2026-09-02 advisory refresh identified the embedded gRPC `v1.82.1` as
+  affected by `CVE-2026-84304`; the explicit build pin is now `v1.83.1`, the
+  fixed version reported by the required Trivy gate. No scanner exception or
+  Caddy source change was introduced.
 - CI repeats Python auditing and scans both built images with Trivy, failing on
   fixable HIGH or CRITICAL operating-system or library findings.
 
