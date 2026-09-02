@@ -43,6 +43,10 @@ caller first labeling the result as a scenario estimate.
 
 - The analysis period is inclusive of `period_start` and `period_end`.
 - Distribution cash is assigned by actual `PAYMENT_DATE`.
+- Historical cash-flow, eligibility and allocation projections include only
+  events whose `PAYMENT_DATE` is on or before the explicit analysis date.
+  A future scheduled payment remains available as announcement evidence but
+  cannot become paid history or anchor the historical lookback window.
 - Beginning and ending holding values use actual `TRADE_DATE` observations.
 - A caller cannot silently substitute announcement, ex-dividend or record date
   for payment date.
@@ -210,7 +214,8 @@ contract passes table-driven tests.
 
 ## Tax and reinvestment component fallback
 
-Tax and reinvestment scenarios use one complete historical component event.
+Tax and reinvestment scenarios use one complete historical component event
+whose payment date is on or before the analysis date.
 Selection follows this fixed order:
 
 1. the latest complete `ACTUAL` event whose ratios total 99% through 101%;

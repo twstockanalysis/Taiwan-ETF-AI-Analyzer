@@ -110,8 +110,24 @@ def select_latest_complete_actual_mix(
 
 def select_composite_component_mix(
     rows: list[dict],
+    *,
+    analysis_date: date | None = None,
 ) -> CompositeComponentSelection | None:
-    """完整 ACTUAL 優先，否則選完整 e添富；不同基礎絕不混用。"""
+    """在已付款事件中以完整 ACTUAL 優先，否則選完整 e添富。"""
+
+    eligible_rows = (
+        [
+            row
+            for row in rows
+            if (
+                (payment_date := _to_date(row.get("payment_date")))
+                is not None
+                and payment_date <= analysis_date
+            )
+        ]
+        if analysis_date is not None
+        else rows
+    )
 
     for source_basis, output_basis in (
         ("ACTUAL", "ACTUAL"),
@@ -119,7 +135,7 @@ def select_composite_component_mix(
     ):
         basis_rows = [
             row
-            for row in rows
+            for row in eligible_rows
             if str(row.get("component_basis", "ACTUAL")).upper()
             == source_basis
         ]

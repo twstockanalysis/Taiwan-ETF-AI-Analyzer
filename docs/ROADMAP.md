@@ -1467,8 +1467,19 @@ V5-3B calculation prerequisite:
   maximum-five-ETF direction and remains dependent on Issue #91 semantics.
 - Evidence: `docs/V5_3B_ZERO_OVERLAP_FIX.md`
 
+V5-3A paid-dividend cutoff:
+
+- Historical monthly cash flow and component selection now receive the
+  request's explicit analysis date and exclude later scheduled payments.
+- The deterministic 00929 replay uses the paid 2026-07-13 and 2026-08-14
+  events, retains the announced 2026-09-14 payment as detail evidence and no
+  longer emits `FUTURE_DIVIDEND_DATA` solely because that event is stored.
+- Passive `is_active = 0` remains a management-style field and does not make
+  00929 unsupported or delisted.
+- Evidence: `docs/V5_3A_PAID_DIVIDEND_CUTOFF.md`
+
 The broader V5-3 phase remains in progress while the documented data coverage,
-dividend-history semantics and allocation-size limitations remain unresolved.
+remaining source coverage and allocation-size limitations remain unresolved.
 
 ### V5-4 — Allocation-result algorithm
 

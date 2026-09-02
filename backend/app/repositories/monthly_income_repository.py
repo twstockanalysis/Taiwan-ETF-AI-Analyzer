@@ -55,8 +55,10 @@ def build_monthly_income_distribution(
     etf_code: str,
     database_path: str | Path | None = None,
     lookback_years: int = 3,
+    *,
+    analysis_date: date | None = None,
 ) -> dict[str, Any] | None:
-    """依實際入帳日建立單一 ETF 的月份分布。"""
+    """依分析日以前的實際入帳日建立單一 ETF 月份分布。"""
 
     if lookback_years < 1 or lookback_years > 10:
         raise ValueError(
@@ -80,7 +82,13 @@ def build_monthly_income_distribution(
                 e.name,
                 COUNT(d.id) AS total_event_count,
                 COUNT(d.payment_date) AS dated_event_count,
-                MAX(d.payment_date) AS latest_payment_date
+                MAX(
+                    CASE
+                        WHEN ? IS NULL
+                          OR d.payment_date <= ?
+                        THEN d.payment_date
+                    END
+                ) AS latest_payment_date
             FROM etf_master AS e
             LEFT JOIN etf_dividend AS d
               ON d.etf_code = e.code
@@ -89,7 +97,15 @@ def build_monthly_income_distribution(
                 e.code,
                 e.name;
             """,
-            (normalized_code,),
+            (
+                analysis_date.isoformat()
+                if analysis_date is not None
+                else None,
+                analysis_date.isoformat()
+                if analysis_date is not None
+                else None,
+                normalized_code,
+            ),
         ).fetchone()
 
         if summary_row is None:
@@ -116,9 +132,12 @@ def build_monthly_income_distribution(
                 "total_dividend_event_count": (
                     total_event_count
                 ),
-                "dated_dividend_event_count": 0,
+                "dated_dividend_event_count": (
+                    dated_event_count
+                ),
                 "missing_payment_date_count": (
                     total_event_count
+                    - dated_event_count
                 ),
                 "analysis_event_count": 0,
                 "covered_month_count": 0,

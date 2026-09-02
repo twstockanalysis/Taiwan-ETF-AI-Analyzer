@@ -222,6 +222,7 @@ def load_monthly_combination_data(
             base_etf_code,
             database_path,
             lookback_years,
+            analysis_date=as_of_date,
         )
         if base_etf is not None
         else None
@@ -243,6 +244,7 @@ def load_monthly_combination_data(
             assumption.etf_code,
             database_path,
             lookback_years,
+            analysis_date=as_of_date,
         )
         performance_rows = list_latest_etf_performance(
             assumption.etf_code,

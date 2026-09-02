@@ -143,6 +143,12 @@ need separate data projections. The scheduled event must remain visible in the
 detail evidence, but it must not become paid historical cash flow for an
 evaluation dated 2026-09-01.
 
+V5-3A resolves this audited defect by applying the explicit evaluation date to
+monthly-income and component projections. The 00929 acceptance replay now ends
+paid history at 2026-08-14 while retaining the scheduled 2026-09-14 event in
+the dividend evidence APIs. The audit findings above remain the pre-fix
+snapshot rather than being rewritten as if the defect had not existed.
+
 ## Data blockers versus V5-4 algorithm blockers
 
 V5-3 data work should proceed in this order:

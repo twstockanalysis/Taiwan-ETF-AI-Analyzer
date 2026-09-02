@@ -123,6 +123,7 @@ def _base_payment_months(
     database_path: str | Path,
     lookback_years: int,
     minimum_stability_pct: Decimal,
+    analysis_date: date,
 ) -> list[int] | None:
     months: set[int] = set()
     for holding in holdings:
@@ -130,6 +131,7 @@ def _base_payment_months(
             holding["etf_code"],
             database_path,
             lookback_years,
+            analysis_date=analysis_date,
         )
         holding_months = stable_payment_months(
             monthly,
@@ -286,6 +288,7 @@ def analyze_candidate_holding(
         normalized_code,
         database_path,
         conditions.history_years,
+        analysis_date=analysis_date,
     )
     candidate_input = build_candidate_input(
         etf=candidate_etf,
@@ -311,6 +314,7 @@ def analyze_candidate_holding(
                 minimum_stability_pct=(
                     request.rules.min_distribution_stability_pct
                 ),
+                analysis_date=analysis_date,
             ),
             candidates=[candidate_input],
             max_complementary_etfs=1,
@@ -353,6 +357,7 @@ def analyze_candidate_holding(
             actual_76w_summary=build_actual_76w_summary(
                 normalized_code,
                 database_path,
+                analysis_date=analysis_date,
             ),
         ),
         unavailable_fields=unavailable_fields,

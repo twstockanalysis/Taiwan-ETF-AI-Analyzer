@@ -224,9 +224,9 @@ class V5FullDatabaseAuditTests(unittest.TestCase):
             connection.close()
         candidate = SimpleNamespace(
             etf_code="00929",
-            eligible_for_addition=False,
-            reasons=[SimpleNamespace(code="FUTURE_DIVIDEND_DATA")],
-            latest_payment_date=date(2026, 9, 14),
+            eligible_for_addition=True,
+            reasons=[],
+            latest_payment_date=date(2026, 8, 14),
         )
         index = SimpleNamespace(
             response=SimpleNamespace(candidates=[candidate])
@@ -251,7 +251,11 @@ class V5FullDatabaseAuditTests(unittest.TestCase):
             evidence["is_active_field_semantics"],
             "ACTIVELY_MANAGED_ETF_NOT_LISTING_STATUS",
         )
-        self.assertIn("FUTURE_DIVIDEND_DATA", evidence["reason_codes"])
+        self.assertEqual(
+            evidence["latest_payment_date_used_by_current_index"],
+            "2026-08-14",
+        )
+        self.assertNotIn("FUTURE_DIVIDEND_DATA", evidence["reason_codes"])
 
 
 if __name__ == "__main__":

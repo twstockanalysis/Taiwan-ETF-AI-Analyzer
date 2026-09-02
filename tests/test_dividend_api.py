@@ -313,6 +313,22 @@ class TestDividendAPI(
             [],
         )
 
+    def test_announced_future_payment_remains_visible(self) -> None:
+        """計算截止日不會從詳細配息證據刪除未來公告。"""
+
+        response = self.client.get(
+            "/api/v1/etfs/00918/dividends",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        items = response.json()["items"]
+        scheduled = next(
+            item
+            for item in items
+            if item["source_event_id"] == "official:00918:2026-09"
+        )
+        self.assertEqual(scheduled["payment_date"], "2026-10-15")
+
     def test_missing_etf_returns_404(
         self,
     ) -> None:

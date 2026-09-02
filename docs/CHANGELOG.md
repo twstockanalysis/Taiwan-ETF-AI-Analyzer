@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-02 - V5-3A paid-dividend analysis cutoff
+
+- Separated future scheduled dividend evidence from paid historical cash-flow
+  projections by applying the explicit analysis date to all calculation and
+  eligibility callers.
+- Applied the same paid-date boundary to ACTUAL/eFortune component selection
+  without relabeling either source basis or removing announced events.
+- Added deterministic 00929 acceptance coverage for its July and August paid
+  events and September scheduled payment, while preserving passive-management
+  semantics and backward-compatible no-cutoff repository behavior.
+
 ## 2026-09-02 - SEC-3B Caddy gRPC dependency remediation
 
 - Updated the Caddy build's explicit gRPC pin from `v1.82.1` to the fixed
