@@ -13,7 +13,6 @@ from backend.app.models.integer_allocation import (
     IntegerAllocationResponse,
 )
 from backend.app.services.allocation_results import build_allocation_results
-from backend.app.services.constituent_overlap import GatedConstituentOverlap
 
 
 _SNAPSHOT = "sha256:" + "a" * 64
@@ -71,16 +70,6 @@ def allocation_result(code: str) -> IntegerAllocationResponse:
     )
 
 
-def candidate(code: str, total_return: str):
-    return SimpleNamespace(
-        quality_score=Decimal("80"),
-        public_item=SimpleNamespace(
-            etf_code=code,
-            estimated_after_tax_total_return_pct=Decimal(total_return),
-        ),
-    )
-
-
 class TestAllocationResults(unittest.TestCase):
     def setUp(self) -> None:
         self.request = AllocationResultsRequest(
@@ -90,36 +79,20 @@ class TestAllocationResults(unittest.TestCase):
             history_years=3,
             cash_deduction_rate_pct=0,
         )
-        self.candidates = (
-            candidate("0050", "12"),
-            candidate("0056", "8"),
-            candidate("00878", "6"),
-        )
         self.built_index = SimpleNamespace(
             response=SimpleNamespace(snapshot_id=_SNAPSHOT, candidates=[]),
-            ranked_eligible_candidates=self.candidates,
+            ranked_eligible_candidates=(),
         )
 
-    @patch("backend.app.services.allocation_results._pair_overlap_averages")
     @patch("backend.app.services.allocation_results.build_integer_allocation")
     @patch("backend.app.services.allocation_results.build_market_eligibility_index")
-    def test_returns_distinct_recommended_balanced_and_focused_plans(
+    def test_returns_primary_plan_without_preselecting_alternatives_by_score(
         self,
         build_index,
         build_integer,
-        pair_averages,
     ) -> None:
         build_index.return_value = self.built_index
-        pair_averages.return_value = {
-            "0050": Decimal("60"),
-            "0056": Decimal("20"),
-            "00878": Decimal("10"),
-        }
-        build_integer.side_effect = [
-            allocation_result("0050"),
-            allocation_result("00878"),
-            allocation_result("0056"),
-        ]
+        build_integer.return_value = allocation_result("0050")
 
         response = build_allocation_results(
             self.request,
@@ -127,26 +100,25 @@ class TestAllocationResults(unittest.TestCase):
             as_of_date=date(2026, 1, 1),
         )
 
-        self.assertEqual(
-            [plan.label for plan in response.plans],
-            ["推薦配置", "平衡配置", "集中配置"],
+        self.assertEqual([plan.label for plan in response.plans], ["推薦配置"])
+        self.assertEqual(build_integer.call_count, 1)
+        self.assertIn(
+            "POST_FEASIBILITY_ALTERNATIVE_SELECTION_DEFERRED",
+            {issue.code for issue in response.strategy_issues},
         )
         serialized = str(response.model_dump(mode="json"))
         self.assertNotIn("quality_score", serialized)
         self.assertNotIn("confidence", serialized)
 
-    @patch("backend.app.services.allocation_results._pair_overlap_averages")
     @patch("backend.app.services.allocation_results.build_integer_allocation")
     @patch("backend.app.services.allocation_results.build_market_eligibility_index")
-    def test_returns_fewer_plans_instead_of_fabricating_styles(
+    def test_returns_no_duplicate_alternative_without_primary_additions(
         self,
         build_index,
         build_integer,
-        pair_averages,
     ) -> None:
         build_index.return_value = self.built_index
-        pair_averages.return_value = {}
-        build_integer.return_value = allocation_result("0050")
+        build_integer.return_value = allocation_result("")
 
         response = build_allocation_results(
             self.request,
@@ -156,43 +128,7 @@ class TestAllocationResults(unittest.TestCase):
 
         self.assertEqual(len(response.plans), 1)
         self.assertIn(
-            "ALTERNATIVE_OVERLAP_DATA_UNAVAILABLE",
-            {issue.code for issue in response.strategy_issues},
-        )
-
-    @patch("backend.app.services.allocation_results.build_integer_allocation")
-    @patch("backend.app.services.allocation_results.build_market_eligibility_index")
-    @patch("backend.app.services.allocation_results.calculate_gated_pair_overlap")
-    def test_formal_zero_pair_overlap_remains_available_to_strategy_selection(
-        self,
-        pair_overlap,
-        build_index,
-        build_integer,
-    ) -> None:
-        build_index.return_value = self.built_index
-        pair_overlap.return_value = GatedConstituentOverlap(
-            decision="READY",
-            overlap_pct=Decimal("0.000000"),
-            reasons=(),
-            snapshot_dates=(date(2026, 1, 1),),
-            method="SUM_MIN_DISCLOSED_WEIGHTS_V1",
-        )
-        build_integer.side_effect = [
-            allocation_result("0050"),
-            allocation_result("00878"),
-            allocation_result("0056"),
-        ]
-
-        response = build_allocation_results(
-            self.request,
-            Path("unused.db"),
-            as_of_date=date(2026, 1, 1),
-        )
-
-        self.assertEqual(len(response.plans), 3)
-        self.assertEqual(pair_overlap.call_count, 3)
-        self.assertNotIn(
-            "ALTERNATIVE_OVERLAP_DATA_UNAVAILABLE",
+            "ALTERNATIVE_UNAVAILABLE_WITHOUT_PRIMARY_ALLOCATION",
             {issue.code for issue in response.strategy_issues},
         )
 

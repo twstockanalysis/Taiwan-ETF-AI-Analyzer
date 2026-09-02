@@ -80,7 +80,7 @@ class TestIntegerAllocation(unittest.TestCase):
         values.update(updates)
         return IntegerAllocationRequest(**values)
 
-    def test_returns_whole_shares_and_enforces_twenty_percent_limit(self) -> None:
+    def test_returns_capital_efficient_complete_whole_share_portfolio(self) -> None:
         self._insert_ready_etfs(5)
 
         response = build_integer_allocation(
@@ -89,12 +89,16 @@ class TestIntegerAllocation(unittest.TestCase):
 
         self.assertEqual(response.status, "TARGET_MET")
         self.assertEqual(response.optimality, "BOUNDED_BEST_EFFORT")
-        self.assertEqual(len(response.additions), 5)
+        self.assertEqual(len(response.additions), 1)
         self.assertTrue(all(item.additional_shares > 0 for item in response.additions))
-        self.assertTrue(
-            all(item.allocation_pct <= Decimal("20") for item in response.resulting_holdings)
-        )
+        self.assertEqual(response.total_required_additional_capital, Decimal("2000.00"))
+        self.assertEqual(response.resulting_holdings[0].allocation_pct, Decimal("100.00"))
         self.assertEqual(response.monthly_results[0].shortfall, Decimal("0.00"))
+        self.assertGreater(response.search_explored_states, 0)
+        self.assertEqual(
+            response.search_truncated,
+            "V5_4_BOUNDED_SEARCH" in {issue.code for issue in response.issues},
+        )
 
     def test_zero_target_is_proved_without_additions(self) -> None:
         self._insert_ready_etfs(1)
@@ -110,16 +114,16 @@ class TestIntegerAllocation(unittest.TestCase):
         self.assertEqual(response.additions, [])
         self.assertEqual(response.total_required_additional_capital, Decimal("0"))
 
-    def test_fails_closed_when_concentration_cannot_be_satisfied(self) -> None:
+    def test_does_not_add_capital_only_to_repair_legacy_concentration(self) -> None:
         self._insert_ready_etfs(4)
 
         response = build_integer_allocation(
             self._request(), self.database_path, as_of_date=date(2026, 1, 1)
         )
 
-        self.assertEqual(response.status, "NO_ELIGIBLE_ALLOCATION")
-        self.assertEqual(response.optimality, "NOT_APPLICABLE")
-        self.assertIn(
+        self.assertEqual(response.status, "TARGET_MET")
+        self.assertEqual(len(response.additions), 1)
+        self.assertNotIn(
             "CONCENTRATION_CONSTRAINT_INFEASIBLE",
             {issue.code for issue in response.issues},
         )
