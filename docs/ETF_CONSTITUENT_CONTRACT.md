@@ -51,6 +51,14 @@ request, uses the official PCF trading date, and rejects stock-weight coverage
 below 90%. Futures, bonds and nested ETF positions are not mixed into equity
 constituent overlap.
 
+The shared HTML parser also defaults to 90%. Fubon's official fund-asset page
+is the bounded exception: stock weight down to the calculation gate's 85% may
+be accepted only when the same official response contains a separate non-stock
+asset table. This preserves disclosed stock weight without normalizing it.
+First's adapter ignores formally zero stock rows only after retaining their
+zero semantics and still requires all positive positions to reconcile exactly
+to the separately disclosed official stock-asset total.
+
 Twenty issuers now have production adapters. Cathay and BlackRock keep their
 verified disclosure status but remain fail-closed because the tested official
 automation paths do not currently return a reproducible usable response. JKO

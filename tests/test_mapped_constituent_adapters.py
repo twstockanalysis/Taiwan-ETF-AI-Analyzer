@@ -312,6 +312,27 @@ class TestMappedConstituentAdapters(unittest.TestCase):
                 source_url="https://example.test", fetched_at=FETCHED_AT,
             )
 
+    def test_first_ignores_formal_zero_position_before_reconciliation(self):
+        rows = [
+            {"fundid": "D90", "sdate": "2026-09-01", "group": "1",
+             "A": "2330", "B": "台積電", "C": "60"},
+            {"fundid": "D90", "sdate": "2026-09-01", "group": "1",
+             "A": "2454", "B": "聯發科", "C": "37.19"},
+            {"fundid": "D90", "sdate": "2026-09-01", "group": "1",
+             "A": "6452", "B": "康友-KY", "C": "0.00"},
+            {"fundid": "D90", "sdate": "2026-09-01", "group": "5",
+             "A": "股票", "B": "97.19%", "C": "1"},
+        ]
+        result = parse_first_constituent_payload(
+            {"d": json.dumps(rows, ensure_ascii=False)},
+            etf_code="00728", fund_id="D90",
+            source_url="https://example.test", fetched_at=FETCHED_AT,
+        )
+        self.assertEqual(len(result.positions), 2)
+        self.assertEqual(
+            str(sum(item.weight_pct for item in result.positions)), "97.19"
+        )
+
     def test_kgi_catalog_detail_mapping_and_holdings(self):
         catalog = (
             '<a href="/Fund/Detail?fundID=J014">凱基ESG BBB債15+</a>'

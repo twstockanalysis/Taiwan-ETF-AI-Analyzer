@@ -1,5 +1,6 @@
 """V2-10 成分股批次匯入與品質門檻測試。"""
 
+import json
 import tempfile
 import unittest
 from datetime import date, datetime, timezone
@@ -158,6 +159,74 @@ class ConstituentBatchTestCase(unittest.TestCase):
         self.assertEqual(result["failed_count"], 0)
         self.assertEqual(result["quality"]["decision"], "READY")
         self.assertEqual(result["database"], "constituents.db")
+
+    def test_checkpoint_resume_retries_only_failed_codes(self):
+        self.insert_etfs(
+            [("0050", "元大台灣50", 0), ("00918", "大華優利高填息30", 0)]
+        )
+        checkpoint_path = Path(self.directory.name) / "constituents-checkpoint.json"
+        first_calls = []
+
+        def first_importer(issuer_key, etf_code, database_path):
+            first_calls.append(etf_code)
+            if etf_code == "00918":
+                raise ConnectionError("x" * 2000)
+            snapshot = save_constituent_snapshot(
+                self.payload(etf_code), database_path
+            )
+            return OfficialConstituentImportResult(snapshot, "IMPORTED")
+
+        first = run_constituent_batch_pipeline(
+            self.database_path,
+            evaluated_on=date(2026, 8, 14),
+            checkpoint_path=checkpoint_path,
+            importer=first_importer,
+        )
+        self.assertEqual(first_calls, ["0050", "00918"])
+        self.assertEqual(first["attempted_count"], 2)
+        self.assertEqual(first["failed_count"], 1)
+        checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+        failed = next(
+            row for row in checkpoint["results"] if row["etf_code"] == "00918"
+        )
+        self.assertEqual(len(failed["error"]), 1000)
+
+        resumed_calls = []
+
+        def resumed_importer(issuer_key, etf_code, database_path):
+            resumed_calls.append(etf_code)
+            snapshot = save_constituent_snapshot(
+                self.payload(etf_code), database_path
+            )
+            return OfficialConstituentImportResult(snapshot, "IMPORTED")
+
+        resumed = run_constituent_batch_pipeline(
+            self.database_path,
+            evaluated_on=date(2026, 8, 14),
+            checkpoint_path=checkpoint_path,
+            resume=True,
+            importer=resumed_importer,
+        )
+        self.assertEqual(resumed_calls, ["00918"])
+        self.assertEqual(resumed["attempted_count"], 1)
+        self.assertEqual(resumed["skipped_completed_count"], 1)
+        self.assertEqual(resumed["imported_count"], 1)
+        self.assertEqual(resumed["failed_count"], 0)
+        self.assertEqual(resumed["quality"]["decision"], "READY")
+
+    def test_resume_requires_matching_checkpoint_database(self):
+        checkpoint_path = Path(self.directory.name) / "constituents-checkpoint.json"
+        checkpoint_path.write_text(
+            '{"schema_version": 1, "database": "other.db", "results": []}',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "目標資料庫不符"):
+            run_constituent_batch_pipeline(
+                self.database_path,
+                checkpoint_path=checkpoint_path,
+                resume=True,
+                importer=lambda *args: None,
+            )
 
 
 if __name__ == "__main__":

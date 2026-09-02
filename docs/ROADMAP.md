@@ -1436,10 +1436,26 @@ Audit evidence started:
   `as_of_date` projection.
 - Evidence: `docs/V5_3_FULL_DATABASE_AUDIT.md`
 
-The Issue #90 audit pass is complete. It preserves 263 ETFs by 18 fields and the
-complete 263-candidate evidence for each of eight planner requests. Its snapshot
-exposed an allocator exception for representative holding requests and cases
-with no eligible allocation.
+The Issue #90 audit pass is complete. Its snapshot preserves 263 ETFs by 18
+fields and the complete 263-candidate evidence for each of eight planner
+requests. At that snapshot, representative normal holding requests still
+raised an allocator error or returned no eligible allocation.
+
+Current constituent recovery evidence:
+
+- Added atomic checkpoint/resume so completed official imports are not fetched
+  again when a full-market batch is resumed.
+- Recovered eight of thirteen measured automated-source failures without
+  lowering the shared completeness threshold.
+- Improved the isolated calculation-quality candidate from 116/157 ETFs and
+  18/21 issuers to 129/157 ETFs and 19/21 issuers. ETF coverage remains
+  `NO_GO`; issuer coverage now passes 90%.
+- Kept Cathay, BlackRock, nested-ETF portfolios, unverified currency share
+  classes and unreconciled low-weight disclosures unavailable.
+- Confirmed with the full planner matrix that data recovery removes the 0050
+  and 00929 allocator crash when combined with this #94 correction, but
+  current plans still exceed five additions. Evidence:
+  `V5_3C_CONSTITUENT_RECOVERY.md`.
 
 V5-3B calculation prerequisite:
 
