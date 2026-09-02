@@ -1415,6 +1415,32 @@ recorded in `docs/V5_ALLOCATION_ASSESSMENT_DECISIONS.md`.
   not rating-score factors
 - Keep data-source changes separate from calculation-method changes
 
+Audit evidence started:
+
+- Rebuilt a no-overwrite 263-ETF candidate at
+  `sha256:6e245b0bd79d43a19bc38dee4e7f6e4672a5a2140e6ffd15087ea00f19349e95`
+  and verified SQLite integrity plus zero foreign-key violations.
+- Confirmed zero-holding requests can produce modeled results, but the
+  all-month TWD 3,000 result uses thirteen added ETFs and more than TWD 4.15
+  million, outside the approved V5 result direction.
+- Confirmed every audited existing-holding request has zero eligible additions
+  because 198 otherwise supported candidates lack portfolio-overlap evidence.
+- Imported official constituent snapshots for 121 ETFs and 9,049 positions;
+  the gate remains `NO_GO` at 116/157 ETFs and 18/21 issuers, with 23 sources
+  not automated and 13 automated retrievals failing.
+- Confirmed populated overlap data exposes a Decimal-zero defect that crashes
+  representative 0050 and 00929 holding requests when a valid pair has no
+  shared disclosed constituents.
+- Confirmed 00929 is a passive listed ETF and that its future scheduled
+  2026-09-14 payment is incorrectly entering the current historical
+  `as_of_date` projection.
+- Evidence: `docs/V5_3_FULL_DATABASE_AUDIT.md`
+
+The Issue #90 audit pass is complete. Its snapshot preserves 263 ETFs by 18
+fields and the complete 263-candidate evidence for each of eight planner
+requests. At that snapshot, representative normal holding requests still
+raised an allocator error or returned no eligible allocation.
+
 Current constituent recovery evidence:
 
 - Added atomic checkpoint/resume so completed official imports are not fetched
@@ -1427,8 +1453,12 @@ Current constituent recovery evidence:
 - Kept Cathay, BlackRock, nested-ETF portfolios, unverified currency share
   classes and unreconciled low-weight disclosures unavailable.
 - Confirmed with the full planner matrix that data recovery removes the 0050
-  and 00929 allocator crash when combined with #94, but current plans still
-  exceed five additions. Evidence: `V5_3C_CONSTITUENT_RECOVERY.md`.
+  and 00929 allocator crash when combined with the unmerged #94 correction, but
+  current plans still exceed five additions. Evidence:
+  `V5_3C_CONSTITUENT_RECOVERY.md`.
+
+The broader V5-3 phase remains in progress while the documented data coverage,
+dividend-history semantics and allocation-size limitations remain unresolved.
 
 ### V5-4 — Allocation-result algorithm
 
