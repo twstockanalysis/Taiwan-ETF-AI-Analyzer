@@ -149,6 +149,23 @@ The initial transaction-cost assumption is versioned and fixed at 0 TWD. The
 response states this limitation explicitly; broker-specific fees are not
 silently estimated.
 
+### V5-4 superseding allocation behavior
+
+V5-4 replaces the V3-3 quality-tiebreak and universal 20 percent concentration
+repair with a bounded complete-portfolio search. Feasibility is built from the
+entire gated candidate input before historical quality, risk, concentration or
+overlap evidence may compare plans. Each plan uses exact whole shares and at
+most five added ETFs. The deterministic objective order is selected-month
+shortfall, additional capital, avoidable overshoot, added-ETF count and stable
+ETF code.
+
+The 20 percent value remains available as a backward-compatible comparison
+threshold but is not a feasibility constraint; responses explicitly report
+`concentration_limit_enforced=false`. This prevents the engine from adding
+capital solely to dilute a completed cash-flow plan. Detailed methodology,
+budget-mode boundaries and search limits are recorded in
+`V5_4_ALLOCATION_ALGORITHM.md`.
+
 ## Required response
 
 The public result includes:

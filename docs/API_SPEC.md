@@ -59,6 +59,12 @@ remain `null`; the API does not substitute the current date.
 
 ## Public cash-flow planning baseline
 
+V5-4 allocation-result plans preserve every submitted existing ETF and may add
+at most five ETF codes per plan. Complete, materially distinct results use the
+`資金精簡方案`, `穩定均衡方案` and `分散防護方案` labels. The planning grade is a
+post-feasibility assessment boundary; no public grade is emitted until its
+formula and thresholds are explicitly accepted and replay-tested.
+
 ```http
 POST /api/v1/allocation-plans/baseline
 ```
@@ -128,11 +134,21 @@ POST /api/v1/allocation-plans/long-term-scenarios
 POST /api/v1/allocation-plans/portfolio-projections
 ```
 
-The V3-4 allocation endpoint returns one to three materially different
+The allocation endpoint returns one to three materially different
 `RECOMMENDED`, `BALANCED` and `FOCUSED` whole-share configurations. Every plan
 includes the required additional capital, selected-month cash and shortfall,
 resulting holdings, assumptions and risks. It returns fewer plans rather than
 fabricating duplicate alternatives.
+
+The nested integer result identifies methodology
+`BOUNDED_COMPLETE_PORTFOLIO_V5_4`. Cash-target feasibility is searched before
+quality or risk evidence, uses at most five added ETF codes and reports
+`BOUNDED_BEST_EFFORT` whenever non-zero shares are required. Its assumptions
+retain the historical concentration comparison value while explicitly setting
+`concentration_limit_enforced=false`; the solver does not add capital merely to
+force every position below that value. Search pruning is disclosed through the
+`search_explored_states`, `search_truncated` and `V5_4_BOUNDED_SEARCH` evidence
+and is never presented as a global minimum.
 
 Each added ETF carries the same public-safe `historical_quality_grade`. This
 grade does not change the integer solution and remains distinct from the
