@@ -61,6 +61,7 @@ ETF_ISSUER_OVERRIDES: dict[str, str] = {
     # TWSE short name omits the brand; the official full fund name is Fubon.
     "00733": "fubon",
 }
+MAX_CHECKPOINT_ERROR_CHARS = 1000
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +82,63 @@ class ConstituentBatchItemResult:
     disclosed_weight_pct: str | None = None
     constituent_count: int | None = None
     error: str | None = None
+
+
+def _write_checkpoint(
+    checkpoint_path: str | Path,
+    database_path: str | Path,
+    results: dict[str, ConstituentBatchItemResult],
+) -> None:
+    target = Path(checkpoint_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for code in sorted(results):
+        row = asdict(results[code])
+        if row["error"] is not None:
+            row["error"] = row["error"][:MAX_CHECKPOINT_ERROR_CHARS]
+        rows.append(row)
+    payload = {
+        "schema_version": 1,
+        "database": Path(database_path).name,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "results": rows,
+    }
+    temporary = target.with_name(f"{target.name}.tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(target)
+
+
+def _load_checkpoint(
+    checkpoint_path: str | Path,
+    database_path: str | Path,
+) -> dict[str, ConstituentBatchItemResult]:
+    target = Path(checkpoint_path)
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"成分股 checkpoint 無法讀取：{target}") from error
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise ValueError("成分股 checkpoint schema_version 不支援")
+    if payload.get("database") != Path(database_path).name:
+        raise ValueError("成分股 checkpoint 與目標資料庫不符")
+    rows = payload.get("results")
+    if not isinstance(rows, list):
+        raise ValueError("成分股 checkpoint 缺少 results")
+    results: dict[str, ConstituentBatchItemResult] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("成分股 checkpoint 包含無效結果")
+        try:
+            result = ConstituentBatchItemResult(**row)
+        except TypeError as error:
+            raise ValueError("成分股 checkpoint 結果欄位不正確") from error
+        if result.etf_code in results:
+            raise ValueError("成分股 checkpoint 包含重複 ETF")
+        results[result.etf_code] = result
+    return results
 
 
 def resolve_constituent_issuer(
@@ -151,6 +209,8 @@ def run_constituent_batch_pipeline(
     etf_codes: set[str] | None = None,
     evaluated_on: date | None = None,
     threshold: ConstituentQualityThreshold | None = None,
+    checkpoint_path: str | Path | None = None,
+    resume: bool = False,
     importer: Callable[[str, str, str | Path], OfficialConstituentImportResult]
     = import_official_constituents_with_status,
 ) -> dict:
@@ -164,31 +224,54 @@ def run_constituent_batch_pipeline(
         if missing_codes:
             raise ValueError(f"ETF 主檔找不到：{', '.join(missing_codes)}")
 
+    if resume and checkpoint_path is None:
+        raise ValueError("resume 需要 checkpoint_path")
+    checkpoint_results = (
+        _load_checkpoint(checkpoint_path, target_path)
+        if resume and checkpoint_path is not None
+        else {}
+    )
+    if checkpoint_path is not None and not resume:
+        _write_checkpoint(checkpoint_path, target_path, {})
     results: list[ConstituentBatchItemResult] = []
+    attempted_results = dict(checkpoint_results) if resume else {}
     eligible = [item for item in plan if item.status == "ELIGIBLE_AUTOMATED"]
     for item in eligible:
+        previous = checkpoint_results.get(item.etf_code)
+        if previous is not None and previous.outcome in {"IMPORTED", "UNCHANGED"}:
+            results.append(
+                ConstituentBatchItemResult(
+                    item.etf_code,
+                    item.issuer_key or "",
+                    "SKIPPED_COMPLETED",
+                    previous.as_of_date,
+                    previous.disclosed_weight_pct,
+                    previous.constituent_count,
+                )
+            )
+            continue
         try:
             imported = importer(item.issuer_key or "", item.etf_code, target_path)
             snapshot = imported.snapshot
-            results.append(
-                ConstituentBatchItemResult(
-                    item.etf_code,
-                    item.issuer_key or "",
-                    imported.outcome,
-                    snapshot.as_of_date.isoformat(),
-                    str(snapshot.total_weight_pct),
-                    snapshot.constituent_count,
-                )
+            result = ConstituentBatchItemResult(
+                item.etf_code,
+                item.issuer_key or "",
+                imported.outcome,
+                snapshot.as_of_date.isoformat(),
+                str(snapshot.total_weight_pct),
+                snapshot.constituent_count,
             )
         except Exception as error:
-            results.append(
-                ConstituentBatchItemResult(
-                    item.etf_code,
-                    item.issuer_key or "",
-                    "FAILED",
-                    error=f"{type(error).__name__}: {error}",
-                )
+            result = ConstituentBatchItemResult(
+                item.etf_code,
+                item.issuer_key or "",
+                "FAILED",
+                error=f"{type(error).__name__}: {error}",
             )
+        results.append(result)
+        attempted_results[item.etf_code] = result
+        if checkpoint_path is not None:
+            _write_checkpoint(checkpoint_path, target_path, attempted_results)
 
     quality_targets = [
         {"etf_code": item.etf_code, "issuer_key": item.issuer_key}
@@ -223,6 +306,12 @@ def run_constituent_batch_pipeline(
         "database": Path(target_path).name,
         "plan_count": len(plan),
         "eligible_automated_count": len(eligible),
+        "attempted_count": sum(
+            item.outcome != "SKIPPED_COMPLETED" for item in results
+        ),
+        "skipped_completed_count": sum(
+            item.outcome == "SKIPPED_COMPLETED" for item in results
+        ),
         "imported_count": sum(item.outcome == "IMPORTED" for item in results),
         "unchanged_count": sum(item.outcome == "UNCHANGED" for item in results),
         "failed_count": sum(item.outcome == "FAILED" for item in results),
@@ -239,6 +328,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--database", type=Path, default=DATABASE_PATH)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--etf-code", action="append", dest="etf_codes")
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument("--max-age-days", type=int, default=7)
@@ -252,9 +343,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not args.allow_network:
         parser.error("official-source batch retrieval requires --allow-network")
+    if args.resume and args.checkpoint is None:
+        parser.error("--resume requires --checkpoint")
     result = run_constituent_batch_pipeline(
         args.database,
         etf_codes=set(args.etf_codes or ()),
+        checkpoint_path=args.checkpoint,
+        resume=args.resume,
         threshold=ConstituentQualityThreshold(
             max_age_days=args.max_age_days,
             minimum_etf_coverage_pct=args.minimum_etf_coverage_pct,

@@ -9,6 +9,22 @@
   existing edge hardening without adding a scanner exception.
 - Updated deterministic deployment-contract and SEC-3 dependency evidence.
 
+## 2026-09-02 — V5-3C constituent recovery
+
+- Added atomic official-constituent checkpoint and resume behavior that skips
+  completed imports and retries only failed ETF codes.
+- Recovered eight of thirteen measured automated-source failures while keeping
+  the shared completeness gate and immutable snapshot rules unchanged.
+- Added a Fubon-specific 85% lower bound only when its complete official asset
+  page also discloses a separate non-stock table, and reconciled First formal-
+  zero stock rows to the official stock-asset total.
+- Improved the isolated full-market gate to 129/157 ETFs and 19/21 issuers,
+  while retaining an honest `NO_GO` ETF-coverage decision and explicit
+  unavailable reasons for the remaining sources.
+- Replayed all eight V5 planner cases against the recovered candidate and the
+  #94 zero-overlap correction; all cases completed, but normal plans still
+  exceed the approved maximum of five additions.
+
 ## 2026-09-01 - V5-3 full-database readiness audit
 
 - Added a reproducible full-database audit covering field availability, all
