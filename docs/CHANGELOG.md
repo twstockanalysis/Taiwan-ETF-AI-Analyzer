@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-09-01 - V5-3 full-database readiness audit
+
+- Added a reproducible full-database audit covering field availability, all
+  planner exclusion codes, zero-to-N holdings, all-month targets, formal zero,
+  missing-data cases and the 00929 paid-versus-future evidence boundary.
+- Recorded that zero-holding calculations return results but existing-holding
+  cases remain blocked by missing overlap data, while current target-met plans
+  exceed the approved five-added-ETF V5 direction.
+- Recorded the isolated 121-ETF official constituent import, the remaining
+  116/157 quality coverage, and the zero-shared-constituent Decimal exception
+  exposed by representative existing-holding replays.
+- Made the audit matrix preserve allocator exceptions as explicit `ERROR`
+  evidence instead of aborting the remaining cases.
+- Expanded the consolidated audit to retain all 263 per-ETF field records and
+  all 263 market candidates for each planner case, while keeping the broader
+  V5-3 phase explicitly incomplete until normal holding requests are usable.
+
 ## 2026-08-27 — V4-7 page experience review started
 
 - Added the owner-led V4 page acceptance record and fixed review order.
