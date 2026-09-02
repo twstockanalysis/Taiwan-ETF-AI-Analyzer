@@ -29,6 +29,7 @@ class CompletePortfolioPlan:
     monthly_added_cash: tuple[tuple[int, Decimal], ...]
     monthly_shortfall: tuple[tuple[int, Decimal], ...]
     monthly_overshoot: tuple[tuple[int, Decimal], ...]
+    max_position_pct: Decimal
 
     @property
     def added_etf_count(self) -> int:
@@ -128,6 +129,8 @@ def _plan(
     months: tuple[int, ...],
     current_cash: Mapping[int, Decimal],
     target_cash: Mapping[int, Decimal],
+    current_value: Mapping[str, Decimal],
+    reference_prices: Mapping[str, Decimal],
 ) -> CompletePortfolioPlan:
     added = tuple(zip(months, state.monthly_added, strict=True))
     shortfall = []
@@ -137,12 +140,25 @@ def _plan(
         target = target_cash[month]
         shortfall.append((month, max(target - modeled, _ZERO)))
         overshoot.append((month, max(modeled - target, _ZERO)))
+    resulting_values = dict(current_value)
+    for code, quantity in state.shares:
+        resulting_values[code] = (
+            resulting_values.get(code, _ZERO)
+            + reference_prices[code] * quantity
+        )
+    total_value = sum(resulting_values.values(), _ZERO)
+    max_position_pct = (
+        max(resulting_values.values(), default=_ZERO) / total_value * Decimal("100")
+        if total_value > 0
+        else _ZERO
+    )
     return CompletePortfolioPlan(
         shares=state.shares,
         additional_capital=state.capital,
         monthly_added_cash=added,
         monthly_shortfall=tuple(shortfall),
         monthly_overshoot=tuple(overshoot),
+        max_position_pct=max_position_pct,
     )
 
 
@@ -152,6 +168,7 @@ def _plan_order(plan: CompletePortfolioPlan) -> tuple[object, ...]:
         plan.additional_capital,
         plan.total_overshoot,
         plan.added_etf_count,
+        plan.max_position_pct,
         plan.shares,
     )
 
@@ -164,12 +181,14 @@ def _dominates(
         left.total_shortfall,
         left.additional_capital,
         left.total_overshoot,
+        left.max_position_pct,
         Decimal(left.added_etf_count),
     )
     right_values = (
         right.total_shortfall,
         right.additional_capital,
         right.total_overshoot,
+        right.max_position_pct,
         Decimal(right.added_etf_count),
     )
     return all(a <= b for a, b in zip(left_values, right_values, strict=True)) and any(
@@ -198,6 +217,7 @@ def solve_cash_target_frontier(
     selected_months: Sequence[int],
     target_cash_by_month: Mapping[int, Decimal],
     current_cash_by_month: Mapping[int, Decimal] | None = None,
+    current_value_by_code: Mapping[str, Decimal] | None = None,
     max_added_etfs: int = 5,
     beam_width: int = 64,
     max_expansions: int = 20_000,
@@ -212,6 +232,8 @@ def solve_cash_target_frontier(
     ordered = _validated_candidates(candidates)
     months = _validated_months(selected_months)
     current = dict(current_cash_by_month or {})
+    current_value = dict(current_value_by_code or {})
+    prices = {item.etf_code: item.reference_price for item in ordered}
     if max_added_etfs < 1 or max_added_etfs > 5:
         raise ValueError("max_added_etfs must be between one and five")
     if beam_width < 1 or max_expansions < 1:
@@ -222,13 +244,17 @@ def solve_cash_target_frontier(
         raise ValueError("cash targets cannot be negative")
     if any(current.get(month, _ZERO) < 0 for month in months):
         raise ValueError("current cash cannot be negative")
+    if any(not code or value <= 0 for code, value in current_value.items()):
+        raise ValueError("current holding values require codes and positive values")
 
     initial = _State(
         shares=(),
         capital=_ZERO,
         monthly_added=tuple(_ZERO for _ in months),
     )
-    initial_plan = _plan(initial, months, current, target_cash_by_month)
+    initial_plan = _plan(
+        initial, months, current, target_cash_by_month, current_value, prices
+    )
     if initial_plan.complete:
         return CompletePortfolioSearch((initial_plan,), 1, False)
 
@@ -245,7 +271,9 @@ def solve_cash_target_frontier(
         next_states: list[_State] = []
         for state in active:
             state_map = dict(state.shares)
-            state_plan = _plan(state, months, current, target_cash_by_month)
+            state_plan = _plan(
+                state, months, current, target_cash_by_month, current_value, prices
+            )
             remaining = dict(state_plan.monthly_shortfall)
             for candidate in ordered:
                 is_new = candidate.etf_code not in state_map
@@ -259,6 +287,7 @@ def solve_cash_target_frontier(
                     covering = _ceil_quantity(remaining[month] / per_share)
                     quantities.add(covering)
                     quantities.add(max(1, covering - 1))
+                    quantities.add(max(1, covering // 2))
                 for quantity in sorted(quantities):
                     if explored >= max_expansions:
                         truncated = True
@@ -286,7 +315,12 @@ def solve_cash_target_frontier(
                     )
                     explored += 1
                     candidate_plan = _plan(
-                        new_state, months, current, target_cash_by_month
+                        new_state,
+                        months,
+                        current,
+                        target_cash_by_month,
+                        current_value,
+                        prices,
                     )
                     if candidate_plan.complete:
                         feasible.append(candidate_plan)
@@ -309,7 +343,14 @@ def solve_cash_target_frontier(
             break
         next_states.sort(
             key=lambda state: _plan_order(
-                _plan(state, months, current, target_cash_by_month)
+                _plan(
+                    state,
+                    months,
+                    current,
+                    target_cash_by_month,
+                    current_value,
+                    prices,
+                )
             )
         )
         if len(next_states) > beam_width:

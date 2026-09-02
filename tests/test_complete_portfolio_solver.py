@@ -96,6 +96,25 @@ class TestCompletePortfolioSolver(unittest.TestCase):
         self.assertEqual(forward.frontier, reverse.frontier)
         self.assertEqual(forward.explored_states, reverse.explored_states)
 
+    def test_existing_value_is_included_in_every_plan_concentration(self) -> None:
+        search = solve_cash_target_frontier(
+            [
+                candidate("A", "10", {1: "5"}),
+                candidate("B", "10", {1: "5"}),
+            ],
+            selected_months=[1],
+            target_cash_by_month={1: Decimal("10")},
+            current_cash_by_month={1: Decimal("0")},
+            current_value_by_code={"HELD": Decimal("80")},
+            max_added_etfs=5,
+        )
+
+        self.assertTrue(search.frontier)
+        self.assertTrue(
+            all(plan.max_position_pct >= Decimal("80") / Decimal("100") * 100
+                for plan in search.frontier if plan.additional_capital == 20)
+        )
+
     def test_returns_explicit_partial_frontier_when_five_etfs_cannot_cover_six_months(
         self,
     ) -> None:

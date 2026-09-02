@@ -39,7 +39,7 @@ class TestAllocationResultsApi(unittest.TestCase):
         body = response.json()
         self.assertEqual(body["profile_scope"], "PUBLIC_STATELESS")
         self.assertFalse(body["request_persisted"])
-        self.assertEqual(body["plans"][0]["label"], "推薦配置")
+        self.assertEqual(body["plans"][0]["label"], "資金精簡方案")
         self.assertNotIn("quality_score", response.text)
 
 

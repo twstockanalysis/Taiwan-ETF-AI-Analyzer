@@ -676,7 +676,7 @@ def render_allocation_results(payload: dict[str, Any]) -> str:
     st.subheader("咪算出的配置")
     plans = payload["plans"]
     st.caption(
-        "推薦配置是系統依本次條件優先產生的結果；平衡與集中配置只有在資料支持且結果確實不同時才會出現。"
+        "資金精簡方案先降低新增資金；穩定均衡與分散防護方案只有在完整達標且配置確實不同時才會出現。"
     )
 
     preview_columns = st.columns(len(plans))

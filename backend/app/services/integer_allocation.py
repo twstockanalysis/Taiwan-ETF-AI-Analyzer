@@ -25,6 +25,7 @@ from backend.app.services.market_eligibility_index import (
 )
 from backend.app.services.complete_portfolio_solver import (
     CompletePortfolioCandidate,
+    CompletePortfolioPlan,
     solve_cash_target_frontier,
 )
 from backend.app.services.public_planner import analyze_public_planner_baseline
@@ -40,6 +41,43 @@ def _money(value: Decimal) -> Decimal:
 
 def _issue(code: str, message: str, field: str | None = None) -> PublicPlannerIssue:
     return PublicPlannerIssue(code=code, message=message, field=field)
+
+
+def _select_plan(
+    plans: tuple[CompletePortfolioPlan, ...],
+    objective: str,
+    current_cash: dict[int, Decimal],
+) -> CompletePortfolioPlan:
+    if objective == "MONTHLY_BALANCED":
+        def balanced_key(plan: CompletePortfolioPlan) -> tuple[object, ...]:
+            modeled = [
+                current_cash[month] + amount
+                for month, amount in plan.monthly_added_cash
+            ]
+            spread = max(modeled) - min(modeled)
+            return (
+                spread,
+                plan.total_overshoot,
+                plan.additional_capital,
+                plan.added_etf_count,
+                plan.shares,
+            )
+
+        return min(plans, key=balanced_key)
+    if objective == "DIVERSIFIED_PROTECTION":
+        return min(
+            plans,
+            key=lambda plan: (
+                plan.max_position_pct,
+                plan.additional_capital,
+                plan.total_overshoot,
+                plan.added_etf_count,
+                plan.shares,
+            ),
+        )
+    if objective != "CAPITAL_EFFICIENT":
+        raise ValueError("unknown V5-4 plan objective")
+    return plans[0]
 
 
 def _resulting_holdings(
@@ -108,6 +146,7 @@ def build_integer_allocation(
     as_of_date: date | None = None,
     preferred_candidate_order: tuple[str, ...] | None = None,
     preference_first: bool = False,
+    plan_objective: str = "CAPITAL_EFFICIENT",
 ) -> IntegerAllocationResponse:
     # V3 strategy preferences remain accepted for API compatibility. V5-4 no
     # longer lets a pre-ranked ETF list choose feasibility.
@@ -244,9 +283,14 @@ def build_integer_allocation(
         selected_months=selected,
         target_cash_by_month={month: target for month in selected},
         current_cash_by_month=current_cash,
+        current_value_by_code={
+            holding.etf_code: holding.current_value
+            for holding in baseline.holdings
+            if holding.current_value is not None
+        },
         max_added_etfs=5,
     )
-    selected_plan = search.frontier[0]
+    selected_plan = _select_plan(search.frontier, plan_objective, current_cash)
     selected_shares = dict(selected_plan.shares)
     added_cash = dict(selected_plan.monthly_added_cash)
     additions = []
@@ -256,10 +300,6 @@ def build_integer_allocation(
             continue
         candidate = candidates_by_code[code]
         price = prices[code]
-        for month in selected:
-            added_cash[month] += (
-                candidate.monthly_after_tax_cash_per_share[month - 1] * quantity
-            )
         supported = [
             month
             for month in selected

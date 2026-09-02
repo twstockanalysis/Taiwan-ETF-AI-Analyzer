@@ -24,12 +24,32 @@ included first. The solver then:
 1. keeps only candidates that already passed the existing internal gates;
 2. searches deterministic integer-share batches across the complete gated
    candidate input instead of preselecting by quality score;
-3. permits no more than five added ETF codes in one plan;
-4. first minimizes total selected-month shortfall;
-5. for complete plans, next minimizes additional capital, avoidable overshoot
+3. preserves every submitted existing ETF in every plan, even when that ETF is
+   not eligible for additional shares;
+4. permits no more than five **added** ETF codes in one plan; existing ETFs do
+   not consume this five-code allowance;
+5. first minimizes total selected-month shortfall;
+6. for complete plans, next minimizes additional capital, avoidable overshoot
    and added-ETF count;
-6. uses ETF code only as the final stable tie-breaker; and
-7. removes plans dominated on shortfall, capital, overshoot and complexity.
+7. uses ETF code only as the final stable tie-breaker; and
+8. removes plans dominated on shortfall, capital, overshoot, complexity and
+   resulting-position concentration.
+
+## Three post-feasibility plan views
+
+All three views are selected from complete whole-share plans produced from the
+same request. They do not pre-rank ETFs by historical quality:
+
+- `資金精簡方案` first minimizes additional capital, then avoidable overshoot
+  and the number of added ETFs;
+- `穩定均衡方案` first minimizes the cash-flow spread among the requested
+  months, then overshoot and additional capital;
+- `分散防護方案` first minimizes the largest resulting position after every
+  submitted holding and every added share are combined.
+
+Only materially different share combinations are returned. A second or third
+card is omitted when its selected combination duplicates an earlier card; the
+service records that limitation instead of manufacturing a cosmetic variant.
 
 The search is a deterministic bounded beam search. It expands exact whole-share
 batches around each remaining monthly constraint and records whether state or
@@ -79,8 +99,12 @@ ACTUAL composition, eFortune estimated fallback, official `76W`, estimated
 realized capital gain, formal zero and unavailable evidence as distinct states.
 
 Historical quality and risk evidence may compare already feasible frontier
-plans later. The public planning-grade formula, weights, thresholds and labels
-remain owner-deferred and are not implemented in this stage.
+plans later. The planning-grade boundary is fixed: it evaluates the completed
+plan against this request only after feasibility, and must not change the
+capital-efficient solution. The shared decision record intentionally did not
+define a formula, weights, thresholds or public A/B/C labels. Those values are
+therefore not invented in this change and require representative replay plus an
+explicit owner decision before they become a public contract.
 
 ## Reproducibility and limits
 

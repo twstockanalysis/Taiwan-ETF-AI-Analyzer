@@ -59,6 +59,12 @@ remain `null`; the API does not substitute the current date.
 
 ## Public cash-flow planning baseline
 
+V5-4 allocation-result plans preserve every submitted existing ETF and may add
+at most five ETF codes per plan. Complete, materially distinct results use the
+`資金精簡方案`, `穩定均衡方案` and `分散防護方案` labels. The planning grade is a
+post-feasibility assessment boundary; no public grade is emitted until its
+formula and thresholds are explicitly accepted and replay-tested.
+
 ```http
 POST /api/v1/allocation-plans/baseline
 ```

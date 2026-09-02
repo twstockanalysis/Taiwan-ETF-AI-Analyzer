@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-09-02 — V5-4 complete-plan views
+
+- Preserved every submitted existing ETF in each allocation result while
+  limiting only newly added ETF codes to five.
+- Added capital-efficient, monthly-balanced and diversified-protection
+  post-feasibility views, with duplicate plans omitted rather than fabricated.
+- Included existing position values in concentration comparisons and fixed a
+  duplicate addition of solver-produced monthly cash in the response builder.
+- Kept the MeowMeow planning-grade formula and public thresholds unimplemented
+  because the accepted decision record defines the concept but explicitly
+  defers those numeric choices to owner review of representative results.
+
 ## 2026-09-02 - V5-3A paid-dividend analysis cutoff
 
 - Separated future scheduled dividend evidence from paid historical cash-flow

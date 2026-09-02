@@ -67,6 +67,19 @@ def allocation_result(code: str) -> IntegerAllocationResponse:
                 "shortfall": 0,
             }
         ],
+        resulting_holdings=[
+            {
+                "etf_code": "HELD",
+                "existing_shares": 10,
+                "additional_shares": 0,
+                "resulting_shares": 10,
+                "reference_price": 10,
+                "reference_price_as_of": "2026-01-01",
+                "reference_price_source_id": "TEST",
+                "resulting_value": 100,
+                "allocation_pct": 100,
+            }
+        ],
     )
 
 
@@ -86,13 +99,17 @@ class TestAllocationResults(unittest.TestCase):
 
     @patch("backend.app.services.allocation_results.build_integer_allocation")
     @patch("backend.app.services.allocation_results.build_market_eligibility_index")
-    def test_returns_primary_plan_without_preselecting_alternatives_by_score(
+    def test_returns_capital_plan_without_preselecting_by_quality_score(
         self,
         build_index,
         build_integer,
     ) -> None:
         build_index.return_value = self.built_index
-        build_integer.return_value = allocation_result("0050")
+        build_integer.side_effect = [
+            allocation_result("0050"),
+            allocation_result("0060"),
+            allocation_result("0070"),
+        ]
 
         response = build_allocation_results(
             self.request,
@@ -100,10 +117,22 @@ class TestAllocationResults(unittest.TestCase):
             as_of_date=date(2026, 1, 1),
         )
 
-        self.assertEqual([plan.label for plan in response.plans], ["推薦配置"])
-        self.assertEqual(build_integer.call_count, 1)
-        self.assertIn(
-            "POST_FEASIBILITY_ALTERNATIVE_SELECTION_DEFERRED",
+        self.assertEqual(
+            [plan.label for plan in response.plans],
+            ["資金精簡方案", "穩定均衡方案", "分散防護方案"],
+        )
+        self.assertEqual(build_integer.call_count, 3)
+        self.assertTrue(
+            all(
+                any(
+                    holding.etf_code == "HELD" and holding.existing_shares == 10
+                    for holding in plan.result.resulting_holdings
+                )
+                for plan in response.plans
+            )
+        )
+        self.assertNotIn(
+            "MATERIALLY_DISTINCT_ALTERNATIVES_LIMITED",
             {issue.code for issue in response.strategy_issues},
         )
         serialized = str(response.model_dump(mode="json"))

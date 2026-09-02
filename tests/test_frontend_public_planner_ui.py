@@ -52,7 +52,7 @@ render_allocation_results(
         "plans": [
             {
                 "strategy": "RECOMMENDED",
-                "label": "推薦配置",
+                "label": "資金精簡方案",
                 "simple_explanation": "依現金流缺口與所需資金產生。",
                 "result": {
                     "status": "PARTIAL",
