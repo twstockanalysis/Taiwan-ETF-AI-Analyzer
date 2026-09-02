@@ -9,6 +9,14 @@
   existing edge hardening without adding a scanner exception.
 - Updated deterministic deployment-contract and SEC-3 dependency evidence.
 
+## 2026-09-02 - V5-3B zero shared constituent overlap
+
+- Fixed pairwise overlap calculation for valid constituent snapshots with no
+  shared disclosed constituents by preserving Decimal zero semantics.
+- Added deterministic overlap and allocation-strategy regression coverage.
+- Replayed representative 0050 and 00929 holding requests without the former
+  `quantize()` exception while retaining the remaining V5-3 limitations.
+
 ## 2026-09-02 — V5-3C constituent recovery
 
 - Added atomic official-constituent checkpoint and resume behavior that skips

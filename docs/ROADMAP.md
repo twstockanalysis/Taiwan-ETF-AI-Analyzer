@@ -1453,9 +1453,19 @@ Current constituent recovery evidence:
 - Kept Cathay, BlackRock, nested-ETF portfolios, unverified currency share
   classes and unreconciled low-weight disclosures unavailable.
 - Confirmed with the full planner matrix that data recovery removes the 0050
-  and 00929 allocator crash when combined with the unmerged #94 correction, but
+  and 00929 allocator crash when combined with this #94 correction, but
   current plans still exceed five additions. Evidence:
   `V5_3C_CONSTITUENT_RECOVERY.md`.
+
+V5-3B calculation prerequisite:
+
+- Treat an empty intersection between two valid, quality-gated constituent
+  snapshots as formal Decimal zero overlap while preserving missing evidence as
+  unavailable.
+- Confirmed isolated 0050 and 00929 holding replays no longer raise the
+  pairwise-overlap `quantize()` exception; 00929 still exceeds the approved
+  maximum-five-ETF direction and remains dependent on Issue #91 semantics.
+- Evidence: `docs/V5_3B_ZERO_OVERLAP_FIX.md`
 
 The broader V5-3 phase remains in progress while the documented data coverage,
 dividend-history semantics and allocation-size limitations remain unresolved.
