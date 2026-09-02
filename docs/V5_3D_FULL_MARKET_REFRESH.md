@@ -88,21 +88,41 @@ existing holding in the two-holding acceptance case.
 All eight cases completed without an exception and each records all 263 market
 candidates. The replay did not change the allocation objective or solver.
 
-| Case | State | Eligible | Plans | Aggregate added ETFs | Additional capital |
+| Case | State | Eligible | Plans | Primary added ETFs | Additional capital |
 | --- | --- | ---: | ---: | ---: | ---: |
-| zero holdings, quarterly TWD 100 | target met | 68 | 3 | 7 | 24,299.84 |
-| 0050 holding, quarterly TWD 100 | target met | 40 | 3 | 5 | 22,649.38 |
+| zero holdings, quarterly TWD 100 | target met | 68 | 3 | 2 | 4,661.54 |
+| 0050 holding, quarterly TWD 100 | target met | 40 | 3 | 1 | 4,675.23 |
 | 0050 and 00878 holdings, quarterly TWD 100 | no eligible allocation | 0 | 1 | 0 | 0 |
-| zero holdings, every month TWD 3,000 | target met | 68 | 3 | 13 | 839,577.78 |
+| zero holdings, every month TWD 3,000 | target met | 68 | 2 | 2 | 953,886.93 |
 | unsupported holding | unavailable | 0 | 1 | 0 | 0 |
 | formal zero target | target met | 68 | 1 | 0 | 0 |
-| 00929 holding, every month TWD 3,000 | target met | 52 | 3 | 12 | 772,705.73 |
+| 00929 holding, every month TWD 3,000 | target met | 52 | 3 | 2 | 1,453,124.25 |
 | holding with missing reference price | unavailable | 0 | 1 | 0 | 0 |
 
-`Aggregate added ETFs` is the audit's total across returned strategies; it must
-not be misread as the size of one result card. V5-4 owns per-plan maximum-five
-enforcement, non-dominated alternatives, whole-share optimization and personal
-planning grades.
+These values were replayed after merged PR #101. Every normal target-met
+primary plan now contains at most two added ETFs, so the maximum-five acceptance
+check passes. The every-month zero-holding case returns only two materially
+different plans and records that a third alternative is unavailable instead of
+duplicating a card. Whole-share quantities and the bounded-search warning are
+preserved.
+
+The 00929 existing-holding result exposes a separate V5-4 eligibility defect.
+00929 is eligible with zero holdings, but when 1,000 shares of 00929 are
+submitted the eligibility layer compares 00929 with itself, records 96.513%
+overlap and excludes any additional 00929 shares as
+`EXCESSIVE_HOLDING_OVERLAP`. The resulting capital-efficient plan therefore
+costs more than the zero-holding plan. Self-overlap must not be used as a hard
+reason to prohibit adding the same existing ETF; this belongs to V5-4 and is
+not corrected in the V5-3D data branch.
+
+The same replay also confirms the current historical-normalization assumption:
+cash in a calendar month is the sum of paid events in that month divided by the
+requested three-year window. For the submitted 1,000 shares of 00929, modeled
+monthly cash is approximately TWD 83.33 to TWD 210.00. This is internally
+consistent with the existing contract but is not the same as projecting the
+latest TWD 0.38 distribution as TWD 380 every future month. Whether the product
+needs a separately labeled recent-distribution scenario is an owner decision,
+not a missing-data correction.
 
 The 00929 reference check remains one deterministic boundary test, not a proxy
 for market coverage. At the fixed evaluation date it uses 37 paid events
@@ -123,8 +143,9 @@ data cohorts, in priority order:
 5. add fund size, expense ratio, distribution period and stock dividend only
    after each official source and field contract is approved.
 
-V5-4 separately owns solver behavior found by the replay. V4-8, deployment and
-SEC-4 remain paused and are not authorized by this evidence.
+V5-4 separately owns the self-overlap defect and any change to historical
+normalization or scenario selection. V4-8, deployment and SEC-4 remain paused
+and are not authorized by this evidence.
 
 ## Reproduction
 
