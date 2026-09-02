@@ -1,5 +1,6 @@
 """每月領息分布 Repository 測試。"""
 
+from datetime import date
 import tempfile
 import unittest
 from pathlib import Path
@@ -60,6 +61,12 @@ class TestMonthlyIncomeRepository(
                     (
                         "0050",
                         "元大台灣50",
+                        0,
+                        0,
+                    ),
+                    (
+                        "00929",
+                        "復華台灣科技優息",
                         0,
                         0,
                     ),
@@ -303,6 +310,69 @@ class TestMonthlyIncomeRepository(
                 for item in result["months"]
             )
         )
+
+    def test_analysis_date_excludes_announced_future_payment(
+        self,
+    ) -> None:
+        """00929 未來公告保留在資料庫，但不計入已付歷史。"""
+
+        connection = get_connection(self.database_path)
+        try:
+            connection.executemany(
+                """
+                INSERT INTO etf_dividend (
+                    etf_code,
+                    source_event_id,
+                    payment_date,
+                    amount_per_unit,
+                    currency,
+                    source_id
+                ) VALUES ('00929', ?, ?, 0.38, 'TWD', 'official');
+                """,
+                [
+                    ("paid-july", "2026-07-13"),
+                    ("paid-august", "2026-08-14"),
+                    ("announced-september", "2026-09-14"),
+                ],
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        paid_history = build_monthly_income_distribution(
+            "00929",
+            self.database_path,
+            analysis_date=date(2026, 8, 31),
+        )
+        stored_history = build_monthly_income_distribution(
+            "00929",
+            self.database_path,
+        )
+
+        assert paid_history is not None
+        assert stored_history is not None
+        self.assertEqual(
+            paid_history["as_of_date"],
+            date(2026, 8, 14),
+        )
+        self.assertEqual(paid_history["analysis_event_count"], 2)
+        self.assertEqual(paid_history["total_dividend_event_count"], 3)
+        self.assertEqual(paid_history["dated_dividend_event_count"], 3)
+        self.assertEqual(
+            stored_history["as_of_date"],
+            date(2026, 9, 14),
+        )
+
+        before_all_payments = build_monthly_income_distribution(
+            "00929",
+            self.database_path,
+            analysis_date=date(2026, 6, 30),
+        )
+        assert before_all_payments is not None
+        self.assertIsNone(before_all_payments["as_of_date"])
+        self.assertEqual(before_all_payments["analysis_event_count"], 0)
+        self.assertEqual(before_all_payments["dated_dividend_event_count"], 3)
+        self.assertEqual(before_all_payments["missing_payment_date_count"], 0)
 
     def test_mixed_currencies_do_not_sum_amounts(
         self,

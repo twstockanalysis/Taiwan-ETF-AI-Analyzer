@@ -207,7 +207,6 @@ def analyze_etf_target(
         )
 
     analysis_date = date.today()
-
     loaded_data = load_target_analysis_data(
         etf_code=normalized_code,
         database_path=database_path,
@@ -415,11 +414,12 @@ def analyze_tax_reinvestment_scenarios(
             detail=f"找不到 ETF：{normalized_code}",
         )
 
+    analysis_date = date.today()
     loaded_data = load_target_analysis_data(
         etf_code=normalized_code,
         database_path=database_path,
         history_years=request.history_years,
-        as_of_date=date.today(),
+        as_of_date=analysis_date,
     )
     monthly_income = loaded_data.monthly_income
     total_amount_per_unit = _to_decimal(
@@ -441,7 +441,10 @@ def analyze_tax_reinvestment_scenarios(
         normalized_code,
         database_path,
     )
-    selection = select_composite_component_mix(component_rows)
+    selection = select_composite_component_mix(
+        component_rows,
+        analysis_date=analysis_date,
+    )
     calculation_mix = selection.mix if selection is not None else None
     actual_mix = (
         calculation_mix

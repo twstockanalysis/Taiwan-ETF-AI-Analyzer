@@ -1,5 +1,6 @@
 """M10-4 ACTUAL 組成資料選擇測試。"""
 
+from datetime import date
 from decimal import Decimal
 import unittest
 
@@ -8,6 +9,7 @@ from backend.app.services.tax_reinvestment_data import (
     select_latest_complete_actual_mix,
 )
 from backend.app.services.dividend_component_data import (
+    select_composite_component_mix,
     select_composite_realized_gain_history,
 )
 
@@ -119,6 +121,35 @@ class TestTaxReinvestmentData(unittest.TestCase):
             [item.component_code for item in result.mix],
             ["EST_DIVIDEND", "EST_REALIZED_CAPITAL_GAIN"],
         )
+
+    def test_component_selection_excludes_future_payment(self) -> None:
+        rows = [
+            {
+                "dividend_id": 2,
+                "source_event_id": "announced-future",
+                "payment_date": "2026-09-14",
+                "component_basis": "ACTUAL",
+                "component_code": "54C",
+                "ratio_pct": 100,
+            },
+            {
+                "dividend_id": 1,
+                "source_event_id": "paid",
+                "payment_date": "2026-08-14",
+                "component_basis": "ACTUAL",
+                "component_code": "54C",
+                "ratio_pct": 100,
+            },
+        ]
+
+        selected = select_composite_component_mix(
+            rows,
+            analysis_date=date(2026, 8, 31),
+        )
+
+        self.assertIsNotNone(selected)
+        assert selected is not None
+        self.assertEqual(selected.source_event_id, "paid")
 
     def test_realized_gain_history_selects_each_event_without_mixing(self) -> None:
         """每次配息各自採完整 ACTUAL，缺少時才採完整預估組成。"""

@@ -145,6 +145,7 @@ def load_target_analysis_data(
             etf_code=etf_code,
             database_path=database_path,
             lookback_years=history_years,
+            analysis_date=as_of_date,
         )
     )
     dividends = dividend_repository.list_etf_dividends(
@@ -280,6 +281,7 @@ def load_target_analysis_data(
                 item.get("payment_date")
             )
         ) is not None
+        and parsed <= as_of_date
     ]
     required_history_start = _add_calendar_months(
         as_of_date,

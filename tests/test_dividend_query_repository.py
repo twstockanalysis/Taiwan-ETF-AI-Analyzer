@@ -1,5 +1,6 @@
 """ETF 配息查詢 Repository 測試。"""
 
+from datetime import date
 import tempfile
 import unittest
 from pathlib import Path
@@ -271,6 +272,15 @@ class TestDividendQueryRepository(
             summary["average_76w_ratio_pct"],
             90.0,
         )
+
+        paid_summary = build_actual_76w_summary(
+            "00918",
+            self.database_path,
+            analysis_date=date(2026, 5, 1),
+        )
+        self.assertEqual(paid_summary["total_dividend_count"], 2)
+        self.assertEqual(paid_summary["actual_76w_record_count"], 1)
+        self.assertEqual(paid_summary["latest_76w_ratio_pct"], 80.0)
 
 
 if __name__ == "__main__":

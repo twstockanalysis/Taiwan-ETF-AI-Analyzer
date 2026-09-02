@@ -287,6 +287,7 @@ def build_market_eligibility_index(
             code,
             database_path,
             request.history_years,
+            analysis_date=analysis_date,
         )
         performance = list_latest_etf_performance(code, database_path)
         performance_dates = [
@@ -363,7 +364,8 @@ def build_market_eligibility_index(
         public_reasons = _public_candidate_reasons(eligibility_reasons)
 
         component_selection = select_composite_component_mix(
-            list_etf_component_history(code, database_path)
+            list_etf_component_history(code, database_path),
+            analysis_date=analysis_date,
         )
         component_basis = component_selection.basis if component_selection else None
         if component_selection is None:
@@ -416,7 +418,11 @@ def build_market_eligibility_index(
         eligible = not any(
             item.kind == MarketEligibilityReasonKind.EXCLUDE for item in all_reasons
         )
-        actual_76w = build_actual_76w_summary(code, database_path)
+        actual_76w = build_actual_76w_summary(
+            code,
+            database_path,
+            analysis_date=analysis_date,
+        )
         performance_as_of = {
             str(row["period_code"]): _date(row.get("as_of_date"))
             for row in performance

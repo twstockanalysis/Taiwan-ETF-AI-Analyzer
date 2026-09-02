@@ -1,6 +1,7 @@
 """ETF dividend event and component Repository."""
 
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any
 import sqlite3
@@ -1533,8 +1534,10 @@ def list_actual_76w_history(
 def build_actual_76w_summary(
     etf_code: str,
     database_path: str | Path | None = None,
+    *,
+    analysis_date: date | None = None,
 ) -> dict[str, Any]:
-    """Build ACTUAL 76W history statistics for one ETF."""
+    """Build ACTUAL 76W statistics, optionally limited to paid history."""
 
     normalized_code = _normalize_text(
         etf_code,
@@ -1553,6 +1556,15 @@ def build_actual_76w_summary(
         etf_code=normalized_code,
         database_path=database_path,
     )
+
+    if analysis_date is not None:
+        items = [
+            item
+            for item in items
+            if item.get("payment_date") is not None
+            and date.fromisoformat(str(item["payment_date"]))
+            <= analysis_date
+        ]
 
     ratio_values = [
         float(item["ratio_pct"])

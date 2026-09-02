@@ -170,6 +170,7 @@ class TestTargetAnalysisRepositoryData(unittest.TestCase):
             etf_code="0056",
             database_path="sample.db",
             lookback_years=3,
+            analysis_date=date(2026, 8, 3),
         )
         dividend_mock.assert_called_once_with(
             etf_code="0056",

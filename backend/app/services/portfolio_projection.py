@@ -147,7 +147,8 @@ def _holding_fact(
             payments = 1
 
     selection = select_composite_component_mix(
-        list_etf_component_history(holding.etf_code, database_path)
+        list_etf_component_history(holding.etf_code, database_path),
+        analysis_date=analysis_date,
     )
     if annual_cash is not None and annual_cash > 0 and selection is None:
         issues.append(

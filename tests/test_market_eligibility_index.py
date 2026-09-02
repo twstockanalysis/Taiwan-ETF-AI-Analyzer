@@ -227,6 +227,71 @@ class TestMarketEligibilityIndex(unittest.TestCase):
         self.assertFalse(item.eligible_for_addition)
         self.assertIn("FUTURE_PERFORMANCE_DATA", {reason.code for reason in item.reasons})
 
+    def test_future_announced_dividend_is_not_paid_history(self) -> None:
+        connection = get_connection(self.database_path)
+        try:
+            connection.execute(
+                """
+                INSERT INTO etf_master (code, name, is_active, is_bond)
+                VALUES ('00929', '復華台灣科技優息', 0, 0);
+                """
+            )
+            connection.commit()
+        finally:
+            connection.close()
+        self._insert_ready_history("00929", actual=True, one_year_return=5)
+        connection = get_connection(self.database_path)
+        try:
+            connection.executemany(
+                """
+                INSERT INTO etf_dividend (
+                    etf_code, source_event_id, payment_date,
+                    amount_per_unit, currency, source_id
+                ) VALUES ('00929', ?, ?, 0.38, 'TWD', 'TEST');
+                """,
+                [
+                    ("00929-2026-07", "2026-07-13"),
+                    ("00929-2026-08", "2026-08-14"),
+                    ("00929-2026-09-announced", "2026-09-14"),
+                ],
+            )
+            connection.execute(
+                """
+                UPDATE etf_daily_close
+                SET trade_date = '2026-08-31'
+                WHERE etf_code = '00929';
+                """
+            )
+            connection.execute(
+                """
+                UPDATE etf_performance
+                SET as_of_date = '2026-08-31'
+                WHERE etf_code = '00929';
+                """
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        response = build_market_eligibility_index(
+            self.request(),
+            self.database_path,
+            as_of_date=date(2026, 8, 31),
+        ).response
+        item = next(
+            candidate
+            for candidate in response.candidates
+            if candidate.etf_code == "00929"
+        )
+
+        self.assertTrue(item.supported_product)
+        self.assertFalse(item.is_active)
+        self.assertEqual(item.latest_payment_date, date(2026, 8, 14))
+        self.assertNotIn(
+            "FUTURE_DIVIDEND_DATA",
+            {reason.code for reason in item.reasons},
+        )
+
 
 def json_text(value: object) -> str:
     import json
