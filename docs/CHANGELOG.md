@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-02 - SEC-3B Caddy gRPC dependency remediation
+
+- Updated the Caddy build's explicit gRPC pin from `v1.82.1` to the fixed
+  `v1.83.1` release after the required Trivy gate identified
+  `CVE-2026-84304`.
+- Preserved the released Caddy source commit, Go builder, Alpine runtime and
+  existing edge hardening without adding a scanner exception.
+- Updated deterministic deployment-contract and SEC-3 dependency evidence.
+
 ## 2026-09-01 - V5-3 full-database readiness audit
 
 - Added a reproducible full-database audit covering field availability, all
