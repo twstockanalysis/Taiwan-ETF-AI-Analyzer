@@ -29,6 +29,16 @@ from backend.app.utils.date_tools import (
 
 SOURCE_ID = "twse_stock_day"
 
+TRANSIENT_HTTP_STATUS_CODES = frozenset(
+    {
+        307,
+        429,
+        502,
+        503,
+        504,
+    }
+)
+
 NO_DATA_TEXTS = (
     "沒有符合條件",
     "查無資料",
@@ -275,8 +285,18 @@ def fetch_stock_day_month(
     etf_code: str,
     month_start: date,
     timeout_seconds: float = 30.0,
+    max_attempts: int = 3,
+    retry_backoff_seconds: float = 2.0,
 ) -> list[ETFDailyCloseRecord]:
     """下載一檔 ETF 的單月成交資訊。"""
+
+    if max_attempts < 1:
+        raise ValueError("max_attempts 必須大於 0")
+
+    if retry_backoff_seconds < 0:
+        raise ValueError(
+            "retry_backoff_seconds 不得小於 0"
+        )
 
     normalized_code = (
         etf_code.strip().upper()
@@ -307,28 +327,55 @@ def fetch_stock_day_month(
         ),
     )
 
-    response = httpx.get(
-        endpoint_url,
-        params={
-            "response": "json",
-            "date": (
-                month_start.strftime(
-                    "%Y%m01"
-                )
-            ),
-            "stockNo": normalized_code,
-        },
-        timeout=timeout_seconds,
-        follow_redirects=True,
-        verify=ssl_context,
-        headers={
-            "Accept": "application/json",
-            "User-Agent": (
-                "TW-ETF-AI-Analyzer/0.1 "
-                "(official-price-downloader)"
-            ),
-        },
-    )
+    response = None
+
+    for attempt in range(max_attempts):
+        response = httpx.get(
+            endpoint_url,
+            params={
+                "response": "json",
+                "date": (
+                    month_start.strftime(
+                        "%Y%m01"
+                    )
+                ),
+                "stockNo": normalized_code,
+            },
+            timeout=timeout_seconds,
+            follow_redirects=False,
+            verify=ssl_context,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": (
+                    "GoodCat/0.1 "
+                    "(official-price-downloader)"
+                ),
+            },
+        )
+
+        if (
+            response.status_code
+            not in TRANSIENT_HTTP_STATUS_CODES
+            or attempt == max_attempts - 1
+        ):
+            break
+
+        retry_after = response.headers.get(
+            "Retry-After"
+        )
+        try:
+            delay_seconds = float(retry_after)
+        except (TypeError, ValueError):
+            delay_seconds = (
+                retry_backoff_seconds
+                * (2**attempt)
+            )
+
+        if delay_seconds > 0:
+            time.sleep(delay_seconds)
+
+    if response is None:  # pragma: no cover
+        raise RuntimeError("TWSE 請求未執行")
 
     response.raise_for_status()
 

@@ -24,6 +24,7 @@ from backend.app.repositories.dividend_repository import (
     list_etf_dividends,
 )
 from backend.app.repositories.daily_close_repository import (
+    list_daily_closes,
     upsert_daily_close_records,
 )
 
@@ -331,6 +332,62 @@ class TestDividendYieldPipeline(
             result.calculated_count,
             1,
         )
+
+    def test_downloaded_close_is_persisted_for_resume(
+        self,
+    ) -> None:
+        """網路取得的官方價格需成為可續跑的資料庫 checkpoint。"""
+
+        calls: list[tuple] = []
+
+        def fake_price_fetcher(*args):
+            calls.append(args)
+            return [
+                self.build_price(
+                    date(2026, 3, 19),
+                    "25",
+                )
+            ]
+
+        first = run_dividend_yield_pipeline(
+            database_path=self.database_path,
+            etf_code="00918",
+            request_interval_seconds=0,
+            today=date(2026, 8, 1),
+            price_fetcher=fake_price_fetcher,
+            checkpoint_interval=1,
+        )
+
+        self.assertEqual(first.calculated_count, 1)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            [
+                row["trade_date"]
+                for row in list_daily_closes(
+                    "00918",
+                    self.database_path,
+                )
+            ],
+            ["2026-03-19"],
+        )
+
+        def unexpected_fetch(*args):
+            raise AssertionError(
+                "續跑不應再次下載已完成事件"
+            )
+
+        second = run_dividend_yield_pipeline(
+            database_path=self.database_path,
+            etf_code="00918",
+            request_interval_seconds=0,
+            today=date(2026, 8, 1),
+            price_fetcher=unexpected_fetch,
+            checkpoint_interval=1,
+        )
+
+        self.assertEqual(second.candidate_count, 1)
+        self.assertEqual(second.calculated_count, 0)
+        self.assertEqual(second.failed_count, 1)
 
 
 if __name__ == "__main__":
