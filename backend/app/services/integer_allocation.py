@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 from backend.app.models.integer_allocation import (
@@ -22,34 +21,63 @@ from backend.app.models.public_planner import (
     PublicPlannerResponse,
 )
 from backend.app.services.market_eligibility_index import (
-    InternalMarketCandidate,
     build_market_eligibility_index,
+)
+from backend.app.services.complete_portfolio_solver import (
+    CompletePortfolioCandidate,
+    CompletePortfolioPlan,
+    solve_cash_target_frontier,
 )
 from backend.app.services.public_planner import analyze_public_planner_baseline
 
 
 _MONEY = Decimal("0.01")
 _PCT = Decimal("0.01")
-_MAX_REPAIR_STEPS = 10_000
 
 
 def _money(value: Decimal) -> Decimal:
     return value.quantize(_MONEY, rounding=ROUND_HALF_UP)
 
 
-def _ceil_shares(value: Decimal) -> int:
-    return int(value.to_integral_value(rounding=ROUND_CEILING))
-
-
 def _issue(code: str, message: str, field: str | None = None) -> PublicPlannerIssue:
     return PublicPlannerIssue(code=code, message=message, field=field)
 
 
-@dataclass(slots=True)
-class _SolveState:
-    shares: dict[str, int]
-    current_values: dict[str, Decimal]
-    prices: dict[str, Decimal]
+def _select_plan(
+    plans: tuple[CompletePortfolioPlan, ...],
+    objective: str,
+    current_cash: dict[int, Decimal],
+) -> CompletePortfolioPlan:
+    if objective == "MONTHLY_BALANCED":
+        def balanced_key(plan: CompletePortfolioPlan) -> tuple[object, ...]:
+            modeled = [
+                current_cash[month] + amount
+                for month, amount in plan.monthly_added_cash
+            ]
+            spread = max(modeled) - min(modeled)
+            return (
+                spread,
+                plan.total_overshoot,
+                plan.additional_capital,
+                plan.added_etf_count,
+                plan.shares,
+            )
+
+        return min(plans, key=balanced_key)
+    if objective == "DIVERSIFIED_PROTECTION":
+        return min(
+            plans,
+            key=lambda plan: (
+                plan.max_position_pct,
+                plan.additional_capital,
+                plan.total_overshoot,
+                plan.added_etf_count,
+                plan.shares,
+            ),
+        )
+    if objective != "CAPITAL_EFFICIENT":
+        raise ValueError("unknown V5-4 plan objective")
+    return plans[0]
 
 
 def _resulting_holdings(
@@ -111,132 +139,6 @@ def _resulting_holdings(
     return results
 
 
-def _cash_gain(
-    candidate: InternalMarketCandidate,
-    selected_months: tuple[int, ...],
-    remaining: dict[int, Decimal],
-) -> Decimal:
-    return sum(
-        min(
-            remaining[month],
-            candidate.monthly_after_tax_cash_per_share[month - 1],
-        )
-        for month in selected_months
-    )
-
-
-def _add_cash_covering_shares(
-    candidates: tuple[InternalMarketCandidate, ...],
-    selected_months: tuple[int, ...],
-    current_cash: dict[int, Decimal],
-    target: Decimal,
-    state: _SolveState,
-    preference_rank: dict[str, int] | None = None,
-    preference_first: bool = False,
-) -> bool:
-    """以整數批次逐步縮小短缺；不經過小數股求解再進位。"""
-
-    for _ in range(len(selected_months) * max(len(candidates), 1) + 1):
-        remaining = {
-            month: max(target - current_cash[month], Decimal("0"))
-            for month in selected_months
-        }
-        if not any(remaining.values()):
-            return True
-        ranked = []
-        for candidate in candidates:
-            price = candidate.public_item.reference_price
-            if price is None:
-                continue
-            gain = _cash_gain(candidate, selected_months, remaining)
-            if gain <= 0:
-                continue
-            code = candidate.public_item.etf_code
-            preference = (preference_rank or {}).get(code, len(candidates))
-            if preference_first:
-                key = (
-                    preference,
-                    -(gain / price),
-                    -(candidate.quality_score or Decimal("0")),
-                    code,
-                )
-            else:
-                key = (
-                    -(gain / price),
-                    -(candidate.quality_score or Decimal("0")),
-                    preference,
-                    code,
-                )
-            ranked.append((*key, candidate))
-        if not ranked:
-            return False
-        candidate = min(ranked)[-1]
-        positive_needs = [
-            _ceil_shares(
-                remaining[month]
-                / candidate.monthly_after_tax_cash_per_share[month - 1]
-            )
-            for month in selected_months
-            if remaining[month] > 0
-            and candidate.monthly_after_tax_cash_per_share[month - 1] > 0
-        ]
-        quantity = max(1, min(positive_needs))
-        code = candidate.public_item.etf_code
-        state.shares[code] = state.shares.get(code, 0) + quantity
-        for month in selected_months:
-            current_cash[month] += (
-                candidate.monthly_after_tax_cash_per_share[month - 1] * quantity
-            )
-    return not any(current_cash[month] < target for month in selected_months)
-
-
-def _repair_concentration(
-    candidates_by_code: dict[str, InternalMarketCandidate],
-    state: _SolveState,
-    max_pct: Decimal,
-    preference_rank: dict[str, int] | None = None,
-) -> bool:
-    """以整數股增加低權重候選，直到所有單一 ETF 市值不超過上限。"""
-
-    limit = max_pct / Decimal("100")
-    if limit <= 0:
-        return False
-    for _ in range(_MAX_REPAIR_STEPS):
-        values = dict(state.current_values)
-        for code, shares in state.shares.items():
-            values[code] = values.get(code, Decimal("0")) + state.prices[code] * shares
-        total = sum(values.values(), Decimal("0"))
-        if total <= 0:
-            return not state.shares
-        dominant_value = max(values.values())
-        if dominant_value <= total * limit:
-            return True
-
-        required_total = dominant_value / limit
-        deficit = required_total - total
-        choices = []
-        for code, candidate in candidates_by_code.items():
-            price = state.prices[code]
-            value = values.get(code, Decimal("0"))
-            if value >= dominant_value:
-                continue
-            choices.append((value, code, price, candidate))
-        if not choices:
-            return False
-        value, code, price, _ = min(
-            choices,
-            key=lambda row: (
-                row[0],
-                (preference_rank or {}).get(row[1], len(candidates_by_code)),
-                row[1],
-            ),
-        )
-        room = max(dominant_value - value, price)
-        quantity = max(1, min(_ceil_shares(deficit / price), _ceil_shares(room / price)))
-        state.shares[code] = state.shares.get(code, 0) + quantity
-    return False
-
-
 def build_integer_allocation(
     request: IntegerAllocationRequest,
     database_path: str | Path,
@@ -244,7 +146,11 @@ def build_integer_allocation(
     as_of_date: date | None = None,
     preferred_candidate_order: tuple[str, ...] | None = None,
     preference_first: bool = False,
+    plan_objective: str = "CAPITAL_EFFICIENT",
 ) -> IntegerAllocationResponse:
+    # V3 strategy preferences remain accepted for API compatibility. V5-4 no
+    # longer lets a pre-ranked ETF list choose feasibility.
+    del preferred_candidate_order, preference_first
     analysis_date = as_of_date or date.today()
     baseline = analyze_public_planner_baseline(
         request, database_path, as_of_date=analysis_date
@@ -362,59 +268,38 @@ def build_integer_allocation(
         for code, candidate in candidates_by_code.items()
         if candidate.public_item.reference_price is not None
     }
-    current_values = {
-        holding.etf_code: holding.current_value
-        for holding in baseline.holdings
-        if holding.current_value is not None
-    }
-    state = _SolveState(shares={}, current_values=current_values, prices=prices)
-    solve_cash = dict(current_cash)
-    preference_rank = {
-        code: rank for rank, code in enumerate(preferred_candidate_order or ())
-    }
-    _add_cash_covering_shares(
-        candidates,
-        selected,
-        solve_cash,
-        target,
-        state,
-        preference_rank,
-        preference_first,
-    )
-    concentration_ok = _repair_concentration(
-        candidates_by_code,
-        state,
-        index.rules.max_candidate_allocation_pct,
-        preference_rank,
-    )
-    if not concentration_ok:
-        return IntegerAllocationResponse(
-            **common,
-            status=IntegerAllocationStatus.NO_ELIGIBLE_ALLOCATION,
-            optimality=IntegerAllocationOptimality.NOT_APPLICABLE,
-            total_required_additional_capital=Decimal("0"),
-            monthly_results=empty_months,
-            issues=[
-                *baseline.issues,
-                _issue(
-                    "CONCENTRATION_CONSTRAINT_INFEASIBLE",
-                    "通過資格門檻的 ETF 結構不足以同時符合單一 ETF 20% 市值上限。",
-                )
-            ],
+    solver_candidates = tuple(
+        CompletePortfolioCandidate(
+            etf_code=code,
+            reference_price=price,
+            monthly_cash_per_share=(
+                candidates_by_code[code].monthly_after_tax_cash_per_share
+            ),
         )
-
-    added_cash = {month: Decimal("0") for month in selected}
+        for code, price in prices.items()
+    )
+    search = solve_cash_target_frontier(
+        solver_candidates,
+        selected_months=selected,
+        target_cash_by_month={month: target for month in selected},
+        current_cash_by_month=current_cash,
+        current_value_by_code={
+            holding.etf_code: holding.current_value
+            for holding in baseline.holdings
+            if holding.current_value is not None
+        },
+        max_added_etfs=5,
+    )
+    selected_plan = _select_plan(search.frontier, plan_objective, current_cash)
+    selected_shares = dict(selected_plan.shares)
+    added_cash = dict(selected_plan.monthly_added_cash)
     additions = []
-    for code in sorted(state.shares):
-        quantity = state.shares[code]
+    for code in sorted(selected_shares):
+        quantity = selected_shares[code]
         if quantity <= 0:
             continue
         candidate = candidates_by_code[code]
         price = prices[code]
-        for month in selected:
-            added_cash[month] += (
-                candidate.monthly_after_tax_cash_per_share[month - 1] * quantity
-            )
         supported = [
             month
             for month in selected
@@ -460,7 +345,7 @@ def build_integer_allocation(
     holdings = _resulting_holdings(
         baseline,
         request,
-        state.shares,
+        selected_shares,
         prices,
         added_market_facts,
     )
@@ -487,6 +372,13 @@ def build_integer_allocation(
         else IntegerAllocationStatus.PARTIAL
     )
     issues = list(baseline.issues)
+    if search.truncated:
+        issues.append(
+            _issue(
+                "V5_4_BOUNDED_SEARCH",
+                "完整配置使用有界確定性搜尋；結果不得描述為全域最低資金。",
+            )
+        )
     if status == IntegerAllocationStatus.PARTIAL:
         issues.append(
             _issue(
@@ -498,6 +390,8 @@ def build_integer_allocation(
         **common,
         status=status,
         optimality=IntegerAllocationOptimality.BOUNDED_BEST_EFFORT,
+        search_explored_states=search.explored_states,
+        search_truncated=search.truncated,
         additions=additions,
         total_required_additional_capital=_money(total_capital),
         monthly_results=month_results,

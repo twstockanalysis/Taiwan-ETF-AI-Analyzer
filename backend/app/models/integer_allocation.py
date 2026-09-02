@@ -71,6 +71,8 @@ class IntegerAllocationAssumptions(PublicPlannerBaseModel):
     cash_deduction_rate_pct: Decimal = Field(ge=0, le=100)
     transaction_cost_rate_pct: Literal[Decimal("0")] = Decimal("0")
     max_candidate_allocation_pct: Decimal = Field(gt=0, le=100)
+    concentration_limit_enforced: Literal[False] = False
+    max_added_etfs: Literal[5] = 5
     transaction_cost_note: str = "V3-3 尚未納入券商手續費，交易成本固定以 0 元試算。"
 
 
@@ -78,8 +80,8 @@ class IntegerAllocationResponse(PublicPlannerBaseModel):
     profile_scope: Literal["PUBLIC_STATELESS"] = "PUBLIC_STATELESS"
     request_persisted: Literal[False] = False
     broker_connected: Literal[False] = False
-    methodology: Literal["DETERMINISTIC_INTEGER_ALLOCATION_V3_3"] = (
-        "DETERMINISTIC_INTEGER_ALLOCATION_V3_3"
+    methodology: Literal["BOUNDED_COMPLETE_PORTFOLIO_V5_4"] = (
+        "BOUNDED_COMPLETE_PORTFOLIO_V5_4"
     )
     status: IntegerAllocationStatus
     optimality: IntegerAllocationOptimality
@@ -91,6 +93,8 @@ class IntegerAllocationResponse(PublicPlannerBaseModel):
     assumptions: IntegerAllocationAssumptions
     universe_count: int = Field(ge=0)
     eligible_count: int = Field(ge=0)
+    search_explored_states: int = Field(default=0, ge=0)
+    search_truncated: bool = False
     additions: list[IntegerAllocationAddition] = Field(default_factory=list)
     total_required_additional_capital: Decimal = Field(ge=0)
     monthly_results: list[IntegerAllocationMonthResult]

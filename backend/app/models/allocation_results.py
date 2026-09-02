@@ -57,7 +57,7 @@ class AllocationResultsResponse(PublicPlannerBaseModel):
     def require_recommended_first_and_unique_strategies(self):
         strategies = [plan.strategy for plan in self.plans]
         if strategies[0] != AllocationStrategy.RECOMMENDED:
-            raise ValueError("第一個方案必須是推薦配置")
+            raise ValueError("第一個方案必須是資金精簡方案")
         if len(strategies) != len(set(strategies)):
             raise ValueError("配置策略不可重複")
         return self
