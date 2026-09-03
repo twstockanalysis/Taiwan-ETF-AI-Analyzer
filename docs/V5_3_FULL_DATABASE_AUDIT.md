@@ -178,6 +178,11 @@ V5-4 remains responsible for the independent algorithm findings:
 - replace the current bounded best-effort, one-plan result only after
   deterministic replay and owner acceptance.
 
+The post-V5-3A full-market refresh and retry evidence is recorded in
+[`V5_3D_FULL_MARKET_REFRESH.md`](V5_3D_FULL_MARKET_REFRESH.md). It supersedes
+the coverage counts in this pre-fix snapshot but does not rewrite the original
+audit findings.
+
 ## Reproduction
 
 ```powershell

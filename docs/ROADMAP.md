@@ -1481,6 +1481,20 @@ V5-3A paid-dividend cutoff:
 The broader V5-3 phase remains in progress while the documented data coverage,
 remaining source coverage and allocation-size limitations remain unresolved.
 
+V5-3D full-market refresh:
+
+- Rebuilt a non-overwrite candidate at a fixed 2026-09-02 evaluation date and
+  retained all 263 ETF-by-field records plus all 263 candidate decisions in
+  each of eight planner cases.
+- Made TWSE price fallback retries bounded and resumable, recovering 717 event
+  yields for final 1,518/1,524 coverage without zero-filling the six remaining
+  unavailable events.
+- Kept the database decision honest: ACTUAL and formal 76W remain 1/263,
+  constituent quality remains 120/157, and four detail fields remain 0/263.
+- Ranked Cathay constituent automation, beginning with the 00878 holding case,
+  as the next result-critical V5-3 acquisition cohort.
+- Evidence: `docs/V5_3D_FULL_MARKET_REFRESH.md`
+
 ### V5-4 — Allocation-result algorithm
 
 - Solve the complete zero-to-N holding and one-to-five added-ETF portfolio

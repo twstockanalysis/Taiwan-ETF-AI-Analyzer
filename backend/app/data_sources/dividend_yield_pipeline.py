@@ -26,6 +26,7 @@ from backend.app.repositories.dividend_repository import (
 )
 from backend.app.repositories.daily_close_repository import (
     list_daily_closes,
+    upsert_daily_close_records,
 )
 from backend.app.utils.date_tools import (
     list_month_starts,
@@ -125,17 +126,25 @@ def run_dividend_yield_pipeline(
     today: date | None = None,
     price_fetcher: PriceFetcher | None = None,
     prefer_cached_prices: bool = True,
+    checkpoint_interval: int = 25,
 ) -> DividendYieldPipelineResult:
     """為尚無官方值的事件建立並保存回退殖利率。
 
     已保存的官方日收盤價優先於網路請求；快取沒有除息日前
-    價格時才呼叫 price_fetcher。這讓全市場績效與殖利率批次
-    共用同一份 TWSE facts，並保留完全相同的來源語意。
+    價格時才呼叫 price_fetcher。新下載價格立即保存，殖利率
+    依 checkpoint_interval 分批提交，因此中斷後重跑會跳過
+    已完成事件。這讓全市場績效與殖利率批次共用同一份
+    TWSE facts，並保留完全相同的來源語意。
     """
 
     if request_interval_seconds < 0:
         raise ValueError(
             "request_interval_seconds 不得小於 0"
+        )
+
+    if checkpoint_interval < 1:
+        raise ValueError(
+            "checkpoint_interval 必須大於 0"
         )
 
     target_database_path = initialize_database(
@@ -150,9 +159,13 @@ def run_dividend_yield_pipeline(
 
     resolved_today = today or date.today()
 
-    records: list[
+    pending_records: list[
         ETFDividendSummaryMetricRecord
     ] = []
+
+    calculated_count = 0
+    inserted_count = 0
+    updated_count = 0
 
     failures: list[
         DividendYieldFailure
@@ -241,6 +254,31 @@ def run_dividend_yield_pipeline(
                     request_interval_seconds,
                 )
 
+                upsert_daily_close_records(
+                    records=price_records,
+                    database_path=(
+                        target_database_path
+                    ),
+                )
+
+                cached = cached_prices_by_code.setdefault(
+                    code,
+                    [],
+                )
+                records_by_key = {
+                    (
+                        row.trade_date,
+                        row.source_id,
+                    ): row
+                    for row in (
+                        cached + price_records
+                    )
+                }
+                cached_prices_by_code[code] = sorted(
+                    records_by_key.values(),
+                    key=lambda row: row.trade_date,
+                )
+
             reference = (
                 select_previous_trading_close(
                     records=price_records,
@@ -250,7 +288,7 @@ def run_dividend_yield_pipeline(
                 )
             )
 
-            records.append(
+            pending_records.append(
                 ETFDividendSummaryMetricRecord(
                     dividend_id=dividend_id,
                     yield_pct=(
@@ -281,6 +319,29 @@ def run_dividend_yield_pipeline(
                     ),
                 )
             )
+            calculated_count += 1
+
+            if (
+                len(pending_records)
+                >= checkpoint_interval
+            ):
+                checkpoint_summary = (
+                    upsert_dividend_summary_metrics(
+                        records=pending_records,
+                        database_path=(
+                            target_database_path
+                        ),
+                    )
+                )
+                inserted_count += (
+                    checkpoint_summary
+                    .inserted_records
+                )
+                updated_count += (
+                    checkpoint_summary
+                    .updated_records
+                )
+                pending_records.clear()
 
         except Exception as error:
             failures.append(
@@ -291,16 +352,27 @@ def run_dividend_yield_pipeline(
                 )
             )
 
-    import_summary = (
+    final_summary = (
         upsert_dividend_summary_metrics(
-            records=records,
+            records=pending_records,
             database_path=target_database_path,
+        )
+    )
+
+    inserted_count += final_summary.inserted_records
+    updated_count += final_summary.updated_records
+
+    import_summary = (
+        DividendSummaryMetricUpsertSummary(
+            total_records=calculated_count,
+            inserted_records=inserted_count,
+            updated_records=updated_count,
         )
     )
 
     return DividendYieldPipelineResult(
         candidate_count=len(candidates),
-        calculated_count=len(records),
+        calculated_count=calculated_count,
         failed_count=len(failures),
         import_summary=import_summary,
         failures=tuple(failures),

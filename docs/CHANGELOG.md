@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-09-03 - V5-3D resumable full-market yield recovery
+
+- Replayed all 263 ETFs across 18 detail fields and all eight planner cases
+  against a separate refreshed candidate database.
+- Replaced unbounded TWSE redirect following with bounded transient retries and
+  backoff, then persisted downloaded official closes and calculated yields as
+  resumable database checkpoints.
+- Recovered 717 missing event yields, reaching 1,518/1,524 while retaining one
+  future event and five unavailable reference closes as explicit missing data.
+- Retained the constituent `NO_GO` decision at 120/157 calculation-quality ETFs
+  and documented Cathay as the highest-impact next data cohort.
+
 ## 2026-09-02 — V5-4 complete-plan views
 
 - Preserved every submitted existing ETF in each allocation result while

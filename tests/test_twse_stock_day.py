@@ -191,6 +191,57 @@ class TestTWSEStockDay(unittest.TestCase):
             "0050",
         )
 
+        self.assertFalse(
+            mock_get.call_args.kwargs[
+                "follow_redirects"
+            ]
+        )
+
+    @patch(
+        "backend.app.data_sources."
+        "twse_stock_day.time.sleep"
+    )
+    @patch(
+        "backend.app.data_sources."
+        "twse_stock_day.httpx.get"
+    )
+    def test_fetch_retries_transient_redirect(
+        self,
+        mock_get: Mock,
+        mock_sleep: Mock,
+    ) -> None:
+        """暫時重新導向需退避重試，不可形成自動迴圈。"""
+
+        redirect = Mock()
+        redirect.status_code = 307
+        redirect.headers = {}
+
+        success = Mock()
+        success.status_code = 200
+        success.headers = {}
+        success.json.return_value = (
+            self.build_payload()
+        )
+        success.raise_for_status.return_value = None
+
+        mock_get.side_effect = [redirect, success]
+
+        records = fetch_stock_day_month(
+            etf_code="0050",
+            month_start=date(2026, 7, 1),
+            retry_backoff_seconds=0.25,
+        )
+
+        self.assertEqual(len(records), 2)
+        self.assertEqual(mock_get.call_count, 2)
+        mock_sleep.assert_called_once_with(0.25)
+        self.assertTrue(
+            all(
+                not call.kwargs["follow_redirects"]
+                for call in mock_get.call_args_list
+            )
+        )
+
     def test_snapshot_is_saved(
         self,
     ) -> None:
